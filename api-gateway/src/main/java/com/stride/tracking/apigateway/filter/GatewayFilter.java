@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stride.tracking.apigateway.constant.CustomHeaders;
 import com.stride.tracking.apigateway.constant.Message;
+import com.stride.tracking.apigateway.exception.AuthException;
 import com.stride.tracking.apigateway.exception.ErrorResponse;
 import com.stride.tracking.apigateway.service.IdentityService;
 import lombok.RequiredArgsConstructor;
@@ -90,7 +91,7 @@ public class GatewayFilter implements GlobalFilter {
         try {
             body = objectMapper.writeValueAsString(errorResponse);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new AuthException("Can't parse to JSON error response", e);
         }
 
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
