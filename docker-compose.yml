@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  identity-ms:
+    build:
+      context: ./identity-service
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: identity-ms
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
+  notification-ms:
+    build:
+      context: ./notification-service
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: notification-ms
+    depends_on:
+      mongo-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
+  profile-ms:
+    build:
+      context: ./profile-service
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: profile-ms
+    depends_on:
+      mongo-db:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
+  file-ms:
+    build:
+      context: ./file-service
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: file-ms
+    ports:
+      - "8084:8084"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
+  gateway:
+    build:
+      context: ./api-gateway
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: gateway-ms
+    depends_on:
+      - identity-ms
+      - notification-ms
+      - profile-ms
+      - file-ms
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
+  kafka:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka
+    hostname: kafka
+    restart: always
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_MESSAGE_MAX_BYTES=2000000
+      - KAFKA_CFG_REPLICA_FETCH_MAX_BYTES=2000000
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    networks:
+      - stride-network
+    healthcheck:
+      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: on-failure
+    ports:
+      - "9090:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=
+    depends_on:
+      - kafka
+    networks:
+      - stride-network
+  mysql-db:
+    image: mysql:8.0.41-bookworm
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: identity_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: on-failure
+    networks:
+      - stride-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "mysql-db", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}" ]
+      timeout: 10s
+      retries: 3
+  mongo-db:
+    build:
+      context: z-etc/mongo
+    container_name: mongo-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: on-failure
+    networks:
+      - stride-network
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--username", "${MONGO_INITDB_ROOT_USERNAME}", "--password", "${MONGO_INITDB_ROOT_PASSWORD}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+networks:
+  stride-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongo-data:
