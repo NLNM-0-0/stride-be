@@ -1,4 +1,4 @@
-package com.stride.tracking.identityservice.service;
+package com.stride.tracking.identityservice.service.impl;
 
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.dto.event.SendEmailEvent;
@@ -15,7 +15,7 @@ import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.model.VerifiedToken;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.repository.VerifiedTokenRepository;
-import com.stride.tracking.identityservice.service.impl.UserIdentityService;
+import com.stride.tracking.identityservice.service.UserIdentityService;
 import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailType;
@@ -69,13 +69,20 @@ public class UserIdentityServiceImpl implements UserIdentityService {
             }
 
         } else {
-            String userId = createUser(request);
+            Optional<UserIdentity> existingGoogleUser = userIdentityRepository.findByProviderAndEmail(
+                    AuthProvider.GOOGLE, request.getEmail());
 
-            UserIdentity userIdentity = createUserIdentity(request, userId);
+            String userId = existingGoogleUser
+                    .map(UserIdentity::getUserId)
+                    .orElseGet(() -> createUser(request));
 
-            String otp = saveVerifiedToken(userIdentity);
+            boolean isExistingUser = existingGoogleUser.isPresent();
+            UserIdentity userIdentity = createUserIdentity(request, userId, isExistingUser);
 
-            sendVerifiedEmail(userIdentity, otp);
+            if (!isExistingUser) {
+                String otp = saveVerifiedToken(userIdentity);
+                sendVerifiedEmail(userIdentity, otp);
+            }
 
             userIdentityId = userIdentity.getId();
         }
@@ -96,7 +103,7 @@ public class UserIdentityServiceImpl implements UserIdentityService {
         return Objects.requireNonNull(response.getBody()).getUserId();
     }
 
-    private UserIdentity createUserIdentity(EmailRegisterRequest request, String userId) {
+    private UserIdentity createUserIdentity(EmailRegisterRequest request, String userId, boolean isVerified) {
         UserIdentity userIdentity = UserIdentity.builder()
                 .userId(userId)
                 .email(request.getEmail())
@@ -104,7 +111,7 @@ public class UserIdentityServiceImpl implements UserIdentityService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .provider(AuthProvider.STRIDE)
                 .providerId(null)
-                .isVerified(false)
+                .isVerified(isVerified)
                 .isAdmin(false)
                 .isBlocked(false)
                 .build();

@@ -1,4 +1,4 @@
-package com.stride.tracking.identityservice.service;
+package com.stride.tracking.identityservice.service.impl;
 
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.dto.event.SendEmailEvent;
@@ -12,7 +12,7 @@ import com.stride.tracking.identityservice.model.ResetPasswordToken;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.repository.ResetPasswordTokenRepository;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
-import com.stride.tracking.identityservice.service.impl.ResetPasswordService;
+import com.stride.tracking.identityservice.service.ResetPasswordService;
 import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailType;

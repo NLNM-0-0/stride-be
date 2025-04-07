@@ -1,4 +1,4 @@
-package com.stride.tracking.identityservice.service.impl;
+package com.stride.tracking.identityservice.service;
 
 import com.stride.tracking.dto.request.ResetPasswordUserRequest;
 import com.stride.tracking.dto.request.ResetPasswordUserSendOTPRequest;
