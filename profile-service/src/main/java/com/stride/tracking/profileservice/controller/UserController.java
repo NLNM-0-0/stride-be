@@ -27,6 +27,7 @@ public class UserController {
         return ResponseEntity.ok(userService.viewProfile());
     }
 
+    @PutMapping("/profile")
     ResponseEntity<SimpleResponse> updateUser(
             @RequestBody UpdateUserRequest request) {
         userService.updateUserProfile(request);
