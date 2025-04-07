@@ -2,6 +2,7 @@ package com.stride.tracking.apigateway.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stride.tracking.apigateway.exception.AuthException;
 import com.stride.tracking.apigateway.exception.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -40,7 +41,7 @@ public class AccessDeniedExceptionHandler implements ServerAccessDeniedHandler {
                                             .build())
                             .getBytes(StandardCharsets.UTF_8));
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new AuthException("Can't parse to JSON error response", e);
         }
 
         return response.writeWith(Mono.just(buffer));
