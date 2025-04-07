@@ -43,12 +43,12 @@
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>notification-dto</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
+            <version>0.0.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>stride-common</artifactId>
-            <version>0.0.11-SNAPSHOT</version>
+            <version>0.0.12-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -57,17 +57,17 @@ public class UserIdentityServiceImpl implements UserIdentityService {
     public EmailRegisterResponse register(EmailRegisterRequest request) {
         String userIdentityId;
 
-        Optional<UserIdentity> existingUserIdentityOptional = userIdentityRepository.findByUsername(request.getEmail());
+        Optional<UserIdentity> existingUserIdentityOptional =
+                userIdentityRepository.findByUsername(request.getEmail());
         if (existingUserIdentityOptional.isPresent()) {
             UserIdentity existingUserIdentity = existingUserIdentityOptional.get();
 
-            if (existingUserIdentity.isVerified()) {
-                throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_EXISTED);
-            } else if (existingUserIdentity.isBlocked()) {
+            if (existingUserIdentity.isBlocked()) {
                 throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_IS_BLOCKED);
             } else {
-                userIdentityId = existingUserIdentityOptional.get().getId();
+                throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_EXISTED);
             }
+
         } else {
             String userId = createUser(request);
 

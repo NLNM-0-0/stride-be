@@ -40,7 +40,7 @@
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>identity-dto</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
+            <version>0.0.5-SNAPSHOT</version>
         </dependency>
 
         <dependency>

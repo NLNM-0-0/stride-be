@@ -9,6 +9,7 @@ import com.stride.tracking.dto.response.IntrospectResponse;
 import com.stride.tracking.identityservice.constant.JWTClaimProperty;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.constant.Role;
+import com.stride.tracking.identityservice.exception.AuthException;
 import com.stride.tracking.identityservice.model.AuthToken;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.repository.AuthTokenRepository;
@@ -91,15 +92,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .findByUsername(request.getUsername())
                 .orElseThrow(() -> new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_EXIST));
 
-        if (!userIdentity.isVerified()) {
-            throw new StrideException(HttpStatus.FORBIDDEN, Message.USER_NOT_VERIFIED);
-        } else if (userIdentity.isBlocked()) {
-            throw new StrideException(HttpStatus.FORBIDDEN, Message.USER_IS_BLOCKED);
-        }
-
         boolean passwordMatched = passwordEncoder.matches(request.getPassword(), userIdentity.getPassword());
         if (!passwordMatched) {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_CORRECT);
+        }
+
+        if (userIdentity.isBlocked()) {
+            throw new StrideException(HttpStatus.FORBIDDEN, Message.USER_IS_BLOCKED);
+        } else if (!userIdentity.isVerified()) {
+            return AuthenticationResponse.builder()
+                    .userIdentityId(userIdentity.getId())
+                    .build();
         }
 
         Date issueTime = new Date();
@@ -142,8 +145,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            log.error("Cannot create token", e);
-            throw new RuntimeException(e);
+            throw new AuthException("Cannot create token", e);
         }
     }
 
