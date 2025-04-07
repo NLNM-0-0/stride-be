@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
     public CreateUserResponse createNewUser(CreateUserRequest request) {
         User user = User.builder()
                 .name(request.getName())
-                .ava(DEFAULT_AVA)
+                .ava(request.getAva() != null ? request.getAva() : DEFAULT_AVA)
                 .isBlock(false)
                 .build();
 

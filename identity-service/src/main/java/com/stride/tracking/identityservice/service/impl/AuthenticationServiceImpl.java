@@ -1,30 +1,30 @@
-package com.stride.tracking.identityservice.service;
+package com.stride.tracking.identityservice.service.impl;
 
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.dto.request.AuthenticationRequest;
-import com.stride.tracking.dto.request.IntrospectRequest;
-import com.stride.tracking.dto.request.LogoutRequest;
+import com.stride.tracking.dto.request.*;
 import com.stride.tracking.dto.response.AuthenticationResponse;
+import com.stride.tracking.dto.response.CreateUserResponse;
 import com.stride.tracking.dto.response.IntrospectResponse;
+import com.stride.tracking.identityservice.client.ProfileFeignClient;
+import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.JWTClaimProperty;
 import com.stride.tracking.identityservice.constant.Message;
-import com.stride.tracking.identityservice.constant.Role;
-import com.stride.tracking.identityservice.exception.AuthException;
 import com.stride.tracking.identityservice.model.AuthToken;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.repository.AuthTokenRepository;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
-import com.stride.tracking.identityservice.service.impl.AuthenticationService;
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.stride.tracking.identityservice.service.AuthenticationService;
+import com.stride.tracking.identityservice.utils.GoogleIdTokenHelper;
+import com.stride.tracking.identityservice.utils.JwtTokenHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +34,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -42,13 +42,12 @@ import java.util.UUID;
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserIdentityRepository userIdentityRepository;
     private final AuthTokenRepository authTokenRepository;
+
+    private final ProfileFeignClient profileClient;
+
     private final PasswordEncoder passwordEncoder;
-    private final JWSAlgorithm jwsAlgorithm;
-
-
-    @NonFinal
-    @Value("${jwt.signerKey}")
-    protected String SIGNER_KEY;
+    private final JwtTokenHelper jwtTokenHelper;
+    private final GoogleIdTokenHelper googleIdTokenHelper;
 
     @NonFinal
     @Value("${jwt.valid-duration}")
@@ -60,7 +59,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String token = request.getToken();
 
         try {
-            SignedJWT signedJWT = verifyToken(token);
+            SignedJWT signedJWT = jwtTokenHelper.verifyToken(token);
+
+            if (authTokenRepository.existsByToken(signedJWT.getJWTClaimsSet().getJWTID())) {
+                throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_LOGIN);
+            }
 
             Map<String, Object> claims = signedJWT.getJWTClaimsSet().getClaims();
 
@@ -105,9 +108,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .build();
         }
 
+        return generateAndSaveAuthToken(userIdentity);
+    }
+
+    private AuthenticationResponse generateAndSaveAuthToken( UserIdentity userIdentity) {
         Date issueTime = new Date();
         Date expirationTime = Date.from(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS));
-        String token = generateToken(userIdentity, issueTime, expirationTime);
+        String token = jwtTokenHelper.generateToken(userIdentity, issueTime, expirationTime);
 
         AuthToken authToken = AuthToken.builder()
                 .token(token)
@@ -121,39 +128,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
     }
 
-    private String generateToken(UserIdentity userIdentity, Date issueTime, Date expirationTime) {
-        JWSHeader header = new JWSHeader(jwsAlgorithm);
-
-        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(userIdentity.getId())
-                .issuer("stride")
-                .issueTime(issueTime)
-                .expirationTime(expirationTime)
-                .jwtID(UUID.randomUUID().toString())
-                .claim(JWTClaimProperty.SCOPE, userIdentity.isAdmin() ? Role.ADMIN : Role.USER)
-                .claim(JWTClaimProperty.USERNAME, userIdentity.getUsername())
-                .claim(JWTClaimProperty.USER_ID, userIdentity.getUserId())
-                .claim(JWTClaimProperty.EMAIL, userIdentity.getEmail())
-                .claim(JWTClaimProperty.PROVIDER, userIdentity.getProvider())
-                .build();
-
-        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
-
-        JWSObject jwsObject = new JWSObject(header, payload);
-
-        try {
-            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
-            return jwsObject.serialize();
-        } catch (JOSEException e) {
-            throw new AuthException("Cannot create token", e);
-        }
-    }
-
     @Transactional
     @Override
     public void logout(LogoutRequest request) {
         try {
-            verifyToken(request.getToken());
+            SignedJWT signedJWT = jwtTokenHelper.verifyToken(request.getToken());
+
+            if (authTokenRepository.existsByToken(signedJWT.getJWTClaimsSet().getJWTID())) {
+                throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_LOGIN);
+            }
 
             AuthToken authToken = authTokenRepository
                     .findByToken(request.getToken())
@@ -167,23 +150,53 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
-        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+    @Transactional
+    @Override
+    public AuthenticationResponse authenticateWithGoogle(AuthenticateWithGoogleRequest request) {
+        try {
+            JWTClaimsSet claimsSet = googleIdTokenHelper.validateToken(request.getIdToken());
 
-        SignedJWT signedJWT = SignedJWT.parse(token);
+            String email = claimsSet.getStringClaim("email");
+            String name = claimsSet.getStringClaim("name");
+            String ava = claimsSet.getStringClaim("picture");
+            String sub = claimsSet.getSubject();
 
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+            UserIdentity userIdentity = userIdentityRepository
+                    .findByProviderAndEmail(AuthProvider.GOOGLE, email)
+                    .orElseGet(() -> {
+                        String userId = userIdentityRepository.findByUsername(email)
+                                .map(UserIdentity::getUserId)
+                                .orElseGet(() -> createUser(name, ava));
 
-        var verified = signedJWT.verify(verifier);
+                        UserIdentity newUserIdentity = UserIdentity.builder()
+                                .userId(userId)
+                                .providerId(sub)
+                                .provider(AuthProvider.GOOGLE)
+                                .email(email)
+                                .isBlocked(false)
+                                .isVerified(true)
+                                .isAdmin(false)
+                                .build();
 
-        if (!verified || expiryTime.before(new Date())) {
-            throw new StrideException(HttpStatus.BAD_REQUEST, Message.JWT_INVALID);
+                        return userIdentityRepository.save(newUserIdentity);
+                    });
+
+
+            return generateAndSaveAuthToken(userIdentity);
+        } catch (ParseException | JOSEException e) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.ID_TOKEN_INVALID);
+        }
+    }
+
+    private String createUser(String name, String ava) {
+        ResponseEntity<CreateUserResponse> response = profileClient.createUser(CreateUserRequest.builder()
+                .name(name)
+                .ava(ava)
+                .build());
+        if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.PROFILE_CREATE_USER_ERROR);
         }
 
-        if (authTokenRepository.existsByToken(signedJWT.getJWTClaimsSet().getJWTID())) {
-            throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_LOGIN);
-        }
-
-        return signedJWT;
+        return Objects.requireNonNull(response.getBody()).getUserId();
     }
 }
