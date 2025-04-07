@@ -184,7 +184,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             return generateAndSaveAuthToken(userIdentity);
         } catch (ParseException | JOSEException e) {
-            throw new StrideException(HttpStatus.BAD_REQUEST, Message.JWT_INVALID);
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.ID_TOKEN_INVALID);
         }
     }
 
