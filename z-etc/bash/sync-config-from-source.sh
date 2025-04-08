@@ -1,5 +1,7 @@
 #!bash
 
+source ./config-paths.env
+
 declare -A services=(
     ["gateway/application.yml"]="api-gateway/src/main/resources/application.yml"
     ["gateway/application-dev.yml"]="api-gateway/src/main/resources/application-dev.yml"
