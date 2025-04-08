@@ -1,5 +1,7 @@
 #!bash
 
+source ./config-paths.env
+
 declare -A services=(
     ["gateway/application.yml"]="api-gateway/src/main/resources/application.yml"
         ["gateway/application-dev.yml"]="api-gateway/src/main/resources/application-dev.yml"
@@ -19,9 +21,6 @@ declare -A services=(
 
         [".env"]=".env"
 )
-
-CONFIG_DIR="D:/stride-config/backend"
-SOURCE_DIR="D:/stride-be"
 
 # Copy files from SOURCE_DIR to CONFIG_DIR
 for dest_file in "${!services[@]}"; do
