@@ -18,20 +18,17 @@ public class UserIdentity extends BaseEntity {
     private String userId;
 
     @Column(
-            name = "username",
-            unique = true
+            name = "username"
     )
     private String username;
 
     @Column(
-            name = "password",
-            unique = true
+            name = "password"
     )
     private String password;
 
     @Column(
-            name = "email",
-            unique = true
+            name = "email"
     )
     private String email;
 
