@@ -11,10 +11,10 @@ declare -A services=(
 
     ["identity/application.yml"]="identity-service/src/main/resources/application.yml"
     ["identity/application-dev.yml"]="identity-service/src/main/resources/application-dev.yml"
-    ["identity/firebase-secret.json"]="identity-service/src/main/resources/firebase-secret.json"
 
     ["notification/application.yml"]="notification-service/src/main/resources/application.yml"
     ["notification/application-dev.yml"]="notification-service/src/main/resources/application-dev.yml"
+    ["notification/firebase-secret.json"]="notification-service/src/main/resources/firebase-secret.json"
 
     ["profile/application.yml"]="profile-service/src/main/resources/application.yml"
     ["profile/application-dev.yml"]="profile-service/src/main/resources/application-dev.yml"
