@@ -1,5 +1,6 @@
 package com.stride.tracking.identityservice.service.impl;
 
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.dto.event.SendEmailEvent;
 import com.stride.tracking.dto.request.Recipient;
@@ -107,7 +108,7 @@ public class ResetPasswordServiceImpl  implements ResetPasswordService {
                 )))
                 .build();
 
-        kafkaTemplate.send("notification-delivery", notificationEvent);
+        kafkaTemplate.send(KafkaTopics.NOTIFICATION_TOPIC, notificationEvent);
     }
 
     @Override
