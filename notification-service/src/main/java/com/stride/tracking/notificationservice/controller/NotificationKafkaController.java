@@ -1,5 +1,6 @@
 package com.stride.tracking.notificationservice.controller;
 
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.dto.event.SendEmailEvent;
 import com.stride.tracking.dto.request.Recipient;
 import com.stride.tracking.dto.request.SendEmailRequest;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class NotificationKafkaController {
     private final MailService mailService;
 
-    @KafkaListener(topics = "notification-delivery")
+    @KafkaListener(topics = KafkaTopics.NOTIFICATION_TOPIC)
     public void listenNotificationDelivery(SendEmailEvent message) {
         mailService.sendNotification(SendEmailRequest.builder()
                 .to(Recipient.builder()

@@ -10,6 +10,8 @@ public class AppConstant {
             "/identity/auth/**",
             "/identity/users/**",
             "/notification/emails/send",
-            "/identity/users/register"
+            "/identity/users/register",
+            "/notification/fcm/users/*",
+            "/notification/fcm/tokens/*"
     };
 }

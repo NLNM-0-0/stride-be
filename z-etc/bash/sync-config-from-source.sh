@@ -2,15 +2,21 @@
 
 declare -A services=(
     ["gateway/application.yml"]="api-gateway/src/main/resources/application.yml"
-    ["file/application.yml"]="file-service/src/main/resources/application.yml"
-    ["identity/application.yml"]="identity-service/src/main/resources/application.yml"
-    ["notification/application.yml"]="notification-service/src/main/resources/application.yml"
-    ["profile/application.yml"]="profile-service/src/main/resources/application.yml"
     ["gateway/application-dev.yml"]="api-gateway/src/main/resources/application-dev.yml"
+
+    ["file/application.yml"]="file-service/src/main/resources/application.yml"
     ["file/application-dev.yml"]="file-service/src/main/resources/application-dev.yml"
+
+    ["identity/application.yml"]="identity-service/src/main/resources/application.yml"
     ["identity/application-dev.yml"]="identity-service/src/main/resources/application-dev.yml"
+    ["identity/firebase-secret.json"]="identity-service/src/main/resources/firebase-secret.json"
+
+    ["notification/application.yml"]="notification-service/src/main/resources/application.yml"
     ["notification/application-dev.yml"]="notification-service/src/main/resources/application-dev.yml"
+
+    ["profile/application.yml"]="profile-service/src/main/resources/application.yml"
     ["profile/application-dev.yml"]="profile-service/src/main/resources/application-dev.yml"
+
     [".env"]=".env"
 )
 
