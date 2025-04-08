@@ -2,7 +2,7 @@
 ## 1. Tạo các file application và .env cho Backend
 ### Cách 1:
 - Clone repository [stride-config](https://github.com/NLNM-0-0/stride-config) xuống máy bạn
-- Vào *stride-be/z-etc/bash/sync-config-repo.sh*. Sửa **CONFIG_DIR** và **SOURCE_DIR** là đường dẫn đến thư mục **stride-config** và **stride-be** của bạn
+- Vào *stride-be/z-etc/bash/config-paths.env*. Sửa **CONFIG_DIR** và **SOURCE_DIR** là đường dẫn đến thư mục **stride-config** và **stride-be** của bạn
 
 ![image](https://github.com/user-attachments/assets/f8b78acf-fcbf-4d81-8900-5caf785c49f3)
 
