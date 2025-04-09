@@ -6,6 +6,11 @@
 
 ![image](https://github.com/user-attachments/assets/f8b78acf-fcbf-4d81-8900-5caf785c49f3)
 
+- Vào thư mục *stride-be/z-etc/bash*
+``` bash
+cd z-etc/bash
+```
+
 - Run lệnh này trong *Git Bash* hoặc trên terminar (nếu terminal bạn hỗ trợ lệnh bash)
 ```
 bash <<THƯ MỤC CHỨA stride-be>>/z-etc/bash/sync-config-repo.sh
