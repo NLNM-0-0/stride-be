@@ -12,6 +12,7 @@ public class AppConstant {
             "/notification/emails/send",
             "/identity/users/register",
             "/notification/fcm/users/*",
-            "/notification/fcm/tokens/*"
+            "/notification/fcm/tokens/*",
+            "/route/**"
     };
 }
