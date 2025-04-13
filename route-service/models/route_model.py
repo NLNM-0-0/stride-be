@@ -1,0 +1,40 @@
+from bson import ObjectId
+from pydantic import BaseModel, Field, GetCoreSchemaHandler
+from pydantic_core import core_schema
+from typing import List, Optional, Any
+
+
+class PyObjectId(ObjectId):
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        return core_schema.no_info_plain_validator_function(cls.validate)
+
+    @classmethod
+    def validate(cls, v):
+        if isinstance(v, ObjectId):
+            return str(v)
+        if ObjectId.is_valid(v):
+            return str(ObjectId(v))
+        raise ValueError("Invalid ObjectId")
+
+
+class Location(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
+
+class RouteModel(BaseModel):
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    sport_id: Optional[str]
+    name: Optional[str]
+    avg_time: Optional[float] = 0
+    total_time: Optional[float] = 0
+    location: Optional[Location]
+    images: Optional[List[str]] = []
+    coordinates: Optional[List[List[float]]] = []
+    heat: Optional[int] = 0
+
+    class Config:
+        validate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
