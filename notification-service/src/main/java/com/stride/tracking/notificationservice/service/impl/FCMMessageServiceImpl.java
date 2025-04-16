@@ -25,6 +25,8 @@ public class FCMMessageServiceImpl implements FCMMessageService {
     @Async
     @Override
     public void pushMessage(List<String> fcmTokens, String title, String body, String banner) {
+        log.info("[pushMessage] Preparing FCM message: title='{}', body='{}', tokensCount={}", title, body, fcmTokens.size());
+
         MulticastMessage message = MulticastMessage.builder()
                 .addAllTokens(fcmTokens)
                 .putData("title", title)
@@ -45,17 +47,17 @@ public class FCMMessageServiceImpl implements FCMMessageService {
             ApiFutures.addCallback(future, new ApiFutureCallback<>() {
                 @Override
                 public void onSuccess(BatchResponse result) {
-                    log.info("FCM sent successfully to {} devices", result.getSuccessCount());
+                    log.info("[pushMessage] FCM push successful: {} success, {} failure", result.getSuccessCount(), result.getFailureCount());
                 }
 
                 @Override
                 public void onFailure(Throwable t) {
-                    log.error("Failed to send FCM message", t);
+                    log.error("[pushMessage] Failed to push FCM message to tokens: {}, error={}", fcmTokens, t.getMessage(), t);
                 }
             }, MoreExecutors.directExecutor());
 
         } catch (Exception e) {
-            log.error("Exception while sending FCM message", e);
+            log.error("[pushMessage] Exception during FCM push. Title: '{}', error={}", title, e.getMessage(), e);
         }
     }
 }

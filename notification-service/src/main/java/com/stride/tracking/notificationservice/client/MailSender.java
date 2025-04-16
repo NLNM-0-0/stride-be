@@ -1,6 +1,7 @@
 package com.stride.tracking.notificationservice.client;
 
 import com.stride.tracking.dto.request.EmailRequest;
+import com.stride.tracking.dto.request.Recipient;
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
@@ -24,6 +25,11 @@ public class MailSender {
 
     @Async
     public void sendMail(EmailRequest request) {
+        log.info(
+                "[sendMail] Preparing to send email to: {}",
+                request.getTo().stream().map(Recipient::getEmail).toList()
+        );
+
         Session session = setUpSession();
 
         try {
@@ -35,14 +41,19 @@ public class MailSender {
                 }
             }).toArray(Address[]::new);
 
+            log.debug("[sendMail] Constructing message with subject: {}", request.getSubject());
+
             Message message = setUpMessageForMail(session, request.getSubject(), request.getHtmlContent(), addresses);
             Transport.send(message);
+            log.info("[sendMail] Email sent successfully to: {}", (Object) addresses);
         } catch (Exception e) {
-            log.error("Error sending email: {}", e.getMessage(), e);
+            log.error("[sendMail] Error sending email: {}", e.getMessage(), e);
         }
     }
 
     private Session setUpSession() {
+        log.debug("[setUpSession] Setting up email session...");
+
         Properties prop = new Properties();
         prop.put("mail.smtp.host", "smtp.gmail.com");
         prop.put("mail.smtp.port", "465");
@@ -61,6 +72,8 @@ public class MailSender {
 
     private Message setUpMessageForMail(Session session, String title, String body, Address[] addresses) throws
             MessagingException {
+        log.debug("[setUpMessageForMail] Setting up message content...");
+
         Message message = new MimeMessage(session);
 
         message.setFrom(new InternetAddress("from@gmail.com"));
@@ -70,8 +83,10 @@ public class MailSender {
 
         if (addresses.length > 1) {
             message.setRecipients(Message.RecipientType.BCC, addresses);
+            log.debug("[setUpMessageForMail] Sending as BCC to {} recipients", addresses.length);
         } else {
             message.setRecipient(Message.RecipientType.TO, addresses[0]);
+            log.debug("[setUpMessageForMail] Sending as TO to {}", addresses[0]);
         }
 
         return message;

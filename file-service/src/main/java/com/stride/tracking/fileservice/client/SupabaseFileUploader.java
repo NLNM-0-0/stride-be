@@ -4,6 +4,7 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.fileservice.constant.Message;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
+import lombok.extern.log4j.Log4j2;
 import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import java.util.Objects;
 
 @RequiredArgsConstructor
 @Component
+@Log4j2
 public class SupabaseFileUploader {
     @Value("${storage.supabase.url}")
     @NonFinal
@@ -34,6 +36,7 @@ public class SupabaseFileUploader {
 
     public String uploadFileToSupabase(MultipartFile file, String fileName) throws IOException {
         String url = SUPABASE_URL + "/storage/v1/object/" + SUPABASE_BUCKET + "/" + fileName;
+        log.info("[uploadFileToSupabase] Start uploading file: {} to {}", fileName, url);
 
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -50,12 +53,20 @@ public class SupabaseFileUploader {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.code() == ENTITY_TOO_LARGE_CODE) {
+                log.error("[uploadFileToSupabase] Upload failed - file too large: {}", fileName);
                 throw new StrideException(HttpStatus.PAYLOAD_TOO_LARGE, Message.FILE_UPLOAD_TOO_LARGE);
             } else if (!response.isSuccessful()) {
+                log.error("[uploadFileToSupabase] Upload failed - status code: {}, message: {}", response.code(), response.message());
                 throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.FILE_UPLOAD_TOO_LARGE);
             }
 
-            return SUPABASE_URL + "/storage/v1/object/public/" + SUPABASE_BUCKET + "/" + fileName;
+            String publicUrl = SUPABASE_URL + "/storage/v1/object/public/" + SUPABASE_BUCKET + "/" + fileName;
+            log.info("[uploadFileToSupabase] Upload successful: {}", publicUrl);
+
+            return publicUrl;
+        } catch (IOException e) {
+            log.error("[uploadFileToSupabase] IOException while uploading file: {}", e.getMessage(), e);
+            throw e;
         }
     }
 }
