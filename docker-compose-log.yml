@@ -1,5 +1,7 @@
 version: '3.8'
 
+name: stride-log
+
 services:
   loki:
     image: grafana/loki:2.9.0

@@ -22,7 +22,7 @@ RUN mkdir -p /root/.m2 && \
     sed -i "s/\${GITHUB_USERNAME}/$GITHUB_USERNAME/g" /root/.m2/settings.xml && \
     sed -i "s/\${GITHUB_TOKEN}/$GITHUB_TOKEN/g" /root/.m2/settings.xml
 
-COPY . .
+COPY .. .
 
 RUN chmod +x mvnw && ./mvnw package -DskipTests
 

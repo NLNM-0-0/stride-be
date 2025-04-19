@@ -28,8 +28,9 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <postgresql.version>42.7.5</postgresql.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
-        <stride-dto.version>0.0.27-SNAPSHOT</stride-dto.version>
+        <stride-dto.version>0.0.35-SNAPSHOT</stride-dto.version>
         <stride-common.version>0.0.24-SNAPSHOT</stride-common.version>
         <feign.version>13.6</feign.version>
         <loki.version>1.6.0</loki.version>
@@ -52,7 +53,7 @@
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
-            <artifactId>notification-dto</artifactId>
+            <artifactId>bridge-dto</artifactId>
             <version>${stride-dto.version}</version>
         </dependency>
         <dependency>
@@ -105,10 +106,12 @@
         </dependency>
 
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
             <scope>runtime</scope>
         </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
