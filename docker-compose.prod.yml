@@ -23,64 +23,85 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
-#  bridge-ms:
-#    build:
-#      context: ./bridge-service
-#      dockerfile: deploy/prod.dockerfile
-#      args:
-#        GITHUB_USERNAME: ${GITHUB_USERNAME}
-#        GITHUB_TOKEN: ${GITHUB_TOKEN}
-#    container_name: bridge-ms
-#    depends_on:
-#      kafka:
-#        condition: service_healthy
-#    ports:
-#      - "8082:8082"
-#    restart: on-failure
-#    env_file:
-#      .env
-#    environment:
-#      SPRING_PROFILES_ACTIVE: prod
-#    networks:
-#      - stride-network
-#  profile-ms:
-#    build:
-#      context: ./profile-service
-#      dockerfile: deploy/prod.dockerfile
-#      args:
-#        GITHUB_USERNAME: ${GITHUB_USERNAME}
-#        GITHUB_TOKEN: ${GITHUB_TOKEN}
-#    container_name: profile-ms
-#    ports:
-#      - "8083:8083"
-#    restart: on-failure
-#    env_file:
-#      .env
-#    environment:
-#      SPRING_PROFILES_ACTIVE: prod
-#    networks:
-#      - stride-network
-#  gateway:
-#    build:
-#      context: ./api-gateway
-#      dockerfile: deploy/prod.dockerfile
-#      args:
-#        GITHUB_USERNAME: ${GITHUB_USERNAME}
-#        GITHUB_TOKEN: ${GITHUB_TOKEN}
-#    container_name: gateway-ms
-#    depends_on:
-#      - identity-ms
-#      - bridge-ms
-#      - profile-ms
-#    ports:
-#      - "8080:8080"
-#    restart: on-failure
-#    env_file:
-#      .env
-#    environment:
-#      SPRING_PROFILES_ACTIVE: prod
-#    networks:
-#      - stride-network
+  bridge-ms:
+    build:
+      context: ./bridge-service
+      dockerfile: deploy/prod.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: bridge-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: on-failure
+    env_file:
+      .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  profile-ms:
+    build:
+      context: ./profile-service
+      dockerfile: deploy/prod.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: profile-ms
+    ports:
+      - "8083:8083"
+    restart: on-failure
+    env_file:
+      .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  core-ms:
+    build:
+      context: ./core-service
+      dockerfile: deploy/prod.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: core-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    restart: on-failure
+    env_file:
+      .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: deploy/prod.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: gateway-ms
+    depends_on:
+      - identity-ms
+      - bridge-ms
+      - profile-ms
+      - core-ms
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    env_file:
+      .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
   kafka:
     image: bitnami/kafka:3.8.0
     container_name: kafka

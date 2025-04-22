@@ -39,6 +39,19 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
+  core-ms:
+    image: nlnm/stride:core-ms-v1.0.0
+    container_name: core-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
   gateway:
     image: nlnm/stride:gateway-v1.0.0
     container_name: gateway-ms

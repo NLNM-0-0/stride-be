@@ -12,7 +12,7 @@ services:
         GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: identity-ms
     depends_on:
-      mysql-db:
+      postgres-db:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -61,6 +61,26 @@ services:
       .env
     networks:
       - stride-network
+  core-ms:
+    build:
+      context: ./core-service
+      dockerfile: deploy/dev.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: identity-ms
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    restart: on-failure
+    env_file:
+      .env
+    networks:
+      - stride-network
   gateway:
     build:
       context: ./api-gateway
@@ -73,6 +93,7 @@ services:
       - identity-ms
       - bridge-ms
       - profile-ms
+      - core-ms
     ports:
       - "8080:8080"
     restart: on-failure
@@ -104,23 +125,26 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-  mysql-db:
-    image: mysql:8.0.41-bookworm
-    container_name: mysql-db
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: identity_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: stride
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
+      - ./z-etc/postgresql/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     restart: on-failure
     networks:
       - stride-network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "mysql-db", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}" ]
-      timeout: 10s
-      retries: 3
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   mongo-db:
     build:
       context: z-etc/mongo
@@ -183,5 +207,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql-data:
+  postgres-data:
   mongo-data:

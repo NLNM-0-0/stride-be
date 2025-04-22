@@ -27,37 +27,27 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    restart: on-failure
-    ports:
-      - "9090:8080"
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
     environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=
-    depends_on:
-      - kafka
-    networks:
-      - stride-network
-  mysql-db:
-    image: mysql:8.0.41-bookworm
-    container_name: mysql-db
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: identity_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: stride
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
+      - ./z-etc/postgresql/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     restart: on-failure
     networks:
       - stride-network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "mysql-db", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}" ]
-      timeout: 10s
-      retries: 3
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   mongo-db:
     build:
       context: z-etc/mongo
@@ -84,5 +74,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql-data:
+  postgres-data:
   mongo-data:
