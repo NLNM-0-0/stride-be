@@ -1,8 +1,8 @@
 package com.stride.tracking.identityservice.client;
 
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.request.CreateUserRequest;
-import com.stride.tracking.dto.response.CreateUserResponse;
+import com.stride.tracking.dto.register.response.CreateUserResponse;
+import com.stride.tracking.dto.user.request.CreateUserRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

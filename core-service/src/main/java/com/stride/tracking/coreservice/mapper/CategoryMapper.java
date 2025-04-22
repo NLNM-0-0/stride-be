@@ -1,8 +1,8 @@
 package com.stride.tracking.coreservice.mapper;
 
 import com.stride.tracking.coreservice.model.Category;
-import com.stride.tracking.coreservice.payload.category.request.CreateCategoryRequest;
-import com.stride.tracking.coreservice.payload.category.response.CategoryResponse;
+import com.stride.tracking.dto.category.request.CreateCategoryRequest;
+import com.stride.tracking.dto.category.response.CategoryResponse;
 import org.springframework.stereotype.Component;
 
 @Component

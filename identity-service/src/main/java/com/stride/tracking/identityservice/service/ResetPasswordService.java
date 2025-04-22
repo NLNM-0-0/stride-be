@@ -1,9 +1,9 @@
 package com.stride.tracking.identityservice.service;
 
-import com.stride.tracking.dto.request.ResetPasswordUserRequest;
-import com.stride.tracking.dto.request.ResetPasswordUserSendOTPRequest;
-import com.stride.tracking.dto.request.VerifyResetPasswordRequest;
-import com.stride.tracking.dto.response.VerifyResetPasswordResponse;
+import com.stride.tracking.dto.register.request.VerifyResetPasswordRequest;
+import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserRequest;
+import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.dto.resetpassword.response.VerifyResetPasswordResponse;
 
 public interface ResetPasswordService {
     void sendOTPResetPassword(ResetPasswordUserSendOTPRequest request);

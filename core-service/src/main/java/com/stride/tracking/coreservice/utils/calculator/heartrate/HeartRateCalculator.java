@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.utils.calculator.heartrate;
 
 import com.stride.tracking.coreservice.utils.NumberUtils;
-import com.stride.tracking.dto.constant.HeartRateZone;
+import com.stride.tracking.dto.user.HeartRateZone;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;

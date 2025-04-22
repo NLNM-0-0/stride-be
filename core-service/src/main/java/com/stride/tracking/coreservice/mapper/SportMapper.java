@@ -3,11 +3,11 @@ package com.stride.tracking.coreservice.mapper;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.payload.category.response.CategoryResponse;
-import com.stride.tracking.coreservice.payload.sport.request.CreateSportRequest;
-import com.stride.tracking.coreservice.payload.sport.request.RuleRequest;
-import com.stride.tracking.coreservice.payload.sport.response.RuleResponse;
-import com.stride.tracking.coreservice.payload.sport.response.SportResponse;
+import com.stride.tracking.dto.category.response.CategoryResponse;
+import com.stride.tracking.dto.sport.request.CreateSportRequest;
+import com.stride.tracking.dto.sport.request.RuleRequest;
+import com.stride.tracking.dto.sport.response.RuleResponse;
+import com.stride.tracking.dto.sport.response.SportResponse;
 import org.springframework.stereotype.Component;
 
 @Component

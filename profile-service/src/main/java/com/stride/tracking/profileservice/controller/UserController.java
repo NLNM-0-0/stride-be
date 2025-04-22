@@ -1,10 +1,10 @@
 package com.stride.tracking.profileservice.controller;
 
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.request.CreateUserRequest;
-import com.stride.tracking.dto.request.UpdateUserRequest;
-import com.stride.tracking.dto.response.CreateUserResponse;
-import com.stride.tracking.dto.response.UserResponse;
+import com.stride.tracking.dto.user.request.CreateUserRequest;
+import com.stride.tracking.dto.user.request.UpdateUserRequest;
+import com.stride.tracking.dto.user.response.CreateUserResponse;
+import com.stride.tracking.dto.user.response.UserResponse;
 import com.stride.tracking.profileservice.service.impl.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

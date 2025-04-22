@@ -4,7 +4,7 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.coreservice.client.BridgeFeignClient;
 import com.stride.tracking.coreservice.client.MapboxFeignClient;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.dto.response.FileLinkResponse;
+import com.stride.tracking.dto.file.response.FileLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

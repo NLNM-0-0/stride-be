@@ -1,14 +1,16 @@
 package com.stride.tracking.coreservice.mapper;
 
 import com.stride.tracking.coreservice.model.Activity;
-import com.stride.tracking.coreservice.payload.activity.response.ActivityResponse;
-import com.stride.tracking.coreservice.payload.activity.response.ActivityShortResponse;
-import com.stride.tracking.coreservice.payload.activity.response.ActivityUserResponse;
-import com.stride.tracking.coreservice.payload.sport.response.SportResponse;
-import com.stride.tracking.dto.response.UserResponse;
+import com.stride.tracking.dto.activity.response.ActivityResponse;
+import com.stride.tracking.dto.activity.response.ActivityShortResponse;
+import com.stride.tracking.dto.activity.response.ActivityUserResponse;
+import com.stride.tracking.dto.sport.response.SportResponse;
+import com.stride.tracking.dto.user.response.UserResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class ActivityMapper {
@@ -49,7 +51,12 @@ public class ActivityMapper {
                 .avgSpeed(activity.getAvgSpeed())
                 .maxSpeed(activity.getMaxSpeed())
                 .heartRates(activity.getHeartRates())
-                .heartRateZones(activity.getHeartRateZones())
+                .heartRateZones(activity.getHeartRateZones().entrySet().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        entry -> entry.getKey().name(),
+                                        Map.Entry::getValue
+                                )))
                 .avgHearRate(activity.getAvgHearRate())
                 .maxHearRate(activity.getMaxHearRate())
                 .createdAt(Date.from(activity.getCreatedAt()))

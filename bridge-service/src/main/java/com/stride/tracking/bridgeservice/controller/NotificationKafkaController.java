@@ -1,10 +1,10 @@
 package com.stride.tracking.bridgeservice.controller;
 
-import com.stride.tracking.commons.constants.KafkaTopics;
-import com.stride.tracking.dto.event.SendEmailEvent;
-import com.stride.tracking.dto.request.Recipient;
-import com.stride.tracking.dto.request.SendEmailRequest;
 import com.stride.tracking.bridgeservice.service.MailService;
+import com.stride.tracking.commons.constants.KafkaTopics;
+import com.stride.tracking.dto.email.event.SendEmailEvent;
+import com.stride.tracking.dto.email.request.Recipient;
+import com.stride.tracking.dto.email.request.SendEmailRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

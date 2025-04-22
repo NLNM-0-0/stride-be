@@ -1,10 +1,5 @@
 package com.stride.tracking.bridgeservice.service.impl;
 
-import com.stride.tracking.commons.exception.ResourceAlreadyExistException;
-import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.commons.utils.SecurityUtils;
-import com.stride.tracking.dto.request.FCMTokenRequest;
-import com.stride.tracking.dto.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.constant.Message;
 import com.stride.tracking.bridgeservice.model.FCMToken;
 import com.stride.tracking.bridgeservice.model.Notification;
@@ -12,6 +7,11 @@ import com.stride.tracking.bridgeservice.repository.FCMTokenRepository;
 import com.stride.tracking.bridgeservice.repository.NotificationRepository;
 import com.stride.tracking.bridgeservice.service.FCMMessageService;
 import com.stride.tracking.bridgeservice.service.FCMService;
+import com.stride.tracking.commons.exception.ResourceAlreadyExistException;
+import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.SecurityUtils;
+import com.stride.tracking.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.dto.fcm.request.PushFCMNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;

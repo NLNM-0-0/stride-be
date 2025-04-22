@@ -1,8 +1,8 @@
 package com.stride.tracking.coreservice.utils.converter.list;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.coreservice.constant.Message;
 import org.springframework.http.HttpStatus;

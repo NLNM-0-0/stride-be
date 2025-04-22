@@ -1,8 +1,8 @@
 package com.stride.tracking.bridgeservice.controller;
 
-import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.request.SendEmailRequest;
 import com.stride.tracking.bridgeservice.service.MailService;
+import com.stride.tracking.commons.dto.SimpleResponse;
+import com.stride.tracking.dto.email.request.SendEmailRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

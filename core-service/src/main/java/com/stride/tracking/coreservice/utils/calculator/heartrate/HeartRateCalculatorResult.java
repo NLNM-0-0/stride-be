@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.utils.calculator.heartrate;
 
-import com.stride.tracking.dto.constant.HeartRateZone;
+import com.stride.tracking.dto.user.HeartRateZone;
 
 import java.util.Map;
 

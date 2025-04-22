@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.utils.converter.map.concrete;
 
 import com.stride.tracking.coreservice.utils.converter.map.MapConverter;
-import com.stride.tracking.dto.constant.HeartRateZone;
+import com.stride.tracking.dto.user.HeartRateZone;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import org.springframework.stereotype.Component;

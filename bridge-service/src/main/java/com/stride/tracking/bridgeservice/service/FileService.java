@@ -1,6 +1,6 @@
 package com.stride.tracking.bridgeservice.service;
 
-import com.stride.tracking.dto.response.FileLinkResponse;
+import com.stride.tracking.dto.file.response.FileLinkResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface FileService {

@@ -1,7 +1,7 @@
 package com.stride.tracking.bridgeservice.client;
 
-import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.bridgeservice.constant.Message;
+import com.stride.tracking.commons.exception.StrideException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import okhttp3.*;

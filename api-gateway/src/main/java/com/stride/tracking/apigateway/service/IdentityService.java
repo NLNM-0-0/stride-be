@@ -1,8 +1,8 @@
 package com.stride.tracking.apigateway.service;
 
 import com.stride.tracking.apigateway.repository.httpclient.IdentityClient;
-import com.stride.tracking.dto.request.IntrospectRequest;
-import com.stride.tracking.dto.response.IntrospectResponse;
+import com.stride.tracking.dto.auth.request.IntrospectRequest;
+import com.stride.tracking.dto.auth.response.IntrospectResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

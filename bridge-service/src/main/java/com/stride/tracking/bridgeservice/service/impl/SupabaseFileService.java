@@ -1,10 +1,10 @@
 package com.stride.tracking.bridgeservice.service.impl;
 
-import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.dto.response.FileLinkResponse;
 import com.stride.tracking.bridgeservice.client.SupabaseFileUploader;
 import com.stride.tracking.bridgeservice.constant.Message;
 import com.stride.tracking.bridgeservice.service.FileService;
+import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.dto.file.response.FileLinkResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

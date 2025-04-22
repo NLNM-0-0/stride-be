@@ -3,7 +3,7 @@ package com.stride.tracking.coreservice.model;
 import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.*;
 import com.stride.tracking.coreservice.utils.converter.map.concrete.HeartRateZoneMapConverter;
-import com.stride.tracking.dto.constant.HeartRateZone;
+import com.stride.tracking.dto.user.HeartRateZone;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnTransformer;

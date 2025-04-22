@@ -1,12 +1,14 @@
 package com.stride.tracking.coreservice.client;
 
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.response.FileLinkResponse;
+import com.stride.tracking.dto.file.response.FileLinkResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
         name = "bridge-service",

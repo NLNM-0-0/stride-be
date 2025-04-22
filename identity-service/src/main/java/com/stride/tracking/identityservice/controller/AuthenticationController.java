@@ -1,16 +1,19 @@
 package com.stride.tracking.identityservice.controller;
 
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.request.AuthenticateWithGoogleRequest;
-import com.stride.tracking.dto.request.AuthenticationRequest;
-import com.stride.tracking.dto.request.IntrospectRequest;
-import com.stride.tracking.dto.request.LogoutRequest;
-import com.stride.tracking.dto.response.AuthenticationResponse;
-import com.stride.tracking.dto.response.IntrospectResponse;
+import com.stride.tracking.dto.auth.request.AuthenticateWithGoogleRequest;
+import com.stride.tracking.dto.auth.request.AuthenticationRequest;
+import com.stride.tracking.dto.auth.request.IntrospectRequest;
+import com.stride.tracking.dto.auth.request.LogoutRequest;
+import com.stride.tracking.dto.auth.response.AuthenticationResponse;
+import com.stride.tracking.dto.auth.response.IntrospectResponse;
 import com.stride.tracking.identityservice.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
