@@ -28,7 +28,7 @@ public class Common {
 
     public static Activity findActivityById(String activityId, ActivityRepository activityRepository) {
         return activityRepository.findById(activityId).orElseThrow(
-                () -> new StrideException(HttpStatus.BAD_REQUEST, Message.SPORT_NOT_FOUND)
+                () -> new StrideException(HttpStatus.BAD_REQUEST, Message.ACTIVITY_NOT_FOUND)
         );
     }
 }

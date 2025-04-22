@@ -5,6 +5,7 @@ public class Message {
 
     public static final String CATEGORY_NOT_FOUND = "Category not found";
     public static final String SPORT_NOT_FOUND = "Sport not found";
+    public static final String ACTIVITY_NOT_FOUND = "Activity not found";
     public static final String JSON_ERR = "Invalid JSON format";
     public static final String COMMON_ERR = "An error has occurred. Please try again later";
     public static final String VIEW_PROFILE_FAILED = "View profile failed";
