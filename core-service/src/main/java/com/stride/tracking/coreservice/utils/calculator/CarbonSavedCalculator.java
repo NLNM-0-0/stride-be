@@ -7,11 +7,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CarbonSavedCalculator {
 
-    private final double carbonSavedPerKm;
-
-    public CarbonSavedCalculator(@Value("${app.calories.carbon-saved-per-km}") double carbonSavedPerKm) {
-        this.carbonSavedPerKm = carbonSavedPerKm;
-    }
+    @Value("${app.calories.carbon-saved-per-km}")
+    private double carbonSavedPerKm;
 
     public double calculate(double distanceInKm) {
         double carbonSaved = carbonSavedPerKm * distanceInKm;
