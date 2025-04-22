@@ -1,6 +1,6 @@
 package com.stride.tracking.bridgeservice.controller;
 
-import com.stride.tracking.commons.response.SimpleResponse;
+import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.dto.request.FCMTokenRequest;
 import com.stride.tracking.dto.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.service.FCMService;

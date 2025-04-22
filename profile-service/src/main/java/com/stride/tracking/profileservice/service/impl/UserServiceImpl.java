@@ -78,7 +78,7 @@ public class UserServiceImpl implements UserService {
                 .male(user.getMale())
                 .maxHeartRate(user.getMaxHeartRate())
                 .heartRateZones(user.getHeartRateZones())
-                .equipmentsWeight(user.getEquipmentsWeight())
+                .equipmentsWeight(user.getEquipmentWeight())
                 .isBlock(user.isBlock())
                 .build();
 
@@ -106,7 +106,7 @@ public class UserServiceImpl implements UserService {
         UpdateHelper.updateIfNotNull(request.getHeight(), user::setHeight);
         UpdateHelper.updateIfNotNull(request.getWeight(), user::setWeight);
         UpdateHelper.updateIfNotNull(request.getMale(), user::setMale);
-        UpdateHelper.updateIfNotNull(request.getEquipmentsWeight(), user::setEquipmentsWeight);
+        UpdateHelper.updateIfNotNull(request.getEquipmentsWeight(), user::setEquipmentWeight);
 
         if (request.getDob() != null) {
             log.debug("[updateUserProfile] Updating date of birth for user ID: {}", currUserId);

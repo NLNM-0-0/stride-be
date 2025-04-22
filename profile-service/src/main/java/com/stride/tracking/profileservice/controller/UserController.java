@@ -1,6 +1,6 @@
 package com.stride.tracking.profileservice.controller;
 
-import com.stride.tracking.commons.response.SimpleResponse;
+import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.dto.request.CreateUserRequest;
 import com.stride.tracking.dto.request.UpdateUserRequest;
 import com.stride.tracking.dto.response.CreateUserResponse;

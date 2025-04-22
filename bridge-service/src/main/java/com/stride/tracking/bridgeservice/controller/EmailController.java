@@ -1,6 +1,6 @@
 package com.stride.tracking.bridgeservice.controller;
 
-import com.stride.tracking.commons.response.SimpleResponse;
+import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.dto.request.SendEmailRequest;
 import com.stride.tracking.bridgeservice.service.MailService;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.stride.tracking.identityservice.controller;
 
-import com.stride.tracking.commons.response.SimpleResponse;
+import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.dto.request.*;
 import com.stride.tracking.dto.response.EmailRegisterResponse;
 import com.stride.tracking.dto.response.VerifyResetPasswordResponse;

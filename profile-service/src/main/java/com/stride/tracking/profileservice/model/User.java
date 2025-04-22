@@ -23,7 +23,7 @@ public class User extends BaseEntity {
     private Boolean male;
     private String city;
     private Integer maxHeartRate;
-    private Map<Equipment, Integer> equipmentsWeight;
+    private Map<Equipment, Integer> equipmentWeight;
     private Map<HeartRateZone, Integer> heartRateZones;
     private boolean isBlock;
 }
