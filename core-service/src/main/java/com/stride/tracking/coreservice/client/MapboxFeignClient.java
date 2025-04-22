@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 )
 @Component
 public interface MapboxFeignClient {
-    @GetMapping("/styles/v1/{mapStyle}/static/path-2+2571db({path})/auto/{width}x{height}")
+    @GetMapping("/styles/v1/{mapStyle}/static/path-{strokeWidth}{strokeColor}{strokeFill}({path})/auto/{width}x{height}")
     ResponseEntity<byte[]> getStaticMapImage(
             @PathVariable("mapStyle") String mapStyle,
+            @PathVariable("strokeWidth") int strokeWidth,
+            @PathVariable("strokeColor") String strokeColor,
+            @PathVariable("strokeFill") String strokeFill,
             @PathVariable("path") String path,
             @PathVariable("width") int width,
             @PathVariable("height") int height,

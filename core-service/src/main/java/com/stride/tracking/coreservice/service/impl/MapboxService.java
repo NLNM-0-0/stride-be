@@ -22,6 +22,15 @@ public class MapboxService {
     @Value("${mapbox.style}")
     private String defaultStyle;
 
+    @Value("${mapbox.stroke-width}")
+    private int defaultStrokeWidth;
+
+    @Value("${mapbox.stroke-color}")
+    private String defaultStrokeColor;
+
+    @Value("${mapbox.stroke-fill}")
+    private String defaultStrokeFill;
+
     @Value("${mapbox.width}")
     private int defaultWidth;
 
@@ -44,12 +53,30 @@ public class MapboxService {
     }
 
     private byte[] generateImage(String path) {
-        return generateImage(path, defaultStyle, defaultWidth, defaultHeight, defaultPadding);
+        return generateImage(
+                path,
+                defaultStyle,
+                defaultStrokeWidth,
+                defaultStrokeColor,
+                defaultStrokeFill,
+                defaultWidth,
+                defaultHeight,
+                defaultPadding
+        );
     }
 
-    private byte[] generateImage(String path, String style, int width, int height, int padding) {
+    private byte[] generateImage(
+            String path,
+            String style,
+            int strokeWidth,
+            String strokeColor,
+            String strokeFill,
+            int width,
+            int height,
+            int padding
+    ) {
         ResponseEntity<byte[]> response = mapboxClient.getStaticMapImage(
-                style, path, width, height, padding, accessToken
+                style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
         );
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
             log.error("[getMapImage] Failed to get map image for path: {}", path);
