@@ -32,6 +32,7 @@ import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.StridePolylineUtils;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
 import com.stride.tracking.coreservice.utils.calculator.CarbonSavedCalculator;
+import com.stride.tracking.coreservice.utils.calculator.RamerDouglasPeucker;
 import com.stride.tracking.coreservice.utils.calculator.elevation.ElevationCalculator;
 import com.stride.tracking.coreservice.utils.calculator.elevation.ElevationCalculatorResult;
 import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalculator;
@@ -41,6 +42,7 @@ import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorRes
 import com.stride.tracking.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -76,6 +78,9 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityMapper activityMapper;
     private final SportMapper sportMapper;
     private final CategoryMapper categoryMapper;
+
+    @Value("${app.rdp.epsilon}")
+    private double rdpEpsilon;
 
     @Override
     @Transactional
@@ -278,7 +283,9 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addMapImage(Activity.ActivityBuilder builder, List<List<Double>> coordinates) {
-        String encodePolyline = StridePolylineUtils.encode(coordinates);
+        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.douglasPeucker(coordinates, rdpEpsilon);
+
+        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
         String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
 
         builder.mapImage(mapImage);
