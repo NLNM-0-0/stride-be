@@ -19,6 +19,20 @@ public class SupabaseFileService implements FileService {
     private final SupabaseFileUploader supabaseFileUploader;
 
     @Override
+    public FileLinkResponse upload(byte[] data, String originalFileName, String contentType) {
+        try {
+            String extension = getExtensionFromContentType(contentType, originalFileName);
+            String fileName = generateFileName(Objects.requireNonNull(originalFileName) + extension);
+
+            String fileUrl = supabaseFileUploader.uploadFileToSupabase(data, fileName, contentType);
+
+            return FileLinkResponse.builder().file(fileUrl).build();
+        } catch (Exception e) {
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.FILE_UPLOAD_FAIL);
+        }
+    }
+
+    @Override
     public FileLinkResponse upload(MultipartFile file) {
         try {
             String fileName = generateFileName(Objects.requireNonNull(file.getOriginalFilename()));
@@ -36,5 +50,12 @@ public class SupabaseFileService implements FileService {
         return UUID.randomUUID() + extension;
     }
 
-
+    private String getExtensionFromContentType(String contentType, String originalFileName) {
+        if (contentType != null && !contentType.isEmpty()) {
+            return "." + contentType.split("/")[1];
+        } else if (originalFileName != null && originalFileName.contains(".")) {
+            return originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+        return ".png";
+    }
 }
