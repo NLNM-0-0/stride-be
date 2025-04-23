@@ -18,6 +18,7 @@ public class SportMapper {
                 .image(request.getImage())
                 .category(category)
                 .rules(request.getRules().stream().map(this::mapToModel).toList())
+                .sportMapType(request.getSportMapType())
                 .build();
     }
 
@@ -42,6 +43,7 @@ public class SportMapper {
                 .name(sport.getName())
                 .image(sport.getImage())
                 .rules(sport.getRules().stream().map(this::mapToRuleResponse).toList())
+                .sportMapType(sport.getSportMapType())
                 .build();
     }
 }

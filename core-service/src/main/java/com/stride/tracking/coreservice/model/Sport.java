@@ -2,6 +2,7 @@ package com.stride.tracking.coreservice.model;
 
 import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.RuleListConverter;
+import com.stride.tracking.dto.sport.SportMapType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnTransformer;
@@ -28,4 +29,6 @@ public class Sport  extends BaseEntity {
     @Column(columnDefinition = "json")
     @ColumnTransformer(write = "?::json")
     private List<Rule> rules;
+
+    private SportMapType sportMapType;
 }

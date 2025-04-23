@@ -29,6 +29,8 @@ class BackendBaseSettings(BaseSettings):
     ALLOWED_METHODS: list[str] = ["*"]
     ALLOWED_HEADERS: list[str] = ["*"]
 
+    MAPBOX_TOKEN: str
+
     LOGGING_LEVEL: int = logging.INFO
     LOGGERS: tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")
 
