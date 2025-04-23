@@ -289,6 +289,7 @@ public class ActivityServiceImpl implements ActivityService {
         String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
 
         builder.mapImage(mapImage);
+        builder.smoothCoordinates(smoothCoordinates);
     }
 
     @Override

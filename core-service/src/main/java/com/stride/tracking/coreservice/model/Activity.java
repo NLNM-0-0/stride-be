@@ -77,6 +77,11 @@ public class Activity extends BaseEntity {
     @ColumnTransformer(write = "?::json")
     private List<List<Double>> coordinates;
 
+    @Convert(converter = ListDoubleListConverter.class)
+    @Column(columnDefinition = "json")
+    @ColumnTransformer(write = "?::json")
+    private List<List<Double>> smoothCoordinates;
+
     @Convert(converter = LongListConverter.class)
     @Column(columnDefinition = "json")
     @ColumnTransformer(write = "?::json")
