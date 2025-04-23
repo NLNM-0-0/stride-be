@@ -128,6 +128,7 @@ public class SportServiceImpl implements SportService {
         UpdateHelper.updateIfNotNull(request.getName(), sport::setName);
         UpdateHelper.updateIfNotNull(request.getImage(), sport::setImage);
         UpdateHelper.updateIfNotNull(request.getSportMapType(), sport::setSportMapType);
+        UpdateHelper.updateIfNotNull(request.getRecommendedDistance(), sport::setRecommendedDistance);
 
         sportRepository.save(sport);
     }

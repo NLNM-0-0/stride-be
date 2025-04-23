@@ -3,7 +3,7 @@ from typing import Optional, List
 from bson import ObjectId
 from pydantic import BaseModel, Field
 
-from dto.response.location_response import LocationResponse
+from dto.route.response.location_response import LocationResponse
 from utils.json_format import to_camel
 
 

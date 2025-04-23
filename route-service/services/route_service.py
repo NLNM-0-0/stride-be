@@ -1,19 +1,27 @@
-from typing import List
+from typing import List, Dict
 
 from bson import ObjectId
 
-from dto.request.create_route_request import CreateRouteRequest
-from dto.request.get_recommend_route_request import GetRecommendRouteRequest
-from dto.request.update_route_request import UpdateRouteRequest
-from dto.response.route_response import RouteResponse
+from dto.route.request.create_route_request import CreateRouteRequest
+from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
+from dto.route.request.update_route_request import UpdateRouteRequest
+from dto.route.response.route_response import RouteResponse
 from exceptions.common_exception import ResourceNotFoundException
 from repositories.crud.route_repository import RouteRepository
+from services.mapbox_service import MapboxService
 from utils.geometry_helper import GeometryHelper
 
 
 class RouteService:
-    def __init__(self, route_repository: RouteRepository):
+    route_repository: RouteRepository
+    mapbox_service: MapboxService
+
+    def __init__(
+            self,
+            route_repository: RouteRepository,
+            mapbox_service: MapboxService):
         self.route_repository = route_repository
+        self.mapbox_service = mapbox_service
 
     async def get_all_routes(self) -> List[RouteResponse]:
         routes = await self.route_repository.get_all()
@@ -47,13 +55,15 @@ class RouteService:
     async def create_route(self, request: CreateRouteRequest):
         points = request.coordinates
 
-        points = GeometryHelper.smooth_points(points)
+        # points = GeometryHelper.smooth_points(points)
+
+        mapbox_response = self.mapbox_service.get_route(points, request.sport_map_type)
 
         incenter = GeometryHelper.find_incenter(points)
 
         route_data = {
             "sport_id": ObjectId(request.sport_id),
-            "name": request.name,
+            "name": self._generateRouteName(mapbox_response.waypoint_names_freq),
             "avg_time": request.avg_time,
             "total_time": request.avg_time,
             "location": {
@@ -62,11 +72,16 @@ class RouteService:
                 "longitude": incenter["longitude"],
             },
             "images": request.images if request.images else [],
-            "coordinates": points,
+            "coordinates": mapbox_response.coordinates,
             "heat": 1
         }
 
         await self.route_repository.insert_one(route_data)
+
+    def _generateRouteName(self, names_freq: Dict[str, int]) -> str:
+        sorted_names = sorted(names_freq, key=names_freq.get, reverse=True)
+        top_names = sorted_names[:min(3, len(sorted_names))]
+        return " - ".join(top_names)
 
     async def update_route(self, route_id: str, request: UpdateRouteRequest):
         route = await self.route_repository.get_by_id(route_id)

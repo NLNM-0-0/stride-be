@@ -1,13 +1,12 @@
-import fastapi
 from fastapi import APIRouter, Depends, status
 from typing import List
 
 from api.dependencies.repository import get_repository
-from dto.request.create_route_request import CreateRouteRequest
-from dto.request.get_recommend_route_request import GetRecommendRouteRequest
-from dto.request.update_route_request import UpdateRouteRequest
-from dto.response.route_response import RouteResponse
-from dto.response.simple_response import SimpleResponse
+from dto.route.request.create_route_request import CreateRouteRequest
+from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
+from dto.route.request.update_route_request import UpdateRouteRequest
+from dto.route.response.route_response import RouteResponse
+from dto.simple_response import SimpleResponse
 from repositories.crud.route_repository import RouteRepository
 from services.route_service import RouteService
 

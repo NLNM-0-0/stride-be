@@ -1,10 +1,21 @@
 import uplink
 
-
 @uplink.timeout(10)
-@uplink.headers({"Content-Type": "application/json"})
+@uplink.headers({
+    "Accept": "application/json"
+})
 class MapboxClient(uplink.Consumer):
+    """Client để gọi Mapbox Directions API"""
 
-    @uplink.get("/users/{user_id}")
-    def get_user(self, user_id: str) -> uplink.Response:
-        """Lấy thông tin người dùng theo ID"""
+    @uplink.get("/directions/v5/mapbox/{map_type}/{coordinates}")
+    def get_directions(
+        self,
+        map_type: uplink.Path(str),
+        coordinates: uplink.Path(str),
+        access_token: uplink.Query(str),
+        alternatives: uplink.Query(str) = "false",
+        geometries: uplink.Query(str) = "geojson",
+        overview: uplink.Query(str) = "simplified",
+        steps: uplink.Query(str) = "false"
+    ):
+        """Lấy chỉ đường từ Mapbox"""

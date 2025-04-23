@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from dto.response.error_response import ErrorResponse
+from dto.error_response import ErrorResponse
 from exceptions.common_exception import (
     DuplicateKeyException,
     MissingRequiredFieldException,
