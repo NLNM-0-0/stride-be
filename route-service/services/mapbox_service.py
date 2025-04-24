@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 
 from clients.mapbox_client import MapboxClient
@@ -16,6 +17,53 @@ class MapboxService:
     def __init__(self, mapbox_client: MapboxClient):
         self.mapbox_client = mapbox_client
         self.access_token = settings.MAPBOX_TOKEN
+
+    def get_batch_route(self, coordinates: List[List[float]], map_type: str = "driving") -> MapboxDirectionResponse:
+        max_coords_per_request = 25
+
+        coord_chunks = [
+            coordinates[i:i + max_coords_per_request]
+            for i in range(0, len(coordinates), max_coords_per_request)
+        ]
+
+        combined_coordinates = []
+        combined_waypoints = []
+
+        for chunk in coord_chunks:
+            response = self.get_route(coordinates=chunk, map_type=map_type)
+            combined_coordinates.extend(response.coordinates)
+            combined_waypoints.extend(response.waypoints)
+
+        combined_waypoints_dict = defaultdict(lambda: {
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "freq": 0,
+            "count": 0,
+            "name": "",
+        })
+
+        for wp in combined_waypoints:
+            entry = combined_waypoints_dict[wp.name.lower()]
+            entry["latitude"] = wp.latitude
+            entry["longitude"] = wp.longitude
+            entry["freq"] += wp.freq
+            entry["count"] += 1
+            entry["name"] = wp.name
+
+        combined_waypoints = [
+            Waypoint(
+                name=data["name"],
+                latitude=data["latitude"],
+                longitude=data["longitude"],
+                freq=data["freq"]
+            )
+            for _, data in combined_waypoints_dict.items()
+        ]
+
+        return MapboxDirectionResponse(
+            coordinates=combined_coordinates,
+            waypoints=combined_waypoints
+        )
 
     def get_route(self, coordinates: List[List[float]], map_type: str = "driving") -> MapboxDirectionResponse:
         encoded_coords = GeometryHelper.encode_coordinates(coordinates)

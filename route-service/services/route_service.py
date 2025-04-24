@@ -1,5 +1,5 @@
 import asyncio
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import List
 
 from bson import ObjectId
@@ -75,33 +75,24 @@ class RouteService:
 
     async def create_route(self, request: CreateRouteRequest) -> CreateRouteResponse:
         points = request.coordinates
-        max_coords_per_request = 25
 
-        coord_chunks = [
-            points[i:i + max_coords_per_request]
-            for i in range(0, len(points), max_coords_per_request)
-        ]
+        mapbox_response = self.mapbox_service.get_batch_route(
+            coordinates=points,
+            map_type=request.sport_map_type
+        )
 
-        combined_coordinates = []
-        combined_waypoints = []
-
-        for chunk in coord_chunks:
-            response = self.mapbox_service.get_route(chunk, request.sport_map_type)
-            combined_coordinates.extend(response.coordinates)
-            combined_waypoints.extend(response.waypoints)
-
-        unique_localities, places = self._sort_localities_by_frequency(combined_waypoints)
+        unique_localities, places = self._sort_localities_by_frequency(mapbox_response.waypoints)
         location = places[0].neighborhood + ", " + places[0].locality + ", " + places[0].place
 
         route_data = {
             "sport_id": request.sport_id,
-            "name": self._generate_route_name(combined_waypoints),
+            "name": self._generate_route_name(mapbox_response.waypoints),
             "avg_time": request.avg_time,
             "total_time": request.avg_time,
             "location": location,
             "images": {request.activity_id: request.images if request.images else []},
             "localities": unique_localities,
-            "coordinates": combined_coordinates,
+            "coordinates": mapbox_response.coordinates,
             "heat": 1
         }
 
@@ -109,7 +100,7 @@ class RouteService:
 
         return CreateRouteResponse.model_validate({"route_id": str(_id)})
 
-    def _generate_route_name(self, waypoints: List[Waypoint]) -> str:
+    def  _generate_route_name(self, waypoints: List[Waypoint]) -> str:
         top_names = [w.name for w in waypoints[:min(3, len(waypoints))]]
         return " - ".join(top_names)
 
@@ -117,31 +108,39 @@ class RouteService:
         geocoding_results = {}
 
         for waypoint in waypoints:
-            geocoding_results[(waypoint.latitude, waypoint.longitude)] = self.mapbox_service.reverse_geocoding(
+            geocoding_results[(waypoint.latitude, waypoint.longitude)] = self.overpass_service.reverse_geocoding(
                 latitude=waypoint.latitude,
                 longitude=waypoint.longitude
             )
 
-        locality_counter = Counter()
+        grouped_counter = defaultdict(lambda: {
+            "place": "None",
+            "locality": "None",
+            "neighborhood": "None",
+            "freq": 0
+        })
 
         for waypoint in waypoints:
-            geocoding_response = geocoding_results[(waypoint.latitude, waypoint.longitude)]
-            locality_counter[geocoding_response.locality] += 1
+            geocoding = geocoding_results[(waypoint.latitude, waypoint.longitude)]
+            key = (geocoding.place, geocoding.locality, geocoding.neighborhood)
+            grouped_counter[key]["place"] = geocoding.place
+            grouped_counter[key]["locality"] = geocoding.locality
+            grouped_counter[key]["neighborhood"] = geocoding.neighborhood
+            grouped_counter[key]["freq"] += 1
 
-        sorted_localities = sorted(locality_counter.items(), key=lambda x: x[1], reverse=True)
+        sorted_grouped = sorted(grouped_counter.values(), key=lambda x: x["freq"], reverse=True)
 
-        sorted_responses = [
-            MapboxGeocodingReverseResponse(
-                place=geocoding_results[(waypoint.latitude, waypoint.longitude)].place,
-                locality=locality,
-                neighborhood=geocoding_results[(waypoint.latitude, waypoint.longitude)].neighborhood
-            )
-            for locality, freq in sorted_localities
-            for waypoint in waypoints
-            if geocoding_results[(waypoint.latitude, waypoint.longitude)].locality == locality
-        ]
-
-        return list(locality_counter.keys()), sorted_responses
+        return (
+            list(set([entry["locality"] for entry in sorted_grouped])),
+            [
+                MapboxGeocodingReverseResponse(
+                    place=entry["place"],
+                    locality=entry["locality"],
+                    neighborhood=entry["neighborhood"]
+                )
+                for entry in sorted_grouped
+            ]
+        )
 
     async def update_route(self, route_id: str, request: UpdateRouteRequest):
         route = await self.route_repository.get_by_id(route_id)
