@@ -14,4 +14,5 @@ public class Message {
     public static final String UPLOAD_IMAGE_FAILED = "Upload image failed";
     public static final String RULE_INVALID = "Rule calculation calories is invalid";
     public static final String CAN_NOT_DELETE_OTHER_USER_ACTIVITIES = "Can not delete other user's activities";
+    public static final String CAN_NOT_CREATE_SAVED_ROUTE = "Can not create saved route";
 }
