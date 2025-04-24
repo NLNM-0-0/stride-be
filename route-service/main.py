@@ -6,7 +6,6 @@ from api.endpoints import router
 from configuration.events import execute_backend_server_event_handler, terminate_backend_server_event_handler
 from configuration.manager import settings
 
-
 def initialize_backend_application() -> fastapi.FastAPI:
     app = fastapi.FastAPI(**settings.set_backend_app_attributes)  # type: ignore
 

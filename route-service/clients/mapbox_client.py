@@ -1,5 +1,6 @@
 import uplink
 
+
 @uplink.timeout(10)
 @uplink.headers({
     "Accept": "application/json"
@@ -9,13 +10,23 @@ class MapboxClient(uplink.Consumer):
 
     @uplink.get("/directions/v5/mapbox/{map_type}/{coordinates}")
     def get_directions(
-        self,
-        map_type: uplink.Path(str),
-        coordinates: uplink.Path(str),
-        access_token: uplink.Query(str),
-        alternatives: uplink.Query(str) = "false",
-        geometries: uplink.Query(str) = "geojson",
-        overview: uplink.Query(str) = "simplified",
-        steps: uplink.Query(str) = "false"
+            self,
+            map_type: uplink.Path(),
+            coordinates: uplink.Path(),
+            access_token: uplink.Query(),
+            alternatives: uplink.Query() = "false",
+            geometries: uplink.Query() = "geojson",
+            overview: uplink.Query() = "simplified",
+            steps: uplink.Query() = "false"
     ):
-        """Lấy chỉ đường từ Mapbox"""
+        pass
+
+    @uplink.get("/search/searchbox/v1/reverse")
+    def reverse_geocoding(
+            self,
+            longitude: uplink.Query(),
+            latitude: uplink.Query(),
+            limit: uplink.Query(),
+            access_token: uplink.Query(),
+    ):
+        pass

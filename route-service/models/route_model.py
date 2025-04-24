@@ -1,7 +1,7 @@
 from bson import ObjectId
 from pydantic import BaseModel, Field, GetCoreSchemaHandler
 from pydantic_core import core_schema
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 
 class PyObjectId(ObjectId):
@@ -17,20 +17,14 @@ class PyObjectId(ObjectId):
             return str(ObjectId(v))
         raise ValueError("Invalid ObjectId")
 
-
-class Location(BaseModel):
-    name: str
-    latitude: float
-    longitude: float
-
 class RouteModel(BaseModel):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     sport_id: Optional[str]
     name: Optional[str]
     avg_time: Optional[float] = 0
     total_time: Optional[float] = 0
-    location: Optional[Location]
-    images: Optional[List[str]] = []
+    location: Optional[str]
+    images: Optional[Dict[str, List[str]]] = {}
     coordinates: Optional[List[List[float]]] = []
     heat: Optional[int] = 0
 

@@ -5,6 +5,7 @@ from utils.json_format import to_camel
 
 
 class UpdateRouteRequest(BaseModel):
+    activity_id: Optional[str]
     avg_time: Optional[float]
     images: Optional[List[str]] = []
 

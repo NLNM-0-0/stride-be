@@ -1,5 +1,5 @@
 import math
-from pipes import quote
+from urllib.parse import quote
 from typing import List, Dict
 
 from shapely.geometry import Polygon
@@ -113,4 +113,4 @@ class GeometryHelper:
     @staticmethod
     def encode_coordinates(coordinates: List[List[float]]) -> str:
         raw_string = ";".join([f"{lng},{lat}" for lng, lat in coordinates])
-        return quote(raw_string, safe="")
+        return raw_string

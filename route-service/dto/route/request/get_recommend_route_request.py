@@ -7,6 +7,7 @@ class GetRecommendRouteRequest(BaseModel):
     sport_id: str
     latitude: float
     longitude: float
+    around: int
     limit: int
 
     class Config:

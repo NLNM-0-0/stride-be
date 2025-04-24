@@ -39,6 +39,12 @@ public class ActivityController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PostMapping("/{id}/routes")
+    ResponseEntity<SimpleResponse> saveRoute(@PathVariable String id) {
+        activityService.saveRoute(id);
+        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.CREATED);
+    }
+
     @PutMapping("/{id}")
     ResponseEntity<SimpleResponse> updateActivity(
             @PathVariable String id,

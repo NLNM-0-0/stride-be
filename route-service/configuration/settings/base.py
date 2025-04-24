@@ -29,7 +29,10 @@ class BackendBaseSettings(BaseSettings):
     ALLOWED_METHODS: list[str] = ["*"]
     ALLOWED_HEADERS: list[str] = ["*"]
 
+    MAPBOX_URL: str
     MAPBOX_TOKEN: str
+
+    OVERPASS_URL: str
 
     LOGGING_LEVEL: int = logging.INFO
     LOGGERS: tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")

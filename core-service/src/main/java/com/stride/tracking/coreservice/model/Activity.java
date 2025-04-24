@@ -27,6 +27,8 @@ public class Activity extends BaseEntity {
     @JoinColumn(name = "sport_id", nullable = false)
     private Sport sport;
 
+    private String routeId;
+
     private String name;
     private String description;
 
@@ -36,7 +38,6 @@ public class Activity extends BaseEntity {
     private Integer calories;
     private Double carbonSaved;
     private Integer rpe;
-
 
 
 

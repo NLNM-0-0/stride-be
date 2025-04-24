@@ -6,8 +6,6 @@ import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.coreservice.client.OpenElevationFeignClient;
-import com.stride.tracking.coreservice.client.ProfileFeignClient;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
@@ -15,6 +13,7 @@ import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.Sport;
+import com.stride.tracking.coreservice.utils.RouteUtils;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
 import com.stride.tracking.dto.activity.request.CoordinateRequest;
 import com.stride.tracking.dto.activity.request.CreateActivityRequest;
@@ -22,9 +21,6 @@ import com.stride.tracking.dto.activity.request.UpdateActivityRequest;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.dto.activity.response.ActivityUserResponse;
-import com.stride.tracking.dto.elevation.request.ElevationRequest;
-import com.stride.tracking.dto.elevation.request.LocationRequest;
-import com.stride.tracking.dto.elevation.response.ElevationResponse;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
 import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
@@ -39,6 +35,9 @@ import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalcu
 import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalculatorResult;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorResult;
+import com.stride.tracking.dto.route.request.CreateRouteRequest;
+import com.stride.tracking.dto.route.request.UpdateRouteRequest;
+import com.stride.tracking.dto.route.response.CreateRouteResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,13 +48,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -64,10 +62,10 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final SportRepository sportRepository;
 
-    private final ProfileFeignClient profileClient;
-    private final OpenElevationFeignClient elevationClient;
-
     private final MapboxService mapboxService;
+    private final RouteService routeService;
+    private final ProfileService profileService;
+    private final ElevationService elevationService;
 
     private final ElevationCalculator elevationCalculator;
     private final HeartRateCalculator heartRateCalculator;
@@ -86,7 +84,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional
     public ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
             AppPageRequest page) {
-        UserResponse userResponse = viewProfile();
+        UserResponse userResponse = profileService.viewProfile();
         ActivityFilter filter = ActivityFilter.builder()
                 .userId(userResponse.getId())
                 .build();
@@ -121,17 +119,6 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private UserResponse viewProfile() {
-        ResponseEntity<UserResponse> response = profileClient.viewUser();
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error("[viewProfile] Failed to view user profile for user id: {}", SecurityUtils.getCurrentUserId());
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.VIEW_PROFILE_FAILED);
-        }
-
-        log.debug("[viewProfile] Success to get user profile for user id: {}", response.getBody().getId());
-        return Objects.requireNonNull(response.getBody());
-    }
-
     private Specification<Activity> filterActivities(ActivityFilter filter) {
         Specification<Activity> spec = Specification.where(null);
         if (filter.getUserId() != null) {
@@ -143,7 +130,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityResponse getActivity(String activityId) {
-        UserResponse user = viewProfile();
+        UserResponse user = profileService.viewProfile();
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
         return activityMapper.mapToActivityResponse(
@@ -157,10 +144,11 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional
     public ActivityShortResponse createActivity(CreateActivityRequest request) {
         Sport sport = Common.findSportById(request.getSportId(), sportRepository);
-        UserResponse user = viewProfile();
+        UserResponse user = profileService.viewProfile();
 
         Activity.ActivityBuilder builder = Activity.builder()
                 .userId(user.getId())
+                .routeId(request.getRouteId())
                 .name(request.getName())
                 .description(request.getDescription())
                 .sport(sport)
@@ -175,10 +163,14 @@ public class ActivityServiceImpl implements ActivityService {
         List<List<Double>> coordinates = request.getCoordinates()
                 .stream()
                 .map(CoordinateRequest::getCoordinate).toList();
-        List<Long> coordinatesTimestamps = request.getCoordinates()
+        coordinates = RouteUtils.mergeCloseStartEnd(coordinates, 5);
+
+        List<Long> coordinatesTimestamps = new ArrayList<>(request.getCoordinates()
                 .stream()
-                .map(CoordinateRequest::getTimestamp).toList();
-        List<Integer> elevations = calculateElevations(coordinates);
+                .map(CoordinateRequest::getTimestamp).toList());
+        coordinatesTimestamps.add(coordinatesTimestamps.get(coordinates.size() - 1));
+
+        List<Integer> elevations = elevationService.calculateElevations(coordinates);
 
         addCaloriesInfo(
                 builder,
@@ -197,6 +189,17 @@ public class ActivityServiceImpl implements ActivityService {
 
         activity = activityRepository.save(activity);
 
+        if (activity.getRouteId() != null) {
+            routeService.updateRoute(
+                    activity.getRouteId(),
+                    UpdateRouteRequest.builder()
+                            .activityId(activity.getId())
+                            .images(activity.getImages())
+                            .avgTime(activity.getMovingTimeSeconds())
+                            .build()
+            );
+        }
+
         return activityMapper.mapToShortResponse(
                 activity,
                 sportMapper.mapToResponse(sport, categoryMapper.mapToCategoryResponse(sport.getCategory())),
@@ -204,35 +207,6 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
-    private List<Integer> calculateElevations(List<List<Double>> coordinates) {
-        List<LocationRequest> locationRequests = coordinates.stream()
-                .map(coordinate -> {
-                    Double longitude = coordinate.get(0);
-                    Double latitude = coordinate.get(1);
-                    return LocationRequest.builder()
-                            .longitude(longitude)
-                            .latitude(latitude)
-                            .build();
-                })
-                .toList();
-
-        ElevationRequest request = ElevationRequest.builder()
-                .locations(locationRequests)
-                .build();
-
-        ResponseEntity<ElevationResponse> response = elevationClient.calculateElevation(request);
-
-        if (!HttpStatus.OK.equals(response.getStatusCode()) || response.getBody() == null) {
-            log.error("[getElevations] Failed to calculate elevations");
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CALCULATE_ELEVATIONS_FAILED);
-        }
-
-        log.debug("[getElevations] Success to calculate elevations");
-
-        return response.getBody().getResults().stream()
-                .map(location -> location.getElevation().intValue())
-                .toList();
-    }
 
     private void addCaloriesInfo(Activity.ActivityBuilder builder, long movingTimeSeconds, double avgSpeed, Sport sport, UserResponse user) {
         int calories = calculateCalories(movingTimeSeconds, avgSpeed, sport, user);
@@ -298,7 +272,7 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
         if (request.getSportId() != null) {
-            UserResponse user = viewProfile();
+            UserResponse user = profileService.viewProfile();
 
             Sport sport = Common.findSportById(request.getSportId(), sportRepository);
 
@@ -313,8 +287,21 @@ public class ActivityServiceImpl implements ActivityService {
 
         UpdateHelper.updateIfNotNull(request.getName(), activity::setName);
         UpdateHelper.updateIfNotNull(request.getDescription(), activity::setDescription);
-        UpdateHelper.updateIfNotNull(request.getImages(), activity::setImages);
+
         UpdateHelper.updateIfNotNull(request.getRpe(), activity::setRpe);
+
+        if (request.getImages() != null) {
+            UpdateHelper.updateIfNotNull(request.getImages(), activity::setImages);
+            if (activity.getRouteId() != null) {
+                routeService.updateRoute(
+                        activity.getRouteId(),
+                        UpdateRouteRequest.builder()
+                                .activityId(activity.getId())
+                                .images(activity.getImages())
+                                .build()
+                );
+            }
+        }
 
         activityRepository.save(activity);
     }
@@ -337,5 +324,24 @@ public class ActivityServiceImpl implements ActivityService {
         activityRepository.delete(activity);
     }
 
+    @Override
+    @Transactional
+    public void saveRoute(String activityId) {
+        Activity activity = Common.findActivityById(activityId, activityRepository);
 
+        CreateRouteResponse routeResponse = routeService.createRoute(
+                CreateRouteRequest.builder()
+                        .sportId(activity.getSport().getId())
+                        .activityId(activityId)
+                        .sportMapType(activity.getSport().getSportMapType().getLowercase())
+                        .images(activity.getImages())
+                        .avgTime(activity.getMovingTimeSeconds().doubleValue())
+                        .coordinates(activity.getCoordinates())
+                        .build()
+        );
+
+        activity.setRouteId(routeResponse.getRouteId());
+
+        activityRepository.save(activity);
+    }
 }

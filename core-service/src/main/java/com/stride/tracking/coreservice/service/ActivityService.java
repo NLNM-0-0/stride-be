@@ -20,4 +20,6 @@ public interface ActivityService {
     void updateActivity(String activityId, UpdateActivityRequest request);
 
     void deleteActivity(String activityId);
+
+    void saveRoute(String activityId);
 }

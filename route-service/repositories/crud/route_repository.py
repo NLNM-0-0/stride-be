@@ -36,7 +36,7 @@ class RouteRepository(BaseMongoRepository):
             routes.append(RouteModel(**route))
         return routes
 
-    async def insert_one(self, route_data: dict):
+    async def insert_one(self, route_data: dict) -> ObjectId:
         result = await self.collection.insert_one(route_data)
         return result.inserted_id
 

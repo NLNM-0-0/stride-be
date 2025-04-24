@@ -3,7 +3,6 @@ from typing import Optional, List
 from bson import ObjectId
 from pydantic import BaseModel, Field
 
-from dto.route.response.location_response import LocationResponse
 from utils.json_format import to_camel
 
 
@@ -13,7 +12,7 @@ class RouteResponse(BaseModel):
     name: Optional[str]
     avg_time: Optional[float] = 0
     total_time: Optional[float] = 0
-    location: Optional[LocationResponse]
+    location: Optional[str]
     images: List[str] = []
     coordinates: List[List[float]] = []
     heat: int = 0
