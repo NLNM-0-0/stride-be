@@ -329,6 +329,10 @@ public class ActivityServiceImpl implements ActivityService {
     public void saveRoute(String activityId) {
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
+        if (activity.getRouteId() != null) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_CREATE_SAVED_ROUTE);
+        }
+
         CreateRouteResponse routeResponse = routeService.createRoute(
                 CreateRouteRequest.builder()
                         .sportId(activity.getSport().getId())
