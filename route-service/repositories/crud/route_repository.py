@@ -27,9 +27,6 @@ class RouteRepository(BaseMongoRepository):
         return None
 
     async def get_by_sport_id(self, sport_id: str) -> List[RouteModel]:
-        if not ObjectId.is_valid(sport_id):
-            return []
-
         routes_cursor = self.collection.find({"sport_id": sport_id})
         routes = []
         async for route in routes_cursor:
