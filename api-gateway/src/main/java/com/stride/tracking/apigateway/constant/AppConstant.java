@@ -7,11 +7,20 @@ public class AppConstant {
 
     @NonFinal
     public static String[] publicEndpoints = {
+            "/bridge/ping",
+            "/bridge/emails/send",
+            "/bridge/fcm/users/*",
+            "/bridge/fcm/tokens/*",
+
+            "/core/ping",
+
+            "/identity/ping",
             "/identity/auth/**",
             "/identity/users/**",
-            "/notification/emails/send",
             "/identity/users/register",
-            "/notification/fcm/users/*",
-            "/notification/fcm/tokens/*"
+
+            "/profile/ping",
+
+            "/route/**"
     };
 }

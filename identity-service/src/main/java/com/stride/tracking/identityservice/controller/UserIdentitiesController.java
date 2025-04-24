@@ -1,9 +1,13 @@
 package com.stride.tracking.identityservice.controller;
 
-import com.stride.tracking.commons.response.SimpleResponse;
-import com.stride.tracking.dto.request.*;
-import com.stride.tracking.dto.response.EmailRegisterResponse;
-import com.stride.tracking.dto.response.VerifyResetPasswordResponse;
+import com.stride.tracking.commons.dto.SimpleResponse;
+import com.stride.tracking.dto.register.request.EmailRegisterRequest;
+import com.stride.tracking.dto.register.request.VerifyAccountRequest;
+import com.stride.tracking.dto.register.request.VerifyResetPasswordRequest;
+import com.stride.tracking.dto.register.response.EmailRegisterResponse;
+import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserRequest;
+import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.dto.resetpassword.response.VerifyResetPasswordResponse;
 import com.stride.tracking.identityservice.service.ResetPasswordService;
 import com.stride.tracking.identityservice.service.UserIdentityService;
 import lombok.RequiredArgsConstructor;
@@ -42,19 +46,26 @@ public class UserIdentitiesController {
     }
 
     @PostMapping("/reset-password/send-otp")
-    ResponseEntity<SimpleResponse> sendOTPResetPassword(@RequestBody ResetPasswordUserSendOTPRequest request) {
+    ResponseEntity<SimpleResponse> sendOTPResetPassword(
+            @RequestBody ResetPasswordUserSendOTPRequest request
+    ) {
         resetPasswordService.sendOTPResetPassword(request);
         return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
     }
 
     @PostMapping("/reset-password/verify")
-    ResponseEntity<VerifyResetPasswordResponse> verifyResetPasswordToken(@RequestBody VerifyResetPasswordRequest request) {
+    ResponseEntity<VerifyResetPasswordResponse> verifyResetPasswordToken(
+            @RequestBody VerifyResetPasswordRequest request
+    ) {
         VerifyResetPasswordResponse response = resetPasswordService.verifyResetPassword(request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/reset-password/{resetPasswordTokenId}/change-password")
-    ResponseEntity<SimpleResponse> resetPassword(@PathVariable String resetPasswordTokenId, @RequestBody ResetPasswordUserRequest request) {
+    ResponseEntity<SimpleResponse> resetPassword(
+            @PathVariable String resetPasswordTokenId,
+            @RequestBody ResetPasswordUserRequest request
+    ) {
         resetPasswordService.resetPassword(resetPasswordTokenId, request);
         return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
     }

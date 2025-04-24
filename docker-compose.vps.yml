@@ -1,0 +1,96 @@
+version: '3.8'
+
+name: stride
+
+services:
+  identity-ms:
+    image: nlnm/stride:identity-ms-v1.0.0
+    container_name: identity-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  bridge-ms:
+    image: nlnm/stride:bridge-ms-v1.0.0
+    container_name: bridge-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  profile-ms:
+    image: nlnm/stride:profile-ms-v1.0.0
+    container_name: profile-ms
+    ports:
+      - "8083:8083"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  core-ms:
+    image: nlnm/stride:core-ms-v1.0.0
+    container_name: core-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  gateway:
+    image: nlnm/stride:gateway-v1.0.0
+    container_name: gateway-ms
+    depends_on:
+      - identity-ms
+      - bridge-ms
+      - profile-ms
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - stride-network
+  kafka:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka
+    hostname: kafka
+    restart: always
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_MESSAGE_MAX_BYTES=2000000
+      - KAFKA_CFG_REPLICA_FETCH_MAX_BYTES=2000000
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    networks:
+      - stride-network
+    healthcheck:
+      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  stride-network:
+    driver: bridge

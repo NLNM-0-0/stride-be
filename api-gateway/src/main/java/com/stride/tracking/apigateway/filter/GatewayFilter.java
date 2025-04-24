@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static com.stride.tracking.apigateway.constant.AppConstant.publicEndpoints;
 
@@ -37,7 +38,17 @@ public class GatewayFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         if (isPublicEndpoint(exchange.getRequest().getPath().value())) {
-            return chain.filter(exchange);
+            String requestId = UUID.randomUUID().toString();
+
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .headers(httpHeaders -> httpHeaders.set(CustomHeaders.X_REQUEST_ID, requestId))
+                    .build();
+
+            ServerWebExchange mutatedExchange = exchange.mutate()
+                    .request(mutatedRequest)
+                    .build();
+
+            return chain.filter(mutatedExchange);
         }
 
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
@@ -54,13 +65,15 @@ public class GatewayFilter implements GlobalFilter {
                 return unauthenticated(exchange.getRequest(), exchange.getResponse());
             }
 
-            ServerHttpRequest mutatedRequest = exchange.getRequest()
-                    .mutate()
-                    .header(CustomHeaders.X_AUTH_USER_ID, response.getBody().getUserId())
-                    .header(CustomHeaders.X_AUTH_USERNAME, response.getBody().getUsername())
-                    .header(CustomHeaders.X_AUTH_EMAIL, response.getBody().getEmail())
-                    .header(CustomHeaders.X_AUTH_PROVIDER, response.getBody().getProvider())
-                    .header(CustomHeaders.X_AUTH_USER_AUTHORITIES, response.getBody().getScope())
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .headers(httpHeaders -> {
+                        httpHeaders.set(CustomHeaders.X_AUTH_USER_ID, response.getBody().getUserId());
+                        httpHeaders.set(CustomHeaders.X_AUTH_USERNAME, response.getBody().getUsername());
+                        httpHeaders.set(CustomHeaders.X_AUTH_EMAIL, response.getBody().getEmail());
+                        httpHeaders.set(CustomHeaders.X_AUTH_PROVIDER, response.getBody().getProvider());
+                        httpHeaders.set(CustomHeaders.X_AUTH_USER_AUTHORITIES, response.getBody().getScope());
+                        httpHeaders.set(CustomHeaders.X_REQUEST_ID, UUID.randomUUID().toString());
+                    })
                     .build();
 
             ServerWebExchange mutatedExchange = exchange.mutate()

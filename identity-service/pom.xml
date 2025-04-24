@@ -28,7 +28,12 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <postgresql.version>42.7.5</postgresql.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
+        <stride-dto.version>0.0.59-SNAPSHOT</stride-dto.version>
+        <stride-common.version>0.0.26-SNAPSHOT</stride-common.version>
+        <feign.version>13.6</feign.version>
+        <loki.version>1.6.0</loki.version>
     </properties>
     <repositories>
         <repository>
@@ -44,22 +49,22 @@
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>identity-dto</artifactId>
-            <version>0.0.27-SNAPSHOT</version>
+            <version>${stride-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
-            <artifactId>notification-dto</artifactId>
-            <version>0.0.27-SNAPSHOT</version>
+            <artifactId>bridge-dto</artifactId>
+            <version>${stride-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>profile-dto</artifactId>
-            <version>0.0.27-SNAPSHOT</version>
+            <version>${stride-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
             <artifactId>stride-common</artifactId>
-            <version>0.0.14-SNAPSHOT</version>
+            <version>${stride-common.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -89,12 +94,24 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
 
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>com.github.loki4j</groupId>
+            <artifactId>loki-logback-appender</artifactId>
+            <version>${loki.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
             <scope>runtime</scope>
         </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -109,10 +126,6 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
