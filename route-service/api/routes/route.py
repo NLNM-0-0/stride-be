@@ -23,7 +23,7 @@ def get_mapbox_service() -> MapboxService:
 
 
 def get_overpass_service() -> OverpassService:
-    return OverpassService(overpass_client=OverpassClient(base_url=settings.MAPBOX_URL))
+    return OverpassService(overpass_client=OverpassClient(base_url=settings.OVERPASS_URL))
 
 def get_route_service(
         route_repository: RouteRepository = Depends(get_repository(RouteRepository)),

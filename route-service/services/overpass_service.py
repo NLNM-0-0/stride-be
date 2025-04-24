@@ -31,7 +31,6 @@ class OverpassService:
                 message=f"Error fetching localities around lat: {latitude}, lon: {longitude}. "
                         f"Status code: {response.status_code}")
 
-        response = response.json()
         locations = response.json()
         localities = [element['tags'].get('name', '') for element in locations['elements']]
         return localities
