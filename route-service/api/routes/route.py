@@ -46,7 +46,7 @@ async def get_all_routes(service: RouteService = Depends(get_route_service)):
     return await service.get_all_routes()
 
 
-@route_router.get(
+@route_router.post(
     path="/recommend",
     response_model=List[RouteResponse]
 )
