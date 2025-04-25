@@ -68,7 +68,7 @@ services:
       args:
         GITHUB_USERNAME: ${GITHUB_USERNAME}
         GITHUB_TOKEN: ${GITHUB_TOKEN}
-    container_name: identity-ms
+    container_name: core-ms
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -79,6 +79,21 @@ services:
     restart: on-failure
     env_file:
       .env
+    networks:
+      - stride-network
+  route-ms:
+    build:
+      context: ./route-service
+      dockerfile: deploy/Dockerfile
+    container_name: route-ms
+    depends_on:
+      mongo-db:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    restart: on-failure
+    environment:
+      APP_ENV: default
     networks:
       - stride-network
   gateway:
@@ -94,6 +109,7 @@ services:
       - bridge-ms
       - profile-ms
       - core-ms
+      - route-ms
     ports:
       - "8080:8080"
     restart: on-failure
