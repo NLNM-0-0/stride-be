@@ -4,6 +4,9 @@
 !**/src/test/**/target/
 **/resources/
 .env
+/route-service/deploy/.env.default
+/route-service/deploy/.env.prod
+/route-service/deploy/.env.dev
 
 ### IntelliJ IDEA ###
 .idea

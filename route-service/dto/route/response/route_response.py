@@ -14,7 +14,7 @@ class RouteResponse(BaseModel):
     total_time: Optional[float] = 0
     location: Optional[str]
     images: List[str] = []
-    coordinates: List[List[float]] = []
+    geometry: str
     heat: int = 0
 
     class Config:
