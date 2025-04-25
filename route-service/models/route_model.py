@@ -25,7 +25,7 @@ class RouteModel(BaseModel):
     total_time: Optional[float] = 0
     location: Optional[str]
     images: Optional[Dict[str, List[str]]] = {}
-    coordinates: Optional[List[List[float]]] = []
+    geometry: str
     localities: Optional[List[str]] = []
     heat: Optional[int] = 0
 

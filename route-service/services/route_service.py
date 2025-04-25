@@ -1,8 +1,7 @@
-import asyncio
-from collections import Counter, defaultdict
+from collections import defaultdict
 from typing import List
 
-from bson import ObjectId
+import polyline
 
 from dto.mapbox.response.mapbox_direction_response import Waypoint
 from dto.mapbox.response.mapbox_geocoding_reverse_response import MapboxGeocodingReverseResponse
@@ -92,7 +91,10 @@ class RouteService:
             "location": location,
             "images": {request.activity_id: request.images if request.images else []},
             "localities": unique_localities,
-            "coordinates": mapbox_response.coordinates,
+            "geometry": polyline.encode(
+                coordinates = [(lat, lon) for lat, lon in mapbox_response.coordinates],
+                precision=6
+            ),
             "heat": 1
         }
 

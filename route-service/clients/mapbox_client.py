@@ -1,7 +1,7 @@
 import uplink
 
 
-@uplink.timeout(10)
+@uplink.timeout(60)
 @uplink.headers({
     "Accept": "application/json"
 })

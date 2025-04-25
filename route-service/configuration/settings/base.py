@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import pathlib
 import logging
 
@@ -18,11 +18,8 @@ class BackendBaseSettings(BaseSettings):
     SERVER_WORKERS: int
     API_PREFIX: str
 
-    DB_MONGO_HOST: str
-    DB_MONGO_PORT: str
-    DB_MONGO_USERNAME: str
-    DB_MONGO_PASSWORD: str
     DB_MONGO_NAME: str
+    DB_MONGO_URL: str
 
     IS_ALLOWED_CREDENTIALS: bool
     ALLOWED_ORIGINS: list[str] = []
@@ -37,10 +34,12 @@ class BackendBaseSettings(BaseSettings):
     LOGGING_LEVEL: int = logging.INFO
     LOGGERS: tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")
 
-    model_config = {
-        "env_file": f"{ROOT_DIR}/.env",
-        "case_sensitive": True,
-    }
+    model_config = SettingsConfigDict(
+        env_file=None,  # Will be set dynamically
+        env_file_encoding='utf-8',
+        case_sensitive=True,
+        extra='ignore'
+    )
 
     @property
     def set_backend_app_attributes(self) -> dict[str, str | bool | None]:
