@@ -80,6 +80,18 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
+  route-ms:
+    build:
+      context: ./route-service
+      dockerfile: deploy/Dockerfile
+    container_name: route-ms
+    ports:
+      - "8085:8085"
+    restart: on-failure
+    environment:
+      APP_ENV: prod
+    networks:
+      - stride-network
   gateway:
     build:
       context: ./api-gateway
