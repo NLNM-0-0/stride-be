@@ -17,11 +17,11 @@ class RouteModel(Base):
     name = Column(String, nullable=False)
     total_time = Column(Float, default=0)
     total_distance = Column(Float, default=0)
-    location = Column(String, nullable=False)
+    location = Column(JSON, nullable=False)
     map_image = Column(String, nullable=False)
     images = Column(JSON, nullable=False, default=dict)
     geometry = Column(String, nullable=False)
-    district = Column(String, nullable=False)
+    districts = Column(JSON, nullable=False)
     heat = Column(Integer, default=0)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

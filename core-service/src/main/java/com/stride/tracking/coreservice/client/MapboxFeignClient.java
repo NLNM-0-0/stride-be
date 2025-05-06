@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
-        name = "map-box",
-        url = "https://api.mapbox.com/"
+        name = "mapbox",
+        url = "${app.services.mapbox}"
 )
 @Component
 public interface MapboxFeignClient {

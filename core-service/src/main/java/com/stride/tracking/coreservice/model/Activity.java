@@ -2,14 +2,11 @@ package com.stride.tracking.coreservice.model;
 
 import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.*;
-import com.stride.tracking.coreservice.utils.converter.map.concrete.HeartRateZoneMapConverter;
-import com.stride.tracking.dto.user.HeartRateZone;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter
@@ -20,11 +17,14 @@ import java.util.Map;
         name = "activities"
 )
 public class Activity extends BaseEntity {
-    @Column(name = "user_id", nullable = false)
+    private static final String USER_ID_KEY = "user_id";
+    private static final String SPORT_ID_KEY = "sport_id";
+
+    @Column(name = USER_ID_KEY, nullable = false)
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sport_id", nullable = false)
+    @JoinColumn(name = SPORT_ID_KEY, nullable = false)
     private Sport sport;
 
     private String routeId;
@@ -103,4 +103,10 @@ public class Activity extends BaseEntity {
 
     private Double avgHearRate;
     private Double maxHearRate;
+
+
+
+
+
+    private Location location;
 }

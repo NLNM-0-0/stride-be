@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
-from dto.supbase.response.district_response import DistrictResponse
+from dto.supbase.response.district_distance_response import DistrictDistanceResponse
 from utils.json_format import to_camel
 
 
 class FindDistrictNearPointResponse(BaseModel):
-    data: list[DistrictResponse]
+    data: list[DistrictDistanceResponse]
 
     class Config:
         alias_generator = to_camel

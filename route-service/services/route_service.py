@@ -15,12 +15,11 @@ from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
 from dto.route.response.route_short_response import RouteShortResponse
+from dto.supbase.request.find_districts_contain_geometry_request import FindDistrictsContainGeometryRequest
 from dto.supbase.request.find_districts_near_point_request import FindDistrictNearPointRequest
 from dto.supbase.request.find_nearest_way_points_request import FindNearestWayPointsRequest
 from dto.supbase.request.geometry_request import GeometryRequest
-from dto.supbase.request.get_location_by_geometry_request import GetGeometryByLocationRequest
 from dto.supbase.request.point_request import PointRequest
-from dto.supbase.response.get_location_by_geometry_response import GetLocationByGeometryResponse
 from exceptions.common_exception import ResourceNotFoundException
 from mapper.route_mapper import RouteMapper
 from models.route_model import RouteModel
@@ -68,7 +67,7 @@ class RouteService:
 
         filtered_routes = [
             route for route in routes
-            if route.district in district_names
+            if any(district in district_names for district in route.districts)
         ]
 
         result = filtered_routes[:request.limit]
@@ -101,7 +100,6 @@ class RouteService:
 
         return RouteMapper.map_to_route_response(route)
 
-
     async def create_route(self, user_id: str, request: CreateRouteRequest) -> CreateRouteResponse:
         route_id = uuid.uuid4()
         map_type = SportMapType[request.sport_map_type]
@@ -113,14 +111,6 @@ class RouteService:
         # Get route from Mapbox
         mapbox_response = self.mapbox_service.get_batch_route(coordinates=points, map_type=map_type)
 
-        # Get location from geometry
-        location = self._fetch_location_from_geometry(mapbox_response.coordinates)
-        location_name = ComposeNameHelper.compose_location_name(
-            ward=location.ward,
-            district=location.district,
-            city=location.city,
-        )
-
         # Generate map image
         geometry = GeometryHelper.encode_geometry(
             coordinates=mapbox_response.coordinates,
@@ -128,9 +118,20 @@ class RouteService:
         )
         map_image = self.mapbox_service.generate_and_upload(geometry, f"Route_{route_id}")
 
+        # Find districts
+        districts_response = self.supabase_service.find_districts_contain_geometry(
+            FindDistrictsContainGeometryRequest(
+                geometry=GeometryRequest(
+                    type="LineString",
+                    coordinates=mapbox_response.coordinates
+                )
+            )
+        )
+        districts = [district.name for district in districts_response.districts]
+
         # Generate route name
         route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
-                      or location.ward)
+                      or request.ward)
 
         # Create and save user route
         new_user_route = RouteModel(
@@ -140,10 +141,14 @@ class RouteService:
             name=route_name,
             total_time=request.avg_time,
             total_distance=request.avg_distance,
-            location=location_name,
+            location={
+                "ward": request.ward,
+                "district": request.district,
+                "city": request.city,
+            },
             map_image=map_image,
             images={request.activity_id: request.images or []},
-            district=location.district,
+            districts=districts,
             geometry=geometry,
             heat=1,
         )
@@ -155,10 +160,14 @@ class RouteService:
             name=route_name,
             total_time=request.avg_time,
             total_distance=request.avg_distance,
-            location=location_name,
+            location={
+                "ward": request.ward,
+                "district": request.district,
+                "city": request.city,
+            },
             map_image=map_image,
             images={request.activity_id: request.images or []},
-            district=location.district,
+            districts=districts,
             geometry=geometry,
             heat=1,
         )
@@ -186,16 +195,6 @@ class RouteService:
 
         epsilon = WayPointHelper.get_rdp_epsilon(map_type=map_type)
         return rdp(filtered_points, epsilon=epsilon)
-
-    def _fetch_location_from_geometry(self, coordinates: list[list[float]]) -> GetLocationByGeometryResponse:
-        return self.supabase_service.get_location_by_geometry(
-            GetGeometryByLocationRequest(
-                geometry=GeometryRequest(
-                    type="LineString",
-                    coordinates=coordinates
-                )
-            )
-        )
 
     async def update_route(self, route_id: str, request: UpdateRouteRequest):
         # Convert string ID to UUID safely

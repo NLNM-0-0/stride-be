@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
         name = "open-elevation",
-        url = "https://api.open-elevation.com"
+        url = "${app.services.open-elevation}"
 )
 @Component
 public interface OpenElevationFeignClient {
