@@ -18,8 +18,8 @@ class BackendBaseSettings(BaseSettings):
     SERVER_WORKERS: int
     API_PREFIX: str
 
-    DB_MONGO_NAME: str
-    DB_MONGO_URL: str
+    DB_SCHEMA: str
+    DB_URL: str
 
     IS_ALLOWED_CREDENTIALS: bool
     ALLOWED_ORIGINS: list[str] = []
@@ -28,8 +28,19 @@ class BackendBaseSettings(BaseSettings):
 
     MAPBOX_URL: str
     MAPBOX_TOKEN: str
+    MAPBOX_STYLE: str
+    MAPBOX_WIDTH: int
+    MAPBOX_HEIGHT: int
+    MAPBOX_PADDING: int
+    MAPBOX_CONTENT_TYPE: str
+    MAPBOX_STROKE_WIDTH: int
+    MAPBOX_STROKE_COLOR: str
+    MAPBOX_STROKE_FILL: str
 
-    OVERPASS_URL: str
+    BRIDGE_SERVICE_URL: str
+
+    SUPABASE_TOKEN: str
+    SUPABASE_URL: str
 
     LOGGING_LEVEL: int = logging.INFO
     LOGGERS: tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")

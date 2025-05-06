@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from constants.map_type import SportMapType
 from utils.json_format import to_camel
 
 
@@ -7,7 +8,7 @@ class GetRecommendRouteRequest(BaseModel):
     sport_id: str
     latitude: float
     longitude: float
-    around: int
+    sport_map_type: str
     limit: int
 
     class Config:

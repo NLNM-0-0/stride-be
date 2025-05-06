@@ -1,162 +1,230 @@
-from collections import defaultdict
+import uuid
 from typing import List
+from uuid import UUID
 
-import polyline
+from polyline import polyline
+from rdp import rdp
 
-from dto.mapbox.response.mapbox_direction_response import Waypoint
-from dto.mapbox.response.mapbox_geocoding_reverse_response import MapboxGeocodingReverseResponse
+from constants.geometry_encode_type import GeometryEncodeType
+from constants.map_type import SportMapType
+from dto.app_page_request import AppPageRequest
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
+from dto.route.request.route_filter import RouteFilter
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
+from dto.route.response.route_short_response import RouteShortResponse
+from dto.supbase.request.find_districts_near_point_request import FindDistrictNearPointRequest
+from dto.supbase.request.find_nearest_way_points_request import FindNearestWayPointsRequest
+from dto.supbase.request.geometry_request import GeometryRequest
+from dto.supbase.request.get_location_by_geometry_request import GetGeometryByLocationRequest
+from dto.supbase.request.point_request import PointRequest
+from dto.supbase.response.get_location_by_geometry_response import GetLocationByGeometryResponse
 from exceptions.common_exception import ResourceNotFoundException
+from mapper.route_mapper import RouteMapper
+from models.route_model import RouteModel
 from repositories.crud.route_repository import RouteRepository
 from services.mapbox_service import MapboxService
-from services.overpass_service import OverpassService
+from services.supabase_service import SupabaseService
+from utils.compose_name_helper import ComposeNameHelper
+from utils.geometry_helper import GeometryHelper
+from utils.way_point_helper import WayPointHelper
 
 
 class RouteService:
     route_repository: RouteRepository
     mapbox_service: MapboxService
-    overpass_service: OverpassService
+    supabase_service: SupabaseService
 
     def __init__(
             self,
             route_repository: RouteRepository,
             mapbox_service: MapboxService,
-            overpass_service: OverpassService):
+            supabase_service: SupabaseService):
         self.route_repository = route_repository
         self.mapbox_service = mapbox_service
-        self.overpass_service = overpass_service
+        self.supabase_service = supabase_service
 
-    async def get_all_routes(self) -> List[RouteResponse]:
+    async def get_all_routes(self) -> List[RouteShortResponse]:
         routes = await self.route_repository.get_all()
-        route_responses = []
+        return [RouteMapper.map_to_route_short_response(route) for route in routes]
 
-        for route in routes:
-            route_dict = route.model_dump(by_alias=True)
-
-            raw_images = route_dict.get("images", {})
-            route_dict["images"] = raw_images.get("map", [])
-
-            route_responses.append(RouteResponse.model_validate(route_dict))
-
-        return route_responses
-
-    async def get_recommended_routes(self, request: GetRecommendRouteRequest) -> List[RouteResponse]:
-        routes = await self.route_repository.get_by_sport_id(request.sport_id)
-
-        localities = self.overpass_service.fetch_nearby_localities(
-            latitude=request.latitude,
-            longitude=request.longitude,
-            around=request.around
+    async def get_recommended_routes(
+            self,
+            request: GetRecommendRouteRequest
+    ) -> List[RouteShortResponse]:
+        routes = await self.route_repository.get_by_filters(
+            route_filter=RouteFilter(sport_id=request.sport_id, user_id=None)
         )
+
+        map_type = SportMapType[request.sport_map_type]
+        districts = self.supabase_service.find_districts_near_point(FindDistrictNearPointRequest(
+            lat=request.latitude,
+            lon=request.longitude,
+            around=map_type.recommended_distance
+        ))
+        district_names = [district.district_name for district in districts.data]
 
         filtered_routes = [
             route for route in routes
-            if any(locality in localities for locality in route.localities)
+            if route.district in district_names
         ]
 
         result = filtered_routes[:request.limit]
 
-        route_responses = []
+        return [RouteMapper.map_to_route_short_response(route) for route in result]
 
-        for route in result:
-            route_dict = route.model_dump(by_alias=True)
-
-            raw_images = route_dict.get("images", {})
-            route_dict["images"] = raw_images.get("map", [])
-
-            route_responses.append(RouteResponse.model_validate(route_dict))
-
-        return route_responses
-
-    async def create_route(self, request: CreateRouteRequest) -> CreateRouteResponse:
-        points = request.coordinates
-
-        mapbox_response = self.mapbox_service.get_batch_route(
-            coordinates=points,
-            map_type=request.sport_map_type
+    async def get_routes(
+            self,
+            route_filter: RouteFilter,
+            page: AppPageRequest
+    ) -> List[RouteShortResponse]:
+        routes = await self.route_repository.get_by_filters_and_paging(
+            route_filter,
+            page.page,
+            page.limit
         )
+        return [RouteMapper.map_to_route_short_response(route) for route in routes]
 
-        unique_localities, places = self._sort_localities_by_frequency(mapbox_response.waypoints)
-        location = places[0].neighborhood + ", " + places[0].locality + ", " + places[0].place
+    async def get_route(self, route_id: str) -> RouteResponse:
+        # Convert string ID to UUID safely
+        try:
+            route_uuid = UUID(route_id)
+        except ValueError:
+            raise ResourceNotFoundException("Route", "id", route_id)
 
-        route_data = {
-            "sport_id": request.sport_id,
-            "name": self._generate_route_name(mapbox_response.waypoints),
-            "avg_time": request.avg_time,
-            "total_time": request.avg_time,
-            "location": location,
-            "images": {request.activity_id: request.images if request.images else []},
-            "localities": unique_localities,
-            "geometry": polyline.encode(
-                coordinates = [(lat, lon) for lat, lon in mapbox_response.coordinates],
-                precision=6
-            ),
-            "heat": 1
-        }
-
-        _id = await self.route_repository.insert_one(route_data)
-
-        return CreateRouteResponse.model_validate({"route_id": str(_id)})
-
-    def  _generate_route_name(self, waypoints: List[Waypoint]) -> str:
-        top_names = [w.name for w in waypoints[:min(3, len(waypoints))]]
-        return " - ".join(top_names)
-
-    def _sort_localities_by_frequency(self, waypoints: List[Waypoint]):
-        geocoding_results = {}
-
-        for waypoint in waypoints:
-            geocoding_results[(waypoint.latitude, waypoint.longitude)] = self.overpass_service.reverse_geocoding(
-                latitude=waypoint.latitude,
-                longitude=waypoint.longitude
-            )
-
-        grouped_counter = defaultdict(lambda: {
-            "place": "None",
-            "locality": "None",
-            "neighborhood": "None",
-            "freq": 0
-        })
-
-        for waypoint in waypoints:
-            geocoding = geocoding_results[(waypoint.latitude, waypoint.longitude)]
-            key = (geocoding.place, geocoding.locality, geocoding.neighborhood)
-            grouped_counter[key]["place"] = geocoding.place
-            grouped_counter[key]["locality"] = geocoding.locality
-            grouped_counter[key]["neighborhood"] = geocoding.neighborhood
-            grouped_counter[key]["freq"] += 1
-
-        sorted_grouped = sorted(grouped_counter.values(), key=lambda x: x["freq"], reverse=True)
-
-        return (
-            list(set([entry["locality"] for entry in sorted_grouped])),
-            [
-                MapboxGeocodingReverseResponse(
-                    place=entry["place"],
-                    locality=entry["locality"],
-                    neighborhood=entry["neighborhood"]
-                )
-                for entry in sorted_grouped
-            ]
-        )
-
-    async def update_route(self, route_id: str, request: UpdateRouteRequest):
-        route = await self.route_repository.get_by_id(route_id)
+        # Fetch the route
+        route = await self.route_repository.get_by_id(route_uuid)
         if not route:
             raise ResourceNotFoundException("Route", "id", route_id)
 
+        return RouteMapper.map_to_route_response(route)
+
+
+    async def create_route(self, user_id: str, request: CreateRouteRequest) -> CreateRouteResponse:
+        route_id = uuid.uuid4()
+        map_type = SportMapType[request.sport_map_type]
+
+        # Map geometry to the way points
+        decoded_geometry = [[lng, lat] for lat, lng in polyline.decode(request.geometry, precision=5)]
+        points = self._map_points_to_map(map_type=map_type, points=decoded_geometry)
+
+        # Get route from Mapbox
+        mapbox_response = self.mapbox_service.get_batch_route(coordinates=points, map_type=map_type)
+
+        # Get location from geometry
+        location = self._fetch_location_from_geometry(mapbox_response.coordinates)
+        location_name = ComposeNameHelper.compose_location_name(
+            ward=location.ward,
+            district=location.district,
+            city=location.city,
+        )
+
+        # Generate map image
+        geometry = GeometryHelper.encode_geometry(
+            coordinates=mapbox_response.coordinates,
+            encode_type=GeometryEncodeType.GEOJSON
+        )
+        map_image = self.mapbox_service.generate_and_upload(geometry, f"Route_{route_id}")
+
+        # Generate route name
+        route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
+                      or location.ward)
+
+        # Create and save user route
+        new_user_route = RouteModel(
+            id=route_id,
+            user_id=user_id,
+            sport_id=request.sport_id,
+            name=route_name,
+            total_time=request.avg_time,
+            total_distance=request.avg_distance,
+            location=location_name,
+            map_image=map_image,
+            images={request.activity_id: request.images or []},
+            district=location.district,
+            geometry=geometry,
+            heat=1,
+        )
+        new_user_route = await self.route_repository.insert_one(new_user_route)
+
+        # Create and save route
+        new_route = RouteModel(
+            sport_id=request.sport_id,
+            name=route_name,
+            total_time=request.avg_time,
+            total_distance=request.avg_distance,
+            location=location_name,
+            map_image=map_image,
+            images={request.activity_id: request.images or []},
+            district=location.district,
+            geometry=geometry,
+            heat=1,
+        )
+        await self.route_repository.insert_one(new_route)
+
+        return CreateRouteResponse(route_id=new_user_route.id)
+
+    def _map_points_to_map(self, map_type: SportMapType, points: list[list[float]]) -> list[list[float]]:
+        count = WayPointHelper.get_simplification_step(map_type=map_type)
+        simplified = points[::count]
+
+        formatted_data = [PointRequest(
+            lat=lat,
+            lon=lon
+        ) for lon, lat in simplified]
+
+        request = FindNearestWayPointsRequest(
+            data=formatted_data,
+            type=map_type.lowercase,
+        )
+        response = self.supabase_service.find_nearest_way_points(request)
+
+        filtered = WayPointHelper.filter_points(response.data)
+        filtered_points = [[p.lon, p.lat] for p in filtered]
+
+        epsilon = WayPointHelper.get_rdp_epsilon(map_type=map_type)
+        return rdp(filtered_points, epsilon=epsilon)
+
+    def _fetch_location_from_geometry(self, coordinates: list[list[float]]) -> GetLocationByGeometryResponse:
+        return self.supabase_service.get_location_by_geometry(
+            GetGeometryByLocationRequest(
+                geometry=GeometryRequest(
+                    type="LineString",
+                    coordinates=coordinates
+                )
+            )
+        )
+
+    async def update_route(self, route_id: str, request: UpdateRouteRequest):
+        # Convert string ID to UUID safely
+        try:
+            route_uuid = UUID(route_id)
+        except ValueError:
+            raise ResourceNotFoundException("Route", "id", route_id)
+
+        # Fetch the route
+        route = await self.route_repository.get_by_id(route_uuid)
+        if not route:
+            raise ResourceNotFoundException("Route", "id", route_id)
+
+        # Update images and heat/avg_time
         if request.activity_id in route.images:
             route.images[request.activity_id].extend(request.images)
         else:
             route.images[request.activity_id] = request.images
             route.heat += 1
             route.total_time += request.avg_time
-            route.avg_time = route.total_time / route.heat
+            route.total_distance += request.avg_distance
 
-        update_data = route.model_dump(exclude={"id"})
+        # Prepare data for update (skip id)
+        update_data = {
+            "images": route.images,
+            "heat": route.heat,
+            "total_time": route.total_time,
+            "total_distance": route.total_distance,
+        }
 
-        await self.route_repository.update_by_id(route_id, update_data)
+        # Apply update
+        await self.route_repository.update_by_id(route_uuid, update_data)

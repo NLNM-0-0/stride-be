@@ -32,7 +32,6 @@ public class Activity extends BaseEntity {
     private String name;
     private String description;
 
-    private Double totalDistance;
     private Long movingTimeSeconds;
     private Long elapsedTimeSeconds;
     private Integer calories;
@@ -73,15 +72,15 @@ public class Activity extends BaseEntity {
     private Double avgSpeed;
     private Double maxSpeed;
 
-    @Convert(converter = ListDoubleListConverter.class)
+    @Convert(converter = DoubleListConverter.class)
     @Column(columnDefinition = "json")
     @ColumnTransformer(write = "?::json")
-    private List<List<Double>> coordinates;
+    private List<Double> distances;
 
-    @Convert(converter = ListDoubleListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
-    private List<List<Double>> smoothCoordinates;
+    private Double totalDistance;
+
+    @Column(columnDefinition = "TEXT")
+    private String geometry;
 
     @Convert(converter = LongListConverter.class)
     @Column(columnDefinition = "json")
@@ -97,10 +96,10 @@ public class Activity extends BaseEntity {
     @ColumnTransformer(write = "?::json")
     private List<Integer> heartRates;
 
-    @Convert(converter = HeartRateZoneMapConverter.class)
+    @Convert(converter = HeartRateZoneValueListConverter.class)
     @Column(columnDefinition = "json")
     @ColumnTransformer(write = "?::json")
-    private Map<HeartRateZone, Integer> heartRateZones;
+    private List<HeartRateZoneValue> heartRateZones;
 
     private Double avgHearRate;
     private Double maxHearRate;

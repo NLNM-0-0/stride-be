@@ -1,32 +1,49 @@
-import uplink
+import requests
 
 
-@uplink.timeout(60)
-@uplink.headers({
-    "Accept": "application/json"
-})
-class MapboxClient(uplink.Consumer):
-    """Client để gọi Mapbox Directions API"""
+class MapboxClient:
+    def __init__(self, base_url: str, access_token: str):
+        self.base_url = base_url.rstrip("/")
+        self.access_token = access_token
 
-    @uplink.get("/directions/v5/mapbox/{map_type}/{coordinates}")
     def get_directions(
-            self,
-            map_type: uplink.Path(),
-            coordinates: uplink.Path(),
-            access_token: uplink.Query(),
-            alternatives: uplink.Query() = "false",
-            geometries: uplink.Query() = "geojson",
-            overview: uplink.Query() = "simplified",
-            steps: uplink.Query() = "false"
-    ):
-        pass
+        self,
+        map_type: str,
+        coordinates: str,
+        alternatives: str = "false",
+        geometries: str = "geojson",
+        overview: str = "simplified",
+        steps: str = "false"
+    ) -> dict:
+        url = f"{self.base_url}/directions/v5/mapbox/{map_type}/{coordinates}"
+        params = {
+            "access_token": self.access_token,
+            "alternatives": alternatives,
+            "geometries": geometries,
+            "overview": overview,
+            "steps": steps
+        }
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
 
-    @uplink.get("/search/searchbox/v1/reverse")
-    def reverse_geocoding(
-            self,
-            longitude: uplink.Query(),
-            latitude: uplink.Query(),
-            limit: uplink.Query(),
-            access_token: uplink.Query(),
-    ):
-        pass
+    def get_static_map_image(
+        self,
+        map_style: str,
+        stroke_width: str,
+        stroke_color: str,
+        stroke_fill: str,
+        path: str,
+        width: int,
+        height: int,
+        padding: int = 0
+    ) -> bytes:
+        path_part = f"path-{stroke_width}{stroke_color}{stroke_fill}({path})"
+        url = f"{self.base_url}/styles/v1/{map_style}/static/{path_part}/auto/{width}x{height}"
+        params = {
+            "access_token": self.access_token,
+            "padding": padding
+        }
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.content

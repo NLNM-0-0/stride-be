@@ -1,15 +1,14 @@
-import typing
-
-import loguru
-from motor.motor_asyncio import AsyncIOMotorDatabase
-
-from repositories.database import async_mongo
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import AsyncSession
+from repositories.database import async_session
+from loguru import logger
 
 
-async def get_mongo_database() -> typing.AsyncGenerator[AsyncIOMotorDatabase, None]:
+async def get_postgres_session() -> AsyncGenerator[AsyncSession, None]:
     try:
-        loguru.logger.debug("Getting MongoDB session")
-        yield async_mongo.db
+        logger.debug("Getting PostgreSQL session")
+        async with async_session() as session:
+            yield session
     except Exception as e:
-        loguru.logger.error(f"MongoDB error: {e}")
-        raise e
+        logger.error(f"PostgreSQL session error: {e}")
+        raise

@@ -1,154 +1,165 @@
+from urllib.parse import quote
 from collections import defaultdict
 from typing import List
 
+import requests
+from fastapi import status
+
+from clients.bridge_client import BridgeClient
 from clients.mapbox_client import MapboxClient
 from configuration.manager import settings
-from dto.mapbox.response.mapbox_direction_response import MapboxDirectionResponse, Waypoint
-from dto.mapbox.response.mapbox_geocoding_reverse_response import MapboxGeocodingReverseResponse
+from constants.geometry_encode_type import GeometryEncodeType
+from constants.map_type import SportMapType
+from dto.mapbox.response.mapbox_direction_response import MapboxWayPoint, MapboxDirectionResponse
 from exceptions.common_exception import StrideException
 from utils.data_helper import DataHelper
 from utils.geometry_helper import GeometryHelper
 
 
 class MapboxService:
-    mapbox_client: MapboxClient
-    access_token: str
-
-    def __init__(self, mapbox_client: MapboxClient):
+    def __init__(self, mapbox_client: MapboxClient, bridge_client: BridgeClient):
         self.mapbox_client = mapbox_client
-        self.access_token = settings.MAPBOX_TOKEN
+        self.bridge_client = bridge_client
+        self.default_style = settings.MAPBOX_STYLE
+        self.default_stroke_width = settings.MAPBOX_STROKE_WIDTH
+        self.default_stroke_color = settings.MAPBOX_STROKE_COLOR
+        self.default_stroke_fill = settings.MAPBOX_STROKE_FILL
+        self.default_width = settings.MAPBOX_WIDTH
+        self.default_height = settings.MAPBOX_HEIGHT
+        self.default_padding = settings.MAPBOX_PADDING
+        self.content_type = settings.MAPBOX_CONTENT_TYPE
 
-    def get_batch_route(self, coordinates: List[List[float]], map_type: str = "driving") -> MapboxDirectionResponse:
+    def get_batch_route(
+            self,
+            coordinates: List[List[float]],
+            map_type: SportMapType = SportMapType.DRIVING
+    ) -> MapboxDirectionResponse:
         max_coords_per_request = 25
+        coord_chunks = [coordinates[i:i + max_coords_per_request] for i in
+                        range(0, len(coordinates), max_coords_per_request)]
 
-        coord_chunks = [
-            coordinates[i:i + max_coords_per_request]
-            for i in range(0, len(coordinates), max_coords_per_request)
-        ]
-
-        combined_coordinates = []
-        combined_waypoints = []
-
+        combined_coordinates, combined_waypoints = [], []
         for chunk in coord_chunks:
-            response = self.get_route(coordinates=chunk, map_type=map_type)
-            combined_coordinates.extend(response.coordinates)
-            combined_waypoints.extend(response.waypoints)
+            result = self.get_route(chunk, map_type)
+            combined_coordinates.extend(result.coordinates)
+            combined_waypoints.extend(result.waypoints)
 
-        combined_waypoints_dict = defaultdict(lambda: {
+        # Group waypoints by name
+        waypoint_dict = defaultdict(lambda: {
             "latitude": 0.0,
             "longitude": 0.0,
             "freq": 0,
-            "count": 0,
-            "name": "",
+            "name": ""
         })
-
         for wp in combined_waypoints:
-            entry = combined_waypoints_dict[wp.name.lower()]
-            entry["latitude"] = wp.latitude
-            entry["longitude"] = wp.longitude
-            entry["freq"] += wp.freq
-            entry["count"] += 1
-            entry["name"] = wp.name
+            key = wp.name.lower()
+            waypoint_dict[key]["latitude"] = wp.latitude
+            waypoint_dict[key]["longitude"] = wp.longitude
+            waypoint_dict[key]["freq"] += wp.freq
+            waypoint_dict[key]["name"] = wp.name
 
-        combined_waypoints = [
-            Waypoint(
-                name=data["name"],
-                latitude=data["latitude"],
-                longitude=data["longitude"],
-                freq=data["freq"]
-            )
-            for _, data in combined_waypoints_dict.items()
-        ]
+        waypoints = [MapboxWayPoint(**val) for val in waypoint_dict.values()]
+        return MapboxDirectionResponse(coordinates=combined_coordinates, waypoints=waypoints)
 
-        return MapboxDirectionResponse(
-            coordinates=combined_coordinates,
-            waypoints=combined_waypoints
+    def get_route(
+            self,
+            coordinates: List[List[float]],
+            map_type: SportMapType = SportMapType.DRIVING
+    ) -> MapboxDirectionResponse:
+        encoded_coords = GeometryHelper.encode_geometry(
+            coordinates=coordinates,
+            encode_type=GeometryEncodeType.URL
         )
-
-    def get_route(self, coordinates: List[List[float]], map_type: str = "driving") -> MapboxDirectionResponse:
-        encoded_coords = GeometryHelper.encode_coordinates(coordinates)
-
         response = self.mapbox_client.get_directions(
-            map_type=map_type,
-            coordinates=encoded_coords,
-            access_token=self.access_token
+            map_type=map_type.lowercase,
+            coordinates=encoded_coords
         )
 
-        if response.status_code != 200:
-            raise StrideException(
-                message=f"Error fetching route data. Status code: {response.status_code}"
-            )
-        response = response.json()
-
-        coordinates = DataHelper.safe_get_nested(
+        coords = DataHelper.safe_get_nested(
             response,
             ["routes", 0, "geometry", "coordinates"],
-            default=""
-        )
-
-        response_waypoints = DataHelper.safe_get_nested(
-            response,
-            ["waypoints"],
             default=[]
         )
-        waypoint_counter = {}
-        for waypoint in response_waypoints:
-            name = waypoint.get("name", "")
+        raw_wps = response.get("waypoints", [])
+        counter = {}
+        for wp in raw_wps:
+            name = wp.get("name", "")
             if not name:
                 continue
-
-            if name in waypoint_counter:
-                waypoint_counter[name]["freq"] += 1
+            if name in counter:
+                counter[name]["freq"] += 1
             else:
-                waypoint_counter[name] = {
-                    "latitude": waypoint.get("location", [])[1],
-                    "longitude": waypoint.get("location", [])[0],
-                    "freq": 1
+                counter[name] = {
+                    "latitude": wp["location"][1],
+                    "longitude": wp["location"][0],
+                    "freq": 1,
                 }
-        waypoints = [
-            Waypoint(name=name, latitude=info["latitude"], longitude=info["longitude"], freq=info["freq"])
-            for name, info in waypoint_counter.items()
-        ]
-        waypoints = sorted(waypoints, key=lambda w: w.freq, reverse=True)
 
-        return MapboxDirectionResponse(
-            coordinates=coordinates,
-            waypoints=waypoints
+        waypoints = [MapboxWayPoint(
+            name=k,
+            latitude=v["latitude"],
+            longitude=v["longitude"],
+            freq=v["freq"]
+        ) for k, v in counter.items()]
+        waypoints.sort(key=lambda w: w.freq, reverse=True)
+        return MapboxDirectionResponse(coordinates=coords, waypoints=waypoints)
+
+    def generate_and_upload(self, path: str, file_name: str) -> str:
+        image_data = self._generate_image(path)
+        return self._upload_file(image_data, file_name)
+
+    def _generate_image(self, path: str) -> bytes:
+        return self._generate_image_with_params(
+            path,
+            self.default_style,
+            self.default_stroke_width,
+            self.default_stroke_color,
+            self.default_stroke_fill,
+            self.default_width,
+            self.default_height,
+            self.default_padding,
         )
 
-    def reverse_geocoding(self, longitude: float, latitude: float) -> MapboxGeocodingReverseResponse:
-        response = self.mapbox_client.reverse_geocoding(
-            longitude=longitude,
-            latitude=latitude,
-            limit=1,
-            access_token=self.access_token
-        )
+    def _generate_image_with_params(
+            self,
+            path: str,
+            style: str,
+            stroke_width: str,
+            stroke_color: str,
+            stroke_fill: str,
+            width: int,
+            height: int,
+            padding: int
+    ) -> bytes:
+        try:
+            encoded_path = quote(path, safe="")
 
-        if response.status_code != 200:
-            raise StrideException(
-                message=f"Error reverse geocoding for latitude {latitude}, longitude {longitude}. "
-                        f"Status code: {response.status_code}"
+            return self.mapbox_client.get_static_map_image(
+                map_style=style,
+                stroke_width=stroke_width,
+                stroke_color=stroke_color,
+                stroke_fill=stroke_fill,
+                path=encoded_path,
+                width=width,
+                height=height,
+                padding=padding
             )
-        response = response.json()
+        except requests.HTTPError as e:
+            raise StrideException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message=f"Failed to generate image: {e}"
+            )
 
-        place = DataHelper.safe_get_nested(
-            response,
-            ["features", 0, "properties", "context", "place", "name"],
-            default=""
-        )
-        locality = DataHelper.safe_get_nested(
-            response,
-            ["features", 0, "properties", "context", "locality", "name"],
-            default=""
-        )
-        neighborhood = DataHelper.safe_get_nested(
-            response,
-            ["features", 0, "properties", "context", "neighborhood", "name"],
-            default=""
-        )
-
-        return MapboxGeocodingReverseResponse(
-            place=place,
-            locality=locality,
-            neighborhood=neighborhood
-        )
+    def _upload_file(self, data: bytes, name: str) -> str:
+        try:
+            response = self.bridge_client.upload_raw_file(
+                data=data,
+                file_name=name,
+                content_type=self.content_type
+            )
+            return response.file
+        except requests.HTTPError as e:
+            raise StrideException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message=f"Failed to upload image: {e}"
+            )

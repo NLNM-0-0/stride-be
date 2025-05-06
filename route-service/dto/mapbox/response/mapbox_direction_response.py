@@ -2,12 +2,9 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
-class Waypoint(BaseModel):
-    latitude: float
-    longitude: float
-    name: str
-    freq: int
+from dto.mapbox.response.mapbox_way_point import MapboxWayPoint
+
 
 class MapboxDirectionResponse(BaseModel):
     coordinates: List[List[float]]
-    waypoints: List[Waypoint]
+    waypoints: List[MapboxWayPoint]

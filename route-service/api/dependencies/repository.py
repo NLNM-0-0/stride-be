@@ -1,17 +1,17 @@
 import typing
 import fastapi
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies.database import get_mongo_database
-from repositories.base import BaseMongoRepository
+from api.dependencies.database import get_postgres_session
+from repositories.base import BaseSQLRepository
 
 
 def get_repository(
-    repo_type: typing.Type[BaseMongoRepository],
-) -> typing.Callable[[AsyncIOMotorDatabase], BaseMongoRepository]:
+    repo_type: typing.Type[BaseSQLRepository],
+) -> typing.Callable[[AsyncSession], BaseSQLRepository]:
     def _get_repo(
-        db: AsyncIOMotorDatabase = fastapi.Depends(get_mongo_database),
-    ) -> BaseMongoRepository:
-        return repo_type(db=db)
+        db: AsyncSession = fastapi.Depends(get_postgres_session),
+    ) -> BaseSQLRepository:
+        return repo_type(db)
 
     return _get_repo

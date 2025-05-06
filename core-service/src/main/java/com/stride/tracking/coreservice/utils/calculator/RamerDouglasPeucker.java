@@ -40,7 +40,7 @@ public class RamerDouglasPeucker {
     }
 
     private static void douglasPeucker(List<List<Double>> list, int s, int e, double epsilon, List<List<Double>> resultList) {
-        // Find the point with the maximum distance
+        // Find the point with the maximum distances
         double dmax = 0;
         int index = 0;
 
@@ -62,7 +62,7 @@ public class RamerDouglasPeucker {
                 dmax = d;
             }
         }
-        // If max distance is greater than epsilon, recursively simplify
+        // If max distances is greater than epsilon, recursively simplify
         if (dmax > epsilon) {
             // Recursive call
             douglasPeucker(list, s, index, epsilon, resultList);

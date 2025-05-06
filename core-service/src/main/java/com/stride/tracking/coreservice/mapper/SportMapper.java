@@ -19,7 +19,6 @@ public class SportMapper {
                 .category(category)
                 .rules(request.getRules().stream().map(this::mapToModel).toList())
                 .sportMapType(request.getSportMapType())
-                .recommendedDistance(request.getRecommendedDistance())
                 .build();
     }
 

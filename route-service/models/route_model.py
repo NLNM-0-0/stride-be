@@ -1,35 +1,27 @@
-from bson import ObjectId
-from pydantic import BaseModel, Field, GetCoreSchemaHandler
-from pydantic_core import core_schema
-from typing import List, Optional, Any, Dict
+import uuid
+
+from sqlalchemy import Column, String, Float, Integer, JSON, DateTime, func
+from sqlalchemy.dialects.postgresql import UUID
+
+from configuration.manager import settings
+from models.base_model import Base
 
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
-        return core_schema.no_info_plain_validator_function(cls.validate)
+class RouteModel(Base):
+    __tablename__ = "routes"
+    __table_args__ = {"schema": settings.DB_SCHEMA}
 
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return str(v)
-        if ObjectId.is_valid(v):
-            return str(ObjectId(v))
-        raise ValueError("Invalid ObjectId")
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(String, nullable=True)
+    sport_id = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    total_time = Column(Float, default=0)
+    total_distance = Column(Float, default=0)
+    location = Column(String, nullable=False)
+    map_image = Column(String, nullable=False)
+    images = Column(JSON, nullable=False, default=dict)
+    geometry = Column(String, nullable=False)
+    district = Column(String, nullable=False)
+    heat = Column(Integer, default=0)
 
-class RouteModel(BaseModel):
-    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    sport_id: Optional[str]
-    name: Optional[str]
-    avg_time: Optional[float] = 0
-    total_time: Optional[float] = 0
-    location: Optional[str]
-    images: Optional[Dict[str, List[str]]] = {}
-    geometry: str
-    localities: Optional[List[str]] = []
-    heat: Optional[int] = 0
-
-    class Config:
-        validate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

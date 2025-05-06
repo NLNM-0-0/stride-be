@@ -1,15 +1,12 @@
-from bson import ObjectId
-from pydantic import BaseModel
+from uuid import UUID
 
+from pydantic import BaseModel
 from utils.json_format import to_camel
 
 
 class CreateRouteResponse(BaseModel):
-    route_id: str
+    route_id: UUID
 
     class Config:
         alias_generator = to_camel
-        validate_by_name = True
-        json_encoders = {
-            ObjectId: str
-        }
+        populate_by_name = True

@@ -10,11 +10,12 @@ import java.util.List;
 @Component
 public class SpeedCalculator {
     public SpeedCalculatorResult calculate(List<List<Double>> coordinates, List<Long> timestamps) {
-        List<Double> speeds = new ArrayList<>();
+        List<Double> distances = new ArrayList<>(List.of(0.0));
+        List<Double> speeds = new ArrayList<>(List.of(0.0));
         double maxSpeed = 0.0;
 
         if (coordinates == null || coordinates.size() < 2) {
-            return new SpeedCalculatorResult(speeds, maxSpeed);
+            return new SpeedCalculatorResult(distances, speeds, maxSpeed);
         }
 
         for (int i = 1; i < coordinates.size(); i++) {
@@ -35,12 +36,13 @@ public class SpeedCalculator {
             speedKms = NumberUtils.round(speedKms, 5);
 
             speeds.add(speedKms);
+            distances.add(distances.get(distances.size() - 1) + distance / 1000);
 
             if (speedKms > maxSpeed) {
                 maxSpeed = speedKms;
             }
         }
 
-        return new SpeedCalculatorResult(speeds, maxSpeed);
+        return new SpeedCalculatorResult(distances, speeds, maxSpeed);
     }
 }

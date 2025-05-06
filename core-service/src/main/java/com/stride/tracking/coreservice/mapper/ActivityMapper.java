@@ -1,15 +1,16 @@
 package com.stride.tracking.coreservice.mapper;
 
 import com.stride.tracking.coreservice.model.Activity;
+import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.dto.activity.response.ActivityUserResponse;
+import com.stride.tracking.dto.activity.response.HeartRateZoneResponse;
 import com.stride.tracking.dto.sport.response.SportResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -35,6 +36,7 @@ public class ActivityMapper {
                 .description(activity.getDescription())
                 .sport(sport)
                 .user(user)
+                .distances(activity.getDistances())
                 .totalDistance(activity.getTotalDistance())
                 .elapsedTimeSeconds(activity.getElapsedTimeSeconds())
                 .movingTimeSeconds(activity.getMovingTimeSeconds())
@@ -43,7 +45,7 @@ public class ActivityMapper {
                 .rpe(activity.getRpe())
                 .images(activity.getImages())
                 .mapImage(activity.getMapImage())
-                .coordinates(activity.getCoordinates())
+                .geometry(activity.getGeometry())
                 .elevations(activity.getElevations())
                 .elevationGain(activity.getElevationGain())
                 .maxElevation(activity.getMaxElevation())
@@ -51,15 +53,23 @@ public class ActivityMapper {
                 .avgSpeed(activity.getAvgSpeed())
                 .maxSpeed(activity.getMaxSpeed())
                 .heartRates(activity.getHeartRates())
-                .heartRateZones(activity.getHeartRateZones().entrySet().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        entry -> entry.getKey().name(),
-                                        Map.Entry::getValue
-                                )))
+                .heartRateZones(activity.getHeartRateZones().stream().map(
+                        this::mapToHeartRateZoneResponse
+                ).collect(Collectors.toList()))
                 .avgHearRate(activity.getAvgHearRate())
                 .maxHearRate(activity.getMaxHearRate())
                 .createdAt(Date.from(activity.getCreatedAt()))
+                .build();
+    }
+
+    private HeartRateZoneResponse mapToHeartRateZoneResponse(
+            HeartRateZoneValue heartRateZoneValue) {
+        return HeartRateZoneResponse.builder()
+                .zoneId(heartRateZoneValue.zone().getId())
+                .name(heartRateZoneValue.zone().getName())
+                .min(heartRateZoneValue.min())
+                .max(heartRateZoneValue.max())
+                .value(heartRateZoneValue.value())
                 .build();
     }
 

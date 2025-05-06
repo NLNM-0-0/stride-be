@@ -31,5 +31,4 @@ public class Sport  extends BaseEntity {
     private List<Rule> rules;
 
     private SportMapType sportMapType;
-    private double recommendedDistance;
 }
