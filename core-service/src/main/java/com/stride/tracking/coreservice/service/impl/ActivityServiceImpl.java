@@ -12,8 +12,8 @@ import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Activity;
+import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.utils.GeometryUtils;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.coreservice.utils.RouteUtils;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
@@ -40,6 +40,9 @@ import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorRes
 import com.stride.tracking.dto.route.request.CreateRouteRequest;
 import com.stride.tracking.dto.route.request.UpdateRouteRequest;
 import com.stride.tracking.dto.route.response.CreateRouteResponse;
+import com.stride.tracking.dto.supabase.request.GeometryRequest;
+import com.stride.tracking.dto.supabase.request.GetLocationByGeometryRequest;
+import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +68,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final SportRepository sportRepository;
 
     private final MapboxService mapboxService;
+    private final SupabaseService supabaseService;
     private final RouteService routeService;
     private final ProfileService profileService;
     private final ElevationService elevationService;
@@ -194,7 +198,7 @@ public class ActivityServiceImpl implements ActivityService {
         addElevationInfo(activity, elevations);
         addCarbonSavedInfo(activity, activity.getTotalDistance());
         addHeartRateInfo(activity, request, user);
-        addMapImage(activity, coordinates);
+        addMapImageAndLocation(activity, coordinates);
 
         activity = activityRepository.save(activity);
 
@@ -291,13 +295,36 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setHeartRates(request.getHeartRates());
     }
 
-    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
+    private void addMapImageAndLocation(Activity activity, List<List<Double>> coordinates) {
         List<List<Double>> smoothCoordinates = RamerDouglasPeucker.douglasPeucker(coordinates, rdpEpsilon);
 
-        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
+        addMapImage(activity, smoothCoordinates);
+        addLocation(activity, smoothCoordinates);
+    }
+
+    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
+        String encodePolyline = StridePolylineUtils.encode(coordinates);
+
         String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
 
         activity.setMapImage(mapImage);
+    }
+
+    private void addLocation(Activity activity, List<List<Double>> coordinates) {
+        GetLocationByGeometryResponse locationResponse = supabaseService.getLocationByGeometry(
+                GetLocationByGeometryRequest.builder()
+                        .geometry(GeometryRequest.builder()
+                                .type("LineString")
+                                .coordinates(coordinates)
+                                .build())
+                        .build()
+        );
+
+        activity.setLocation(Location.builder()
+                .district(locationResponse.getDistrict())
+                .city(locationResponse.getCity())
+                .ward(locationResponse.getWard())
+                .build());
     }
 
     @Override
@@ -371,6 +398,9 @@ public class ActivityServiceImpl implements ActivityService {
                         .avgTime(activity.getMovingTimeSeconds().doubleValue())
                         .avgDistance(activity.getTotalDistance())
                         .geometry(activity.getGeometry())
+                        .ward(activity.getLocation().getWard())
+                        .district(activity.getLocation().getDistrict())
+                        .city(activity.getLocation().getCity())
                         .build()
         );
 

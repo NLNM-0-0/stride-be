@@ -2,16 +2,13 @@ package com.stride.tracking.coreservice.mapper;
 
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
-import com.stride.tracking.dto.activity.response.ActivityResponse;
-import com.stride.tracking.dto.activity.response.ActivityShortResponse;
-import com.stride.tracking.dto.activity.response.ActivityUserResponse;
-import com.stride.tracking.dto.activity.response.HeartRateZoneResponse;
+import com.stride.tracking.coreservice.model.Location;
+import com.stride.tracking.dto.activity.response.*;
 import com.stride.tracking.dto.sport.response.SportResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.stream.Collectors;
 
 @Component
 public class ActivityMapper {
@@ -25,7 +22,16 @@ public class ActivityMapper {
                 .elevationGain(activity.getElevationGain())
                 .movingTimeSeconds(activity.getMovingTimeSeconds())
                 .mapImage(activity.getMapImage())
+                .location(mapToLocationResponse(activity.getLocation()))
                 .createdAt(Date.from(activity.getCreatedAt()))
+                .build();
+    }
+
+    private LocationResponse mapToLocationResponse(Location location) {
+        return LocationResponse.builder()
+                .ward(location.getWard())
+                .district(location.getDistrict())
+                .city(location.getCity())
                 .build();
     }
 
@@ -55,9 +61,10 @@ public class ActivityMapper {
                 .heartRates(activity.getHeartRates())
                 .heartRateZones(activity.getHeartRateZones().stream().map(
                         this::mapToHeartRateZoneResponse
-                ).collect(Collectors.toList()))
+                ).toList())
                 .avgHearRate(activity.getAvgHearRate())
                 .maxHearRate(activity.getMaxHearRate())
+                .location(mapToLocationResponse(activity.getLocation()))
                 .createdAt(Date.from(activity.getCreatedAt()))
                 .build();
     }

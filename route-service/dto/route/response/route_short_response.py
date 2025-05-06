@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from dto.route.response.location_response import LocationResponse
 from utils.json_format import to_camel
 
 
@@ -13,8 +14,8 @@ class RouteShortResponse(BaseModel):
     name: Optional[str]
     avg_time: Optional[float] = 0
     avg_distance: Optional[float] = 0
-    location: Optional[str]
     map_image: Optional[str]
+    location: Optional[LocationResponse]
     heat: int = 0
 
     class Config:

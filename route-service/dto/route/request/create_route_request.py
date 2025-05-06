@@ -13,6 +13,9 @@ class CreateRouteRequest(BaseModel):
     avg_distance: Optional[float]
     images: Optional[List[str]] = []
     geometry: Optional[str]
+    ward: Optional[str]
+    district: Optional[str]
+    city: Optional[str]
 
     class Config:
         alias_generator = to_camel

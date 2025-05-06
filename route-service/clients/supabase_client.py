@@ -16,8 +16,8 @@ class SupabaseClient:
         response.raise_for_status()
         return response.json()
 
-    def get_location_by_geometry(self, data: dict) -> dict:
-        return self._post("/functions/v1/get_location_by_geometry", data)
+    def find_districts_contain_geometry(self, data: dict) -> dict:
+        return self._post("/functions/v1/find_districts_contain_geometry", data)
 
     def find_districts_near_point(self, data: dict) -> dict:
         return self._post("/functions/v1/find_districts_near_point", data)

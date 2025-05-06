@@ -4,7 +4,7 @@ name: stride
 
 services:
   identity-ms:
-    image: nlnm/stride:identity-ms-v1.0.1
+    image: nlnm/stride:identity-ms-v1.0.2
     container_name: identity-ms
     depends_on:
       kafka:
@@ -17,7 +17,7 @@ services:
     networks:
       - stride-network
   bridge-ms:
-    image: nlnm/stride:bridge-ms-v1.0.2
+    image: nlnm/stride:bridge-ms-v1.0.3
     container_name: bridge-ms
     depends_on:
       kafka:
@@ -30,7 +30,7 @@ services:
     networks:
       - stride-network
   profile-ms:
-    image: nlnm/stride:profile-ms-v1.0.2
+    image: nlnm/stride:profile-ms-v1.0.3
     container_name: profile-ms
     ports:
       - "8083:8083"
@@ -40,7 +40,7 @@ services:
     networks:
       - stride-network
   core-ms:
-    image: nlnm/stride:core-ms-v1.0.0
+    image: nlnm/stride:core-ms-v1.0.1
     container_name: core-ms
     depends_on:
       kafka:
@@ -53,7 +53,7 @@ services:
     networks:
       - stride-network
   route-ms:
-    image: nlnm/stride:route-ms-v1.0.3
+    image: nlnm/stride:route-ms-v1.0.4
     container_name: route-ms
     ports:
       - "8085:8085"
@@ -63,7 +63,7 @@ services:
     networks:
       - stride-network
   gateway:
-    image: nlnm/stride:gateway-v1.0.1
+    image: nlnm/stride:gateway-v1.0.2
     container_name: gateway-ms
     depends_on:
       - identity-ms
