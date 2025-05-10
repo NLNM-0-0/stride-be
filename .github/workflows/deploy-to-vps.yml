@@ -1,8 +1,8 @@
 name: Deploy to VPS
 
-on:
-  push:
-    branches: [ feature/auto-deploy-to-vps ]
+#on:
+#  push:
+#    branches: [ feature/auto-deploy-to-vps ]
 
 jobs:
   build-gateway:
@@ -67,4 +67,93 @@ jobs:
             echo "Starting containers..."
             docker-compose up -d
           EOF
+          
+  ping-api-gateway:
+    needs: [
+      deploy-to-vps
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping api-gateway
+        run: |
+          echo "Pinging api-gateway..."
+          VPS_HOST=${{ secrets.VPS_HOST }}
+          VPS_PORT=${{ secrets.VPS_PORT }}
+          GATEWAY_PATH=${{ secrets.GATEWAY_PATH }}
+          URL="https://${VPS_HOST}:${VPS_PORT}/${GATEWAY_PATH}/ping"
+          
+          while true; do
+            curl -s "$URL" || echo "api-gateway is not responding"
+            sleep 30
+          done
+
+  ping-bridge-service:
+    needs: [
+      ping-api-gateway
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping bridge-service
+        run: |
+          echo "Pinging bridge-service..."
+          while true; do
+            curl -s "http://123.123.123.123:8001/bridge-service/ping" || echo "bridge-service is not responding"
+            sleep 5
+          done
+
+  ping-core-service:
+    needs: [
+      ping-api-gateway
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping core-service
+        run: |
+          echo "Pinging core-service..."
+          while true; do
+            curl -s "http://123.123.123.123:8002/core-service/ping" || echo "core-service is not responding"
+            sleep 5
+          done
+
+  ping-identity-service:
+    needs: [
+      ping-api-gateway
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping identity-service
+        run: |
+          echo "Pinging identity-service..."
+          while true; do
+            curl -s "http://123.123.123.123:8003/identity-service/ping" || echo "identity-service is not responding"
+            sleep 5
+          done
+
+  ping-profile-service:
+    needs: [
+      ping-api-gateway
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping profile-service
+        run: |
+          echo "Pinging profile-service..."
+          while true; do
+            curl -s "http://123.123.123.123:8004/profile-service/ping" || echo "profile-service is not responding"
+            sleep 5
+          done
+
+  ping-route-service:
+    needs: [
+      ping-api-gateway
+    ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping route-service
+        run: |
+          echo "Pinging route-service..."
+          while true; do
+            curl -s "http://123.123.123.123:8005/route-service/ping" || echo "route-service is not responding"
+            sleep 5
+          done
       

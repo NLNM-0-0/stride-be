@@ -61,7 +61,11 @@ jobs:
         if: steps.check_diff.outputs.changed == 'true'
         run: |
           mkdir -p ./core-service/src/main/resources
+          echo "Listing contents of /tmp/private-repo/backend/core"
+          ls -R /tmp/private-repo/backend/core
           cp -r /tmp/private-repo/backend/core ./core-service/src/main/resources
+          echo "Listing contents of ./core-service/src/main/resources"
+          ls -R ./core-service/src/main/resources
 
       - name: Set up Docker Build
         if: steps.check_diff.outputs.changed == 'true'

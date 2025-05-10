@@ -61,7 +61,11 @@ jobs:
         if: steps.check_diff.outputs.changed == 'true'
         run: |
           mkdir -p ./api-gateway/src/main/resources
+          echo "Listing contents of /tmp/private-repo/backend/gateway"
+          ls -R /tmp/private-repo/backend/gateway
           cp -r /tmp/private-repo/backend/gateway ./api-gateway/src/main/resources
+          echo "Listing contents of ./api-gateway/src/main/resources"
+          ls -R ./api-gateway/src/main/resources
 
       - name: Set up Docker Build
         if: steps.check_diff.outputs.changed == 'true'
@@ -104,12 +108,12 @@ jobs:
             echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push bridge-ms
+      - name: Build and push gateway-ms
         if: steps.check_diff.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
-          context: ./bridge-service
-          file: ./bridge-service/deploy/prod.dockerfile
+          context: ./api-gateway
+          file: ./api-gateway/deploy/prod.dockerfile
           push: true
           tags: |
             nlnm/stride-gateway:latest
