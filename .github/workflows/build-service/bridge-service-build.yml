@@ -2,9 +2,7 @@ name: Build and push bridge-ms image
 
 on:
   workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
+    secrets: inherit
 
 jobs:
   build-bridge:
