@@ -26,7 +26,7 @@ jobs:
     secrets: inherit
 
   build-route-ms:
-    uses: ./.github/workflows/profile-service-build.yml
+    uses: ./.github/workflows/route-service-build.yml
     secrets: inherit
 
   deploy-to-vps:
