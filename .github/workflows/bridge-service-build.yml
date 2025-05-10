@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Check current branch and commits
+        run: |
+          git branch
+          git log --oneline -n 10
+
       - name: Check if bridge-service has changed
         id: check_diff
         run: |
