@@ -49,6 +49,7 @@ jobs:
       - name: Copy sensitive files from private repo
         if: steps.check_diff.outputs.changed == 'true'
         run: |
+          mkdir -p ./bridge-service/src/main/resources
           cp /tmp/private-repo/backend/bridge/application-prod.yml ./bridge-service/src/main/resources/application.prod.yml
 
       - name: Set up Docker Build
