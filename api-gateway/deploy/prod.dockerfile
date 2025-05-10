@@ -22,7 +22,8 @@ COPY src ./src/
 COPY mvnw ./
 COPY .mvn ./.mvn/
 
-RUN ./mvnw clean package -DskipTests && \
+RUN chmod +x mvnw && \
+    ./mvnw clean package -DskipTests && \
     rm -rf /root/.m2 /root/.mvn
 
 FROM eclipse-temurin:17-jre
