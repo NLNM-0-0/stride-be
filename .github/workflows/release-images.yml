@@ -1,8 +1,6 @@
 name: Release Images
 
 on:
-  push:
-    branches: [ feature/auto-deploy-to-vps ]
   workflow_dispatch:
     inputs:
       version:
