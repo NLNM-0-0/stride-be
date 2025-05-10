@@ -1,0 +1,52 @@
+name: Release Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g. 1.0.3)'
+        required: true
+        type: string
+
+jobs:
+  build-gateway:
+    uses: ./.github/workflows/api-gateway-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}
+
+  build-bridge-ms:
+    uses: ./.github/workflows/bridge-service-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}
+
+  build-core-ms:
+    uses: ./.github/workflows/core-service-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}
+
+  build-identity-ms:
+    uses: ./.github/workflows/identity-service-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}
+
+  build-profile-ms:
+    uses: ./.github/workflows/profile-service-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}
+
+  build-route-ms:
+    uses: ./.github/workflows/route-service-build.yml
+    secrets: inherit
+    with:
+      skip_diff_check: true
+      version: ${{ inputs.version }}

@@ -4,7 +4,7 @@ name: stride
 
 services:
   identity-ms:
-    image: nlnm/stride:identity-ms-v1.0.2
+    image: nlnm/stride-identity-ms:latest
     container_name: identity-ms
     depends_on:
       kafka:
@@ -12,12 +12,15 @@ services:
     ports:
       - "8081:8081"
     restart: on-failure
+    volumes:
+      - ./stride-config/identity:/app/resources
     environment:
+      SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
   bridge-ms:
-    image: nlnm/stride:bridge-ms-v1.0.3
+    image: nlnm/stride-bridge-ms:latest
     container_name: bridge-ms
     depends_on:
       kafka:
@@ -25,22 +28,28 @@ services:
     ports:
       - "8082:8082"
     restart: on-failure
+    volumes:
+      - ./stride-config/bridge:/app/resources
     environment:
+      SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
   profile-ms:
-    image: nlnm/stride:profile-ms-v1.0.3
+    image: nlnm/stride-profile-ms:latest
     container_name: profile-ms
     ports:
       - "8083:8083"
     restart: on-failure
+    volumes:
+      - ./stride-config/profile:/app/resources
     environment:
+      SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
   core-ms:
-    image: nlnm/stride:core-ms-v1.0.1
+    image: nlnm/stride-core-ms:latest
     container_name: core-ms
     depends_on:
       kafka:
@@ -48,31 +57,41 @@ services:
     ports:
       - "8084:8084"
     restart: on-failure
+    volumes:
+      - ./stride-config/core:/app/resources
     environment:
+      SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
   route-ms:
-    image: nlnm/stride:route-ms-v1.0.4
+    image: nlnm/stride-route-ms:latest
     container_name: route-ms
     ports:
       - "8085:8085"
     restart: on-failure
+    volumes:
+      - ./stride-config/route:/usr/backend/deploy
     environment:
       APP_ENV: prod
     networks:
       - stride-network
   gateway:
-    image: nlnm/stride:gateway-v1.0.2
+    image: nlnm/stride-gateway:latest
     container_name: gateway-ms
     depends_on:
       - identity-ms
       - bridge-ms
       - profile-ms
+      - core-ms
+      - route-ms
     ports:
       - "8080:8080"
     restart: on-failure
+    volumes:
+      - ./stride-config/gateway:/app/resources
     environment:
+      SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - stride-network
