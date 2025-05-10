@@ -1,0 +1,107 @@
+name: Build and push profile-ms image
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  build-profile:
+    runs-on: ubuntu-latest
+    name: Build profile-ms only if it changed
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if profile-service has changed
+        id: check_diff
+        run: |
+          echo "Checking for changes in profile-service/"
+          if git diff --quiet HEAD~1 HEAD -- profile-service; then
+            echo "No changes detected. Skipping build."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected."
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up SSH key for stride-config
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STRIDE_CONFIG_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          
+          echo "Host github.com" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+          echo "  IdentitiesOnly yes" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Test SSH connection (optional debug)
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          ssh -T git@github.com || echo "SSH test failed"
+
+      - name: Clone private repo with sensitive files
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          git clone git@github.com:NLNM-0-0/stride-config.git /tmp/private-repo
+
+      - name: Copy sensitive files from private repo
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          mkdir -p ./profile-service/src/main/resources
+          cp /tmp/private-repo/backend/profile ./profile-service/src/main/resources
+
+      - name: Set up Docker Build
+        if: steps.check_diff.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: steps.check_diff.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Get latest tag from Docker Hub
+        if: steps.check_diff.outputs.changed == 'true'
+        id: get_version
+        run: |
+          IMAGE="nlnm/stride-profile-ms"
+          echo "Checking latest tag for $IMAGE..."
+          
+          TAG=$(curl -s -f https://hub.docker.com/v2/repositories/${IMAGE}/tags/?page_size=100 | \
+            jq -r '.results[].name' 2>/dev/null | \
+            grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | \
+            sort -V | tail -n 1 || echo "")
+          
+          if [ -z "$TAG" ]; then
+            echo "No version tag found. Using 0.0.1"
+            NEW_TAG="0.0.1"
+          else
+            echo "Latest tag: $TAG"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$TAG"
+            PATCH=$((PATCH + 1))
+            NEW_TAG="$MAJOR.$MINOR.$PATCH"
+          fi
+          
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push profile-ms
+        if: steps.check_diff.outputs.changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./profile-service
+          file: ./profile-service/deploy/prod.dockerfile
+          push: true
+          tags: |
+            nlnm/stride-profile-ms:latest
+            nlnm/stride-profile-ms:${{ steps.get_version.outputs.new_tag }}
+          build-args: |
+            GITHUB_USERNAME=${{ secrets.GITHUB_USERNAME }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            SPRING_PROFILES_ACTIVE=prod
