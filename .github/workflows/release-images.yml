@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/api-gateway-build.yml
     secrets: inherit
     with:
+      skip_diff_check: true
       version: ${{ inputs.version }}
 
   build-bridge-ms:
