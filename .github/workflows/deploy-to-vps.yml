@@ -1,8 +1,8 @@
 name: Deploy to VPS
 
-on:
-  push:
-    branches: [ feature/auto-deploy-to-vps ]
+#on:
+#  push:
+#    branches: [ feature/auto-deploy-to-vps ]
 
 jobs:
   build-gateway:
