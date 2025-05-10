@@ -6,27 +6,27 @@ on:
 
 jobs:
   build-gateway:
-    uses: ./.github/workflows/api-gateway-build.yml
+    uses: ./.github/workflows/build-service/api-gateway-build.yml
     secrets: inherit
 
   build-bridge-ms:
-    uses: ./.github/workflows/bridge-service-build.yml
+    uses: ./.github/workflows/build-service/bridge-service-build.yml
     secrets: inherit
 
   build-core-ms:
-    uses: ./.github/workflows/core-service-build.yml
+    uses: ./.github/workflows/build-service/core-service-build.yml
     secrets: inherit
 
   build-identity-ms:
-    uses: ./.github/workflows/identity-service-build.yml
+    uses: ./.github/workflows/build-service/identity-service-build.yml
     secrets: inherit
 
   build-profile-ms:
-    uses: ./.github/workflows/profile-service-build.yml
+    uses: ./.github/workflows/build-service/profile-service-build.yml
     secrets: inherit
 
   build-route-ms:
-    uses: ./.github/workflows/route-service-build.yml
+    uses: ./.github/workflows/build-service/route-service-build.yml
     secrets: inherit
 
   deploy-to-vps:
