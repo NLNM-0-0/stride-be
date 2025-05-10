@@ -46,6 +46,10 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa <<< "${{ secrets.VPS_PASSPHRASE }}"
+
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
