@@ -79,7 +79,7 @@ jobs:
           echo "Pinging bridge-service..."
           VPS_HOST=${{ secrets.VPS_HOST }}
           VPS_PORT=${{ secrets.VPS_PORT }}
-          URL="http://${VPS_HOST}:8080//api//v1//bridge//ping"
+          URL="http://${VPS_HOST}:8080/api/v1/bridge/ping"
           
           while true; do
             curl -s "$URL" || echo "bridge-ms is not responding"
@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "Pinging core-service..."
           VPS_HOST=${{ secrets.VPS_HOST }}
-          URL="http://${VPS_HOST}:8080//api//v1//core//ping"
+          URL="http://${VPS_HOST}:8080/api/v1/core/ping"
           
           while true; do
             curl -s "$URL" || echo "core-ms is not responding"
@@ -113,7 +113,7 @@ jobs:
         run: |
           echo "Pinging identity-service..."
           VPS_HOST=${{ secrets.VPS_HOST }}
-          URL="http://${VPS_HOST}:8080//api//v1//identity//ping"
+          URL="http://${VPS_HOST}:8080/api/v1/identity/ping"
           
           while true; do
             curl -s "$URL" || echo "identity-ms is not responding"
@@ -130,7 +130,7 @@ jobs:
         run: |
           echo "Pinging profile-service..."
           VPS_HOST=${{ secrets.VPS_HOST }}
-          URL="http://${VPS_HOST}:8080//api//v1//profile//ping"
+          URL="http://${VPS_HOST}:8080/api/v1/profile/ping"
           
           while true; do
             curl -s "$URL" || echo "profile-ms is not responding"
@@ -147,7 +147,7 @@ jobs:
         run: |
           echo "Pinging route-service..."
           VPS_HOST=${{ secrets.VPS_HOST }}
-          URL="http://${VPS_HOST}:8080//api//v1//route//ping"
+          URL="http://${VPS_HOST}:8080/api/v1/route/ping"
 
           while true; do
             curl -s "$URL" || echo "route-ms is not responding"
