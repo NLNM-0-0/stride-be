@@ -10,6 +10,8 @@ jobs:
     name: Build bridge-ms only if it changed
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Check current branch and commits
         run: |
@@ -20,7 +22,7 @@ jobs:
         id: check_diff
         run: |
           echo "Checking for changes in bridge-service/"
-          if git diff --quiet HEAD^ HEAD -- bridge-service; then
+          if git diff --quiet HEAD~1 HEAD -- bridge-service; then
             echo "No changes detected. Skipping build."
             echo "changed=false" >> $GITHUB_OUTPUT
           else
