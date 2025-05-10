@@ -26,8 +26,7 @@ jobs:
           if [ "${{ inputs.skip_diff_check }}" == "true" ]; then
             echo "Skipping diff check as requested."
             echo "changed=true" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.pull_request }}" != "null" ]; then
-            # This is a pull request
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
             TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
             echo "Checking differences between PR and target branch: $TARGET_BRANCH"
 
