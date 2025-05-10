@@ -1,4 +1,4 @@
-name: build and push bridge-ms image
+name: Build and push bridge-ms image
 
 on:
   push:
@@ -30,11 +30,21 @@ jobs:
           echo "${{ secrets.STRIDE_CONFIG_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+          
+          echo "Host github.com" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+          echo "  IdentitiesOnly yes" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Test SSH connection (optional debug)
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          ssh -T git@github.com || echo "SSH test failed"
 
       - name: Clone private repo with sensitive files
         if: steps.check_diff.outputs.changed == 'true'
         run: |
-          git clone git@github.com/NLNM-0-0/stride-config.git /tmp/private-repo
+          git clone git@github.com:NLNM-0-0/stride-config.git /tmp/private-repo
 
       - name: Copy sensitive files from private repo
         if: steps.check_diff.outputs.changed == 'true'
