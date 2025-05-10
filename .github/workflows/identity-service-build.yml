@@ -2,7 +2,6 @@ name: Build and push identity-ms image
 
 on:
   workflow_call:
-    secrets: inherit
 
 jobs:
   build-identity:
