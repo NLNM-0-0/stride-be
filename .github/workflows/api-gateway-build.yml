@@ -2,6 +2,14 @@ name: Build and push gateway image
 
 on:
   workflow_call:
+    inputs:
+      skip_diff_check:
+        required: false
+        type: boolean
+        default: false
+      version:
+        required: false
+        type: string
 
 jobs:
   build-gateway:
@@ -12,12 +20,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if bridge-service has changed
+      - name: Check if api-gateway has changed
         id: check_diff
         run: |
-          echo "Checking for changes in api-gateway/"
-          if git diff --quiet HEAD~1 HEAD -- api-gateway; then
-            echo "No changes detected. Skipping build."
+          if [ "${{ inputs.skip_diff_check }}" == "true" ]; then
+            echo "Skipping diff check as requested."
+            echo "changed=true" >> $GITHUB_OUTPUT
+          elif git diff --quiet HEAD~1 HEAD -- api-gateway; then
+            echo "No changes detected."
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "Changes detected."
@@ -64,29 +74,35 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get latest tag from Docker Hub
+      - name: Determine Docker image version
         if: steps.check_diff.outputs.changed == 'true'
         id: get_version
         run: |
           IMAGE="nlnm/stride-gateway"
-          echo "Checking latest tag for $IMAGE..."
-          
-          TAG=$(curl -s -f https://hub.docker.com/v2/repositories/${IMAGE}/tags/?page_size=100 | \
-            jq -r '.results[].name' 2>/dev/null | \
-            grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | \
-            sort -V | tail -n 1 || echo "")
-          
-          if [ -z "$TAG" ]; then
-            echo "No version tag found. Using 0.0.1"
-            NEW_TAG="0.0.1"
+
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "Custom version provided: ${{ inputs.version }}"
+            echo "new_tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
-            echo "Latest tag: $TAG"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$TAG"
-            PATCH=$((PATCH + 1))
-            NEW_TAG="$MAJOR.$MINOR.$PATCH"
+            echo "No custom version provided. Auto-generating version..."
+
+            TAG=$(curl -s -f https://hub.docker.com/v2/repositories/${IMAGE}/tags/?page_size=100 | \
+              jq -r '.results[].name' 2>/dev/null | \
+              grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | \
+              sort -V | tail -n 1 || echo "")
+
+            if [ -z "$TAG" ]; then
+              echo "No version tag found. Using 0.0.1"
+              NEW_TAG="0.0.1"
+            else
+              echo "Latest tag: $TAG"
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$TAG"
+              PATCH=$((PATCH + 1))
+              NEW_TAG="$MAJOR.$MINOR.$PATCH"
+            fi
+
+            echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
           fi
-          
-          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
       - name: Build and push bridge-ms
         if: steps.check_diff.outputs.changed == 'true'
