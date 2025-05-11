@@ -1,29 +1,39 @@
 #!bash
 
-source ./config-paths.env
+source "D:\stride-be\z-etc\bash\config-paths.env"
 
 declare -A services=(
     ["gateway/application.yml"]="api-gateway/src/main/resources/application.yml"
     ["gateway/application-dev.yml"]="api-gateway/src/main/resources/application-dev.yml"
+    ["gateway/application-prod.yml"]="api-gateway/src/main/resources/application-prod.yml"
 
-    ["file/application.yml"]="file-service/src/main/resources/application.yml"
-    ["file/application-dev.yml"]="file-service/src/main/resources/application-dev.yml"
+    ["bridge/application.yml"]="bridge-service/src/main/resources/application.yml"
+    ["bridge/application-dev.yml"]="bridge-service/src/main/resources/application-dev.yml"
+    ["bridge/application-prod.yml"]="bridge-service/src/main/resources/application-prod.yml"
+    ["bridge/firebase-secret.json"]="bridge-service/src/main/resources/firebase-secret.json"
+    ["bridge/logback-spring.xml"]="bridge-service/src/main/resources/logback-spring.xml"
+
+    ["core/application.yml"]="core-service/src/main/resources/application.yml"
+    ["core/application-dev.yml"]="core-service/src/main/resources/application-dev.yml"
+    ["core/application-prod.yml"]="core-service/src/main/resources/application-prod.yml"
+    ["core/logback-spring.xml"]="core-service/src/main/resources/logback-spring.xml"
 
     ["identity/application.yml"]="identity-service/src/main/resources/application.yml"
     ["identity/application-dev.yml"]="identity-service/src/main/resources/application-dev.yml"
-
-    ["notification/application.yml"]="notification-service/src/main/resources/application.yml"
-    ["notification/application-dev.yml"]="notification-service/src/main/resources/application-dev.yml"
-    ["notification/firebase-secret.json"]="notification-service/src/main/resources/firebase-secret.json"
+    ["identity/application-prod.yml"]="identity-service/src/main/resources/application-prod.yml"
+    ["identity/logback-spring.xml"]="identity-service/src/main/resources/logback-spring.xml"
 
     ["profile/application.yml"]="profile-service/src/main/resources/application.yml"
     ["profile/application-dev.yml"]="profile-service/src/main/resources/application-dev.yml"
+    ["profile/application-prod.yml"]="profile-service/src/main/resources/application-prod.yml"
+    ["profile/logback-spring.xml"]="profile-service/src/main/resources/logback-spring.xml"
+
+    ["route/.env.default"]="route-service/deploy/.env.default"
+    ["route/.env.dev"]="route-service/deploy/.env.dev"
+    ["route/.env.prod"]="route-service/deploy/.env.prod"
 
     [".env"]=".env"
 )
-
-CONFIG_DIR="D:/stride-config/backend"
-SOURCE_DIR="D:/stride-be"
 
 # Copy files
 for dest_file in "${!services[@]}"; do
