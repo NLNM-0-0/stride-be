@@ -4,6 +4,7 @@ import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.List;
 
@@ -46,16 +47,18 @@ public class Activity extends BaseEntity {
 
     private String mapImage;
 
-    @ElementCollection
-    @Column(columnDefinition = "text[]")
+    @Convert(converter = StringListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<String> images;
 
 
 
 
 
-    @ElementCollection
-    @Column(columnDefinition = "integer[]")
+    @Convert(converter = IntegerListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Integer> elevations;
 
     private Integer elevationGain;
@@ -65,15 +68,17 @@ public class Activity extends BaseEntity {
 
 
 
-    @ElementCollection
-    @Column(columnDefinition = "double precision[]")
+    @Convert(converter = DoubleListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Double> speeds;
 
     private Double avgSpeed;
     private Double maxSpeed;
 
-    @ElementCollection
-    @Column(columnDefinition = "double precision[]")
+    @Convert(converter = DoubleListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Double> distances;
 
     private Double totalDistance;
@@ -81,20 +86,23 @@ public class Activity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String geometry;
 
-    @ElementCollection
-    @Column(columnDefinition = "bigint[]")
+    @Convert(converter = LongListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Long> coordinatesTimestamps;
 
 
 
 
 
-    @ElementCollection
-    @Column(columnDefinition = "integer[]")
+    @Convert(converter = IntegerListConverter.class)
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Integer> heartRates;
 
     @Convert(converter = HeartRateZoneValueListConverter.class)
     @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<HeartRateZoneValue> heartRateZones;
 
     private Double avgHearRate;
