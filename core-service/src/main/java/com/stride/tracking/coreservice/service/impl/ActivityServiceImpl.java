@@ -6,7 +6,9 @@ import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
+import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.mapper.CategoryMapper;
@@ -14,8 +16,7 @@ import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.utils.NumberUtils;
-import com.stride.tracking.coreservice.utils.RouteUtils;
+import com.stride.tracking.coreservice.utils.*;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
 import com.stride.tracking.dto.activity.request.CoordinateRequest;
 import com.stride.tracking.dto.activity.request.CreateActivityRequest;
@@ -27,7 +28,6 @@ import com.stride.tracking.coreservice.repository.ActivityRepository;
 import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
-import com.stride.tracking.coreservice.utils.StridePolylineUtils;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
 import com.stride.tracking.coreservice.utils.calculator.CarbonSavedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.RamerDouglasPeucker;
@@ -46,7 +46,6 @@ import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -84,8 +83,9 @@ public class ActivityServiceImpl implements ActivityService {
     private final SportMapper sportMapper;
     private final CategoryMapper categoryMapper;
 
-    @Value("${app.rdp.epsilon}")
-    private double rdpEpsilon;
+    private static final double RDP_EPSILON = 0.00005;
+    private static final int NUMBER_CHART_POINTS = 100;
+    private static final int THRESHOLD_METERS = 10;
 
     @Override
     @Transactional
@@ -153,43 +153,21 @@ public class ActivityServiceImpl implements ActivityService {
         Sport sport = Common.findSportById(request.getSportId(), sportRepository);
         UserResponse user = profileService.viewProfile();
 
+        mergeStartEndPoint(request);
+
         Activity activity = Activity.builder()
                 .userId(user.getId())
                 .routeId(request.getRouteId())
                 .name(request.getName())
                 .description(request.getDescription())
-                .sport(sport)
+                .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
                 .movingTimeSeconds(request.getMovingTimeSeconds())
                 .elapsedTimeSeconds(request.getElapsedTimeSeconds())
                 .rpe(request.getRpe())
                 .images(request.getImages())
                 .build();
 
-        // Add some coordinates info if recorded sport supports map
-        if (sport.getSportMapType() != null) {
-            List<List<Double>> coordinates = request.getCoordinates()
-                    .stream()
-                    .map(CoordinateRequest::getCoordinate).toList();
-            coordinates = RouteUtils.mergeCloseStartEnd(coordinates, 5);
-
-            List<Long> coordinatesTimestamps = new ArrayList<>(request.getCoordinates()
-                    .stream()
-                    .map(CoordinateRequest::getTimestamp).toList());
-            coordinatesTimestamps.add(coordinatesTimestamps.get(coordinates.size() - 1));
-
-            List<Integer> elevations = elevationService.calculateElevations(coordinates);
-
-            addSpeedInfo(
-                    activity,
-                    coordinates,
-                    coordinatesTimestamps,
-                    request.getMovingTimeSeconds()
-            );
-            addElevationInfo(activity, elevations);
-            addMapImageAndLocation(activity, coordinates);
-            addCarbonSavedInfo(activity, activity.getTotalDistance());
-        }
-
+        processCoordinatesData(activity, request);
 
         addCaloriesInfo(
                 activity,
@@ -211,9 +189,86 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
+    public void mergeStartEndPoint(CreateActivityRequest request) {
+        double[] start = request.getCoordinates()
+                .get(0)
+                .getCoordinate();
+        double[] end = request.getCoordinates()
+                .get(request.getCoordinates().size() - 1)
+                .getCoordinate();
+
+        double distance = GeometryUtils.distanceToPoint(start[1], start[0], end[1], end[0]);
+
+        if (distance <= THRESHOLD_METERS) {
+            request.getCoordinates()
+                    .get(request.getCoordinates().size() - 1)
+                    .setCoordinate(new double[] {start[0], start[1]});
+        }
+    }
+
+    private void processCoordinatesData(Activity activity, CreateActivityRequest request) {
+        if (activity.getSport().getSportMapType() != null) {
+            List<CoordinateRequest> rawCoordinates = request.getCoordinates();
+
+            addGeometryAndMap(activity, rawCoordinates);
+            processChartInfo(activity, rawCoordinates, request.getMovingTimeSeconds());
+
+            //Ensure to add totalDistance before calling addCarbonSavedInfo
+            addCarbonSavedInfo(activity, activity.getTotalDistance());
+        }
+    }
+
+    private void addGeometryAndMap(Activity activity, List<CoordinateRequest> rawCoordinates) {
+        List<double[]> coordinates = rawCoordinates.stream()
+                .map(CoordinateRequest::getCoordinate)
+                .toList();
+
+        addGeometry(activity, coordinates);
+        addMapImage(activity, coordinates);
+    }
+
+    private void addGeometry(Activity activity, List<double[]> coordinates) {
+        String encodedCoordinate = StridePolylineUtils.encode(coordinates);
+        activity.setGeometry(encodedCoordinate);
+    }
+
+    private void addMapImage(Activity activity, List<double[]> coordinates) {
+        List<double[]> smoothCoordinates = RamerDouglasPeucker.handle(
+                coordinates,
+                RDP_EPSILON
+        );
+
+        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
+
+        String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
+
+        activity.setMapImage(mapImage);
+    }
+
+    private void processChartInfo(Activity activity, List<CoordinateRequest> rawCoordinates, Long movingTimeSeconds) {
+        List<CoordinateRequest> sampled = ListUtils.minimized(rawCoordinates, NUMBER_CHART_POINTS);
+
+        List<double[]> minimizedCoordinates = sampled.stream()
+                .map(CoordinateRequest::getCoordinate)
+                .toList();
+
+        List<Long> minimizedTimestamps = new ArrayList<>(sampled.stream()
+                .map(CoordinateRequest::getTimestamp)
+                .toList());
+
+        addSpeedInfo(
+                activity,
+                minimizedCoordinates,
+                minimizedTimestamps,
+                movingTimeSeconds
+        );
+        addElevationInfo(activity, minimizedCoordinates);
+        addLocation(activity, minimizedCoordinates);
+    }
+
     private void addSpeedInfo(
             Activity activity,
-            List<List<Double>> coordinates,
+            List<double[]> coordinates,
             List<Long> timestamps,
             Long movingTimeSeconds
     ) {
@@ -221,11 +276,21 @@ public class ActivityServiceImpl implements ActivityService {
 
         double totalDistance = speedResult.distances().get(speedResult.distances().size() - 1);
         activity.setDistances(speedResult.distances());
-        activity.setTotalDistance(NumberUtils.round(totalDistance, 2));
+        activity.setTotalDistance(
+                NumberUtils.round(
+                        totalDistance,
+                        RoundRules.DISTANCE.getValue()
+                )
+        );
 
         activity.setSpeeds(speedResult.speeds());
         activity.setMaxSpeed(speedResult.maxSpeed());
-        activity.setAvgSpeed(NumberUtils.round(totalDistance / movingTimeSeconds, 5));
+        activity.setAvgSpeed(
+                NumberUtils.round(
+                        totalDistance / movingTimeSeconds,
+                        RoundRules.SPEED.getValue()
+                )
+        );
 
         activity.setCoordinatesTimestamps(timestamps);
 
@@ -269,46 +334,20 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
-    private void addElevationInfo(Activity activity, List<Integer> elevations) {
+    private void addElevationInfo(Activity activity, List<double[]> coordinates) {
+        List<Integer> elevations = elevationService.calculateElevations(coordinates);
+
         ElevationCalculatorResult elevationResult = elevationCalculator.calculate(elevations);
         activity.setElevations(elevationResult.elevations());
         activity.setElevationGain(elevationResult.elevationGain());
         activity.setMaxElevation(elevationResult.maxElevation());
     }
 
-    private void addCarbonSavedInfo(Activity activity, double distance) {
-        double carbonSaved = carbonSavedCalculator.calculate(distance);
-        activity.setCarbonSaved(carbonSaved);
-    }
-
-    private void addHeartRateInfo(Activity activity, CreateActivityRequest request, UserResponse user) {
-        HeartRateCalculatorResult result = heartRateCalculator.calculate(request.getHeartRates(), user.getHeartRateZones());
-        activity.setHeartRateZones(result.heartRateZones());
-        activity.setAvgHearRate(result.avgHeartRate());
-        activity.setMaxHearRate(result.maxHeartRate());
-        activity.setHeartRates(request.getHeartRates());
-    }
-
-    private void addMapImageAndLocation(Activity activity, List<List<Double>> coordinates) {
-        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.douglasPeucker(coordinates, rdpEpsilon);
-
-        addMapImage(activity, smoothCoordinates);
-        addLocation(activity, smoothCoordinates);
-    }
-
-    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
-        String encodePolyline = StridePolylineUtils.encode(coordinates);
-
-        String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
-
-        activity.setMapImage(mapImage);
-    }
-
-    private void addLocation(Activity activity, List<List<Double>> coordinates) {
+    private void addLocation(Activity activity, List<double[]> coordinates) {
         GetLocationByGeometryResponse locationResponse = supabaseService.getLocationByGeometry(
                 GetLocationByGeometryRequest.builder()
                         .geometry(GeometryRequest.builder()
-                                .type("LineString")
+                                .type(GeometryType.LINESTRING.getValue())
                                 .coordinates(coordinates)
                                 .build())
                         .build()
@@ -319,6 +358,30 @@ public class ActivityServiceImpl implements ActivityService {
                 .city(locationResponse.getCity())
                 .ward(locationResponse.getWard())
                 .build());
+    }
+
+    private void addCarbonSavedInfo(Activity activity, double distance) {
+        double carbonSaved = carbonSavedCalculator.calculate(distance);
+        activity.setCarbonSaved(carbonSaved);
+    }
+
+    private void addHeartRateInfo(
+            Activity activity,
+            CreateActivityRequest request,
+            UserResponse user) {
+        List<Integer> sampledHeartRate = ListUtils.minimized(
+                request.getHeartRates(),
+                NUMBER_CHART_POINTS
+        );
+
+        HeartRateCalculatorResult result = heartRateCalculator.calculate(
+                sampledHeartRate,
+                user.getHeartRateZones()
+        );
+        activity.setHeartRateZones(result.heartRateZones());
+        activity.setAvgHearRate(result.avgHeartRate());
+        activity.setMaxHearRate(result.maxHeartRate());
+        activity.setHeartRates(request.getHeartRates());
     }
 
     private void updateRoute(Activity activity) {
