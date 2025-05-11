@@ -23,6 +23,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -38,14 +40,14 @@ public class GoalServiceImpl implements GoalService {
 
     @Override
     @Transactional
-    public SimpleListResponse<GoalResponse> getUserGoals() {
+    public SimpleListResponse<GoalResponse> getUserGoals(ZoneId zoneId) {
         String userId = SecurityUtils.getCurrentUserId();
 
         List<Goal> goals = goalRepository.findByUserId(userId);
 
         List<GoalResponse> response = new ArrayList<>();
         for (Goal goal : goals) {
-            List<GoalHistory> histories = fetchGoalHistoryByGoal(goal);
+            List<GoalHistory> histories = fetchGoalHistoryByGoal(goal, zoneId);
 
             List<GoalHistoryResponse> historiesResponse = new ArrayList<>();
             for (GoalHistory history : histories) {
@@ -72,9 +74,8 @@ public class GoalServiceImpl implements GoalService {
                 .build();
     }
 
-    private List<GoalHistory> fetchGoalHistoryByGoal(Goal goal) {
-        Calendar start = GoalTimeFrameHelper
-                .getAuditStartCalendar(goal.getTimeFrame());
+    private List<GoalHistory> fetchGoalHistoryByGoal(Goal goal, ZoneId zoneId) {
+        Calendar start = GoalTimeFrameHelper.getAuditStartCalendar(goal.getTimeFrame(), zoneId);
 
         List<GoalHistory> existingHistories =
                 goalHistoryRepository.findAllByGoalIdAndDateGreaterThanEqual(
@@ -84,12 +85,18 @@ public class GoalServiceImpl implements GoalService {
 
         Map<String, GoalHistory> result = new LinkedHashMap<>(); //to keep order of history
 
-        List<Date> expectedDates = GoalTimeFrameHelper.generateExpectedDates(goal.getTimeFrame());
+        List<Date> expectedDates = GoalTimeFrameHelper.generateExpectedDates(
+                goal.getTimeFrame(),
+                zoneId
+        );
         for (Date date : expectedDates) {
             String key = GoalTimeFrameHelper.formatDateKey(date, goal.getTimeFrame());
 
             Long amountGoal = goal.getAmount();
-            if (goal.getCreatedAt().isAfter(date.toInstant())) {
+            Instant goalCreationInstant = goal.getCreatedAt().atZone(zoneId).toInstant();
+            Instant dateInstant = date.toInstant();
+
+            if (goalCreationInstant.isAfter(dateInstant)) {
                 amountGoal = 0L; // Goal wasn't active yet at this time, just record with zero target
             }
 
@@ -138,13 +145,13 @@ public class GoalServiceImpl implements GoalService {
 
     @Override
     @Transactional
-    public void updateGoal(String id, UpdateGoalRequest request) {
+    public void updateGoal(String id, ZoneId zoneId, UpdateGoalRequest request) {
         Goal goal = Common.findGoalById(id, goalRepository);
 
         if (request.getAmount() != null &&
                 !Objects.equals(goal.getAmount(), request.getAmount())
         ) {
-            updateGoalHistoryAmount(goal, request.getAmount());
+            updateGoalHistoryAmount(goal, zoneId, request.getAmount());
             goal.setAmount(request.getAmount());
         }
 
@@ -153,21 +160,21 @@ public class GoalServiceImpl implements GoalService {
         if (request.getActive() != null &&
                 !Objects.equals(goal.isActive(), request.getActive())
         ) {
-            updateGoalHistoryStatus(goal, request.getActive());
+            updateGoalHistoryStatus(goal, zoneId, request.getActive());
             goal.setActive(request.getActive());
         }
 
         goalRepository.save(goal);
     }
 
-    private void updateGoalHistoryAmount(Goal goal, long amount) {
-        List<GoalHistory> histories = fetchGoalHistoryByGoal(goal);
+    private void updateGoalHistoryAmount(Goal goal, ZoneId zoneId, long amount) {
+        List<GoalHistory> histories = fetchGoalHistoryByGoal(goal, zoneId);
         histories.get(histories.size() - 1).setAmountGoal(amount);
         goalHistoryRepository.saveAll(histories);
     }
 
-    private void updateGoalHistoryStatus(Goal goal, boolean active) {
-        Calendar calendar = GoalTimeFrameHelper.getCalendar(goal.getTimeFrame());
+    private void updateGoalHistoryStatus(Goal goal, ZoneId zoneId, boolean active) {
+        Calendar calendar = GoalTimeFrameHelper.getCalendar(goal.getTimeFrame(), zoneId);
         String key = GoalTimeFrameHelper.formatDateKey(calendar.getTime(), goal.getTimeFrame());
 
         GoalHistory goalHistory = goalHistoryRepository.findByGoalIdAndDateKey(goal.getId(), key)

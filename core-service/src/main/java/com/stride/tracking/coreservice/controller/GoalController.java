@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.coreservice.dto.goal.request.CreateGoalRequest;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneId;
+
 @RestController
 @RequestMapping("/goals")
 @RequiredArgsConstructor
@@ -19,8 +22,11 @@ public class GoalController {
     private final GoalService goalService;
 
     @GetMapping("/profile")
-    ResponseEntity<SimpleListResponse<GoalResponse>> getGoals() {
-        return ResponseEntity.ok(goalService.getUserGoals());
+    ResponseEntity<SimpleListResponse<GoalResponse>> getGoals(
+            @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+        return ResponseEntity.ok(goalService.getUserGoals(zoneId));
     }
 
     @PostMapping
@@ -30,10 +36,13 @@ public class GoalController {
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<SimpleResponse> updateActivity(
+    ResponseEntity<SimpleResponse> updateGoal(
             @PathVariable String id,
+            @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @RequestBody UpdateGoalRequest request) {
-        goalService.updateGoal(id, request);
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        goalService.updateGoal(id, zoneId, request);
         return ResponseEntity.ok(new SimpleResponse());
     }
 
