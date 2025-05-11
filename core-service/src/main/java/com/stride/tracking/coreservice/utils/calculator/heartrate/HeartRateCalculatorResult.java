@@ -6,6 +6,6 @@ import java.util.List;
 
 public record HeartRateCalculatorResult(
         Double avgHeartRate,
-        Double maxHeartRate,
+        Integer maxHeartRate,
         List<HeartRateZoneValue> heartRateZones) {
 }

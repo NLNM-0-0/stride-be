@@ -1,10 +1,7 @@
-import json
-
 from pydantic import BaseModel
 
 from dto.route.response.location_response import LocationResponse
 from dto.route.response.route_response import RouteResponse
-from dto.route.response.route_short_response import RouteShortResponse
 from models.route_model import RouteModel
 
 
@@ -17,7 +14,7 @@ class RouteMapper(BaseModel):
         location_data = route.location
 
         return RouteResponse(
-            id=route.id,
+            id=str(route.id),
             user_id=route.user_id,
             sport_id=route.sport_id,
             name=route.name,
@@ -32,25 +29,5 @@ class RouteMapper(BaseModel):
             images=images,
             geometry=route.geometry,
             districts=route.districts,
-            heat=route.heat,
-        )
-
-    @staticmethod
-    def map_to_route_short_response(route: RouteModel) -> RouteShortResponse:
-        location_data = route.location
-
-        return RouteShortResponse(
-            id=route.id,
-            user_id=route.user_id,
-            sport_id=route.sport_id,
-            name=route.name,
-            avg_time=route.total_time / route.heat,
-            avg_distance=route.total_distance / route.heat,
-            location=LocationResponse(
-                ward=location_data.get("ward"),
-                district=location_data.get("district"),
-                city=location_data.get("city"),
-            ),
-            map_image=route.map_image,
             heat=route.heat,
         )

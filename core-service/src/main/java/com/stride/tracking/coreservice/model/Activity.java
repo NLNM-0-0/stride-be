@@ -19,6 +19,10 @@ import java.util.List;
 public class Activity extends BaseEntity {
     private static final String USER_ID_KEY = "user_id";
     private static final String SPORT_ID_KEY = "sport_id";
+    private static final String ACTIVITY_ID_KEY = "activity_id";
+    private static final String GOAL_HISTORY_ID_KEY = "goal_history_id";
+
+    private static final String ACTIVITY_GOAL_HISTORY_TABLE = "activity_goal_history";
 
     @Column(name = USER_ID_KEY, nullable = false)
     private String userId;
@@ -44,8 +48,8 @@ public class Activity extends BaseEntity {
     private String mapImage;
 
     @Convert(converter = StringListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<String> images;
 
 
@@ -53,8 +57,8 @@ public class Activity extends BaseEntity {
 
 
     @Convert(converter = IntegerListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Integer> elevations;
 
     private Integer elevationGain;
@@ -65,16 +69,16 @@ public class Activity extends BaseEntity {
 
 
     @Convert(converter = DoubleListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Double> speeds;
 
     private Double avgSpeed;
     private Double maxSpeed;
 
     @Convert(converter = DoubleListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Double> distances;
 
     private Double totalDistance;
@@ -83,8 +87,8 @@ public class Activity extends BaseEntity {
     private String geometry;
 
     @Convert(converter = LongListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Long> coordinatesTimestamps;
 
 
@@ -92,21 +96,33 @@ public class Activity extends BaseEntity {
 
 
     @Convert(converter = IntegerListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<Integer> heartRates;
 
     @Convert(converter = HeartRateZoneValueListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private List<HeartRateZoneValue> heartRateZones;
 
     private Double avgHearRate;
-    private Double maxHearRate;
+    private Integer maxHearRate;
 
 
 
 
 
     private Location location;
+
+
+
+
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = ACTIVITY_GOAL_HISTORY_TABLE,
+            joinColumns = @JoinColumn(name = ACTIVITY_ID_KEY),
+            inverseJoinColumns = @JoinColumn(name = GOAL_HISTORY_ID_KEY)
+    )
+    private List<GoalHistory> goalHistories;
 }

@@ -4,6 +4,7 @@ import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
 import com.stride.tracking.dto.activity.request.CreateActivityRequest;
+import com.stride.tracking.dto.activity.request.SaveRouteRequest;
 import com.stride.tracking.dto.activity.request.UpdateActivityRequest;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
@@ -21,5 +22,5 @@ public interface ActivityService {
 
     void deleteActivity(String activityId);
 
-    void saveRoute(String activityId);
+    void saveRoute(String activityId, SaveRouteRequest request);
 }

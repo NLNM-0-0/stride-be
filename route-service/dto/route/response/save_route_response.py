@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from utils.json_format import to_camel
 
 
-class CreateRouteResponse(BaseModel):
+class SaveRouteResponse(BaseModel):
     route_id: str
 
     class Config:

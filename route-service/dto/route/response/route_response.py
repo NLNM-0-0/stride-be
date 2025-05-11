@@ -8,7 +8,7 @@ from uuid import UUID
 
 
 class RouteResponse(BaseModel):
-    id: UUID
+    id: str
     user_id: Optional[str]
     sport_id: str
     name: Optional[str]

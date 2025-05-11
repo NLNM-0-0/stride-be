@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.utils.calculator.heartrate;
 
+import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.dto.user.HeartRateZone;
@@ -15,11 +16,11 @@ public class HeartRateCalculator {
             Map<HeartRateZone, Integer> userHRZones
     ) {
         if (heartRates == null || heartRates.isEmpty()) {
-            return new HeartRateCalculatorResult(0.0, 0.0, List.of());
+            return new HeartRateCalculatorResult(0.0, 0, List.of());
         }
 
         double sum = 0;
-        double max = Double.MIN_VALUE;
+        int max = Integer.MIN_VALUE;
         Map<HeartRateZone, Integer> zoneCounts = new EnumMap<>(HeartRateZone.class);
         for (HeartRateZone zone : HeartRateZone.values()) {
             zoneCounts.put(zone, 0);
@@ -35,7 +36,10 @@ public class HeartRateCalculator {
             zoneCounts.put(zone, zoneCounts.get(zone) + 1);
         }
 
-        double avg = NumberUtils.round(sum / heartRates.size(), 1);
+        double avg = NumberUtils.round(
+                sum / heartRates.size(),
+                RoundRules.HEART_RATE.getValue()
+        );
 
         List<HeartRateZoneValue> heartRateZoneValues = new ArrayList<>();
         Map<HeartRateZone, Integer> zoneThresholds = new EnumMap<>(userHRZones); // defensive copy
