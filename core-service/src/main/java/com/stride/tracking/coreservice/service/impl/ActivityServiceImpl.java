@@ -6,14 +6,16 @@ import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.coreservice.constant.GoalType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
-import com.stride.tracking.coreservice.model.Activity;
-import com.stride.tracking.coreservice.model.Location;
-import com.stride.tracking.coreservice.model.Sport;
+import com.stride.tracking.coreservice.model.*;
+import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
+import com.stride.tracking.coreservice.repository.GoalRepository;
+import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.coreservice.utils.RouteUtils;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
@@ -56,9 +58,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +66,8 @@ import java.util.Map;
 public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final SportRepository sportRepository;
+    private final GoalRepository goalRepository;
+    private final GoalHistoryRepository goalHistoryRepository;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
@@ -199,6 +201,7 @@ public class ActivityServiceImpl implements ActivityService {
         addCarbonSavedInfo(activity, activity.getTotalDistance());
         addHeartRateInfo(activity, request, user);
         addMapImageAndLocation(activity, coordinates);
+        addGoalHistories(activity);
 
         activity = activityRepository.save(activity);
 
@@ -327,6 +330,57 @@ public class ActivityServiceImpl implements ActivityService {
                 .build());
     }
 
+    private void addGoalHistories(Activity activity) {
+        List<Goal> goals = goalRepository.findBySportId(activity.getSport().getId());
+
+        List<GoalHistory> histories = new ArrayList<>();
+        for (Goal goal : goals) {
+            Long amount = 0L;
+            if (goal.isActive()) {
+                amount = getAmountGoal(goal.getType(), activity);
+            }
+
+            Calendar calendar = GoalTimeFrameHelper.getCalendar(goal.getTimeFrame());
+            Date goalDate = calendar.getTime();
+
+            String historyKey = GoalTimeFrameHelper.formatDateKey(goalDate, goal.getTimeFrame());
+            Optional<GoalHistory> historyOptional = goalHistoryRepository.findByGoalIdAndDateKey(goal.getId(), historyKey);
+
+            GoalHistory history;
+            if (historyOptional.isPresent()) {
+                history = historyOptional.get();
+                history.setAmountGain(history.getAmountGain() + amount);
+            } else {
+                history = GoalHistory.builder()
+                        .goal(goal)
+                        .dateKey(historyKey)
+                        .amountGoal(goal.getAmount())
+                        .amountGain(amount)
+                        .date(goalDate)
+                        .build();
+            }
+
+            histories.add(history);
+        }
+        goalHistoryRepository.saveAll(histories);
+
+        activity.setGoalHistories(histories);
+    }
+
+    private Long getAmountGoal(GoalType type, Activity activity) {
+        Long amount = 0L;
+        if (type.equals(GoalType.ACTIVITY)) {
+            amount = 1L;
+        } else if (type.equals(GoalType.ELEVATION)) {
+            amount = activity.getElevationGain().longValue();
+        } else if (type.equals(GoalType.DISTANCE)) {
+            amount = activity.getTotalDistance().longValue();
+        } else if (type.equals(GoalType.TIME)) {
+            amount = activity.getMovingTimeSeconds();
+        }
+        return amount;
+    }
+
     @Override
     @Transactional
     public void updateActivity(String activityId, UpdateActivityRequest request) {
@@ -376,6 +430,13 @@ public class ActivityServiceImpl implements ActivityService {
         if (!activity.getUserId().equals(currentUserId)) {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_DELETE_OTHER_USER_ACTIVITIES);
         }
+
+        List<GoalHistory> histories = activity.getGoalHistories();
+        for (GoalHistory history : histories) {
+            Long amount = getAmountGoal(history.getGoal().getType(), activity);
+            history.setAmountGain(history.getAmountGain() - amount);
+        }
+        goalHistoryRepository.saveAll(histories);
 
         activityRepository.delete(activity);
     }

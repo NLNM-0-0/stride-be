@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.mapper;
 
+import com.stride.tracking.coreservice.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
@@ -44,6 +45,14 @@ public class SportMapper {
                 .image(sport.getImage())
                 .rules(sport.getRules().stream().map(this::mapToRuleResponse).toList())
                 .sportMapType(sport.getSportMapType())
+                .build();
+    }
+
+    public SportShortResponse mapToShortResponse(Sport sport) {
+        return SportShortResponse.builder()
+                .id(sport.getId())
+                .name(sport.getName())
+                .image(sport.getImage())
                 .build();
     }
 }
