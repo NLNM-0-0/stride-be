@@ -28,7 +28,6 @@ import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.dto.activity.response.ActivityUserResponse;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
-import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
@@ -65,9 +64,10 @@ import java.util.*;
 @Slf4j
 public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
-    private final SportRepository sportRepository;
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
+
+    private final SportCacheService sportCacheService;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
@@ -152,7 +152,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(CreateActivityRequest request) {
-        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+        Sport sport = sportCacheService.findSportById(request.getSportId());
         UserResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
@@ -459,7 +459,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getSportId() != null) {
             UserResponse user = profileService.viewProfile();
 
-            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+            Sport sport = sportCacheService.findSportById(request.getSportId());
 
             addCaloriesInfo(
                     activity,

@@ -16,7 +16,6 @@ import com.stride.tracking.coreservice.model.GoalHistory;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
-import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.service.GoalService;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,8 @@ import java.util.*;
 public class GoalServiceImpl implements GoalService {
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
-    private final SportRepository sportRepository;
+
+    private final SportCacheService sportCacheService;
 
     private final GoalMapper goalMapper;
     private final SportMapper sportMapper;
@@ -115,7 +115,7 @@ public class GoalServiceImpl implements GoalService {
     @Override
     @Transactional
     public CreateGoalResponse createGoal(CreateGoalRequest request) {
-        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+        Sport sport = sportCacheService.findSportById(request.getSportId());
         String userId = SecurityUtils.getCurrentUserId();
 
         Optional<Goal> goalOptional = goalRepository.findByUserIdAndSportIdAndTypeAndTimeFrame(
