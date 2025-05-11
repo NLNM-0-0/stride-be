@@ -12,7 +12,6 @@ from dto.route.request.route_filter import RouteFilter
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
-from dto.route.response.route_short_response import RouteShortResponse
 from dto.simple_response import SimpleResponse
 from repositories.crud.route_repository import RouteRepository
 from services.mapbox_service import MapboxService
@@ -36,7 +35,7 @@ def get_route_service(
 
 @route_router.get(
     path="",
-    response_model=List[RouteShortResponse],
+    response_model=List[RouteResponse],
     status_code=status.HTTP_200_OK,
 )
 async def get_all_routes(service: RouteService = Depends(get_route_service)):
@@ -45,7 +44,7 @@ async def get_all_routes(service: RouteService = Depends(get_route_service)):
 
 @route_router.post(
     path="/recommend",
-    response_model=List[RouteShortResponse]
+    response_model=List[RouteResponse]
 )
 async def get_recommended_routes(
         body: GetRecommendRouteRequest,
@@ -56,7 +55,7 @@ async def get_recommended_routes(
 
 @route_router.get(
     path="/profile",
-    response_model=List[RouteShortResponse],
+    response_model=List[RouteResponse],
     status_code=status.HTTP_200_OK,
 )
 async def get_user_route(

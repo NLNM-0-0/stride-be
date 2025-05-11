@@ -14,7 +14,6 @@ from dto.route.request.route_filter import RouteFilter
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
-from dto.route.response.route_short_response import RouteShortResponse
 from dto.supbase.request.find_districts_contain_geometry_request import FindDistrictsContainGeometryRequest
 from dto.supbase.request.find_districts_near_point_request import FindDistrictNearPointRequest
 from dto.supbase.request.find_nearest_way_points_request import FindNearestWayPointsRequest
@@ -45,14 +44,14 @@ class RouteService:
         self.mapbox_service = mapbox_service
         self.supabase_service = supabase_service
 
-    async def get_all_routes(self) -> List[RouteShortResponse]:
+    async def get_all_routes(self) -> List[RouteResponse]:
         routes = await self.route_repository.get_all()
-        return [RouteMapper.map_to_route_short_response(route) for route in routes]
+        return [RouteMapper.map_to_route_response(route) for route in routes]
 
     async def get_recommended_routes(
             self,
             request: GetRecommendRouteRequest
-    ) -> List[RouteShortResponse]:
+    ) -> List[RouteResponse]:
         routes = await self.route_repository.get_by_filters(
             route_filter=RouteFilter(sport_id=request.sport_id, user_id=None)
         )
@@ -72,19 +71,19 @@ class RouteService:
 
         result = filtered_routes[:request.limit]
 
-        return [RouteMapper.map_to_route_short_response(route) for route in result]
+        return [RouteMapper.map_to_route_response(route) for route in result]
 
     async def get_routes(
             self,
             route_filter: RouteFilter,
             page: AppPageRequest
-    ) -> List[RouteShortResponse]:
+    ) -> List[RouteResponse]:
         routes = await self.route_repository.get_by_filters_and_paging(
             route_filter,
             page.page,
             page.limit
         )
-        return [RouteMapper.map_to_route_short_response(route) for route in routes]
+        return [RouteMapper.map_to_route_response(route) for route in routes]
 
     async def get_route(self, route_id: str) -> RouteResponse:
         # Convert string ID to UUID safely
