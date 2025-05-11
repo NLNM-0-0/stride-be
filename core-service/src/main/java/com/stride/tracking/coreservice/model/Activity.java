@@ -4,7 +4,6 @@ import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.*;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.List;
 
@@ -43,18 +42,16 @@ public class Activity extends BaseEntity {
 
     private String mapImage;
 
-    @Convert(converter = StringListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "text[]")
     private List<String> images;
 
 
 
 
 
-    @Convert(converter = IntegerListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "integer[]")
     private List<Integer> elevations;
 
     private Integer elevationGain;
@@ -64,17 +61,15 @@ public class Activity extends BaseEntity {
 
 
 
-    @Convert(converter = DoubleListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "double precision[]")
     private List<Double> speeds;
 
     private Double avgSpeed;
     private Double maxSpeed;
 
-    @Convert(converter = DoubleListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "double precision[]")
     private List<Double> distances;
 
     private Double totalDistance;
@@ -82,27 +77,24 @@ public class Activity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String geometry;
 
-    @Convert(converter = LongListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "bigint[]")
     private List<Long> coordinatesTimestamps;
 
 
 
 
 
-    @Convert(converter = IntegerListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @ElementCollection
+    @Column(columnDefinition = "integer[]")
     private List<Integer> heartRates;
 
     @Convert(converter = HeartRateZoneValueListConverter.class)
-    @Column(columnDefinition = "json")
-    @ColumnTransformer(write = "?::json")
+    @Column(columnDefinition = "jsonb")
     private List<HeartRateZoneValue> heartRateZones;
 
     private Double avgHearRate;
-    private Double maxHearRate;
+    private Integer maxHearRate;
 
 
 
