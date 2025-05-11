@@ -18,6 +18,10 @@ import java.util.List;
 public class Activity extends BaseEntity {
     private static final String USER_ID_KEY = "user_id";
     private static final String SPORT_ID_KEY = "sport_id";
+    private static final String ACTIVITY_ID_KEY = "activity_id";
+    private static final String GOAL_HISTORY_ID_KEY = "goal_history_id";
+
+    private static final String ACTIVITY_GOAL_HISTORY_TABLE = "activity_goal_history";
 
     @Column(name = USER_ID_KEY, nullable = false)
     private String userId;
@@ -101,4 +105,16 @@ public class Activity extends BaseEntity {
 
 
     private Location location;
+
+
+
+
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = ACTIVITY_GOAL_HISTORY_TABLE,
+            joinColumns = @JoinColumn(name = ACTIVITY_ID_KEY),
+            inverseJoinColumns = @JoinColumn(name = GOAL_HISTORY_ID_KEY)
+    )
+    private List<GoalHistory> goalHistories;
 }

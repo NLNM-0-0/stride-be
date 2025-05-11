@@ -6,6 +6,7 @@ public class Message {
     public static final String CATEGORY_NOT_FOUND = "Category not found";
     public static final String SPORT_NOT_FOUND = "Sport not found";
     public static final String ACTIVITY_NOT_FOUND = "Activity not found";
+    public static final String GOAL_NOT_FOUND = "Goal not found";
     public static final String JSON_ERR = "Invalid JSON format";
     public static final String COMMON_ERR = "An error has occurred. Please try again later";
     public static final String VIEW_PROFILE_FAILED = "View profile failed";
@@ -16,4 +17,6 @@ public class Message {
     public static final String CAN_NOT_DELETE_OTHER_USER_ACTIVITIES = "Can not delete other user's activities";
     public static final String CAN_NOT_CREATE_SAVED_ROUTE = "Can not create saved route";
     public static final String CAN_NOT_GET_LOCATION_FOR_GEOMETRY = "Can not get location for geometry";
+    public static final String GOAL_IS_ALREADY_EXISTED = "Goal is already existed";
+    public static final String CAN_NOTE_DELETE_OTHER_USER_GOAL = "Can not delete other user's goals";
 }

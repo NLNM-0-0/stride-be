@@ -2,12 +2,8 @@ package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.coreservice.model.Activity;
-import com.stride.tracking.coreservice.model.Category;
-import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.repository.ActivityRepository;
-import com.stride.tracking.coreservice.repository.CategoryRepository;
-import com.stride.tracking.coreservice.repository.SportRepository;
+import com.stride.tracking.coreservice.model.*;
+import com.stride.tracking.coreservice.repository.*;
 import org.springframework.http.HttpStatus;
 
 public class Common {
@@ -29,6 +25,12 @@ public class Common {
     public static Activity findActivityById(String activityId, ActivityRepository activityRepository) {
         return activityRepository.findById(activityId).orElseThrow(
                 () -> new StrideException(HttpStatus.BAD_REQUEST, Message.ACTIVITY_NOT_FOUND)
+        );
+    }
+
+    public static Goal findGoalById(String goalId, GoalRepository goalRepository) {
+        return goalRepository.findById(goalId).orElseThrow(
+                () -> new StrideException(HttpStatus.BAD_REQUEST, Message.GOAL_NOT_FOUND)
         );
     }
 }
