@@ -59,11 +59,14 @@ class RouteRepository(BaseSQLRepository):
         await self.session.refresh(data)
         return data
 
-    async def update_by_id(self, route_id: UUID, update_data: dict) -> bool:
-        route = await self.get_by_id(route_id)
-        if not route:
-            return False
+    async def update_route(self, route: RouteModel, update_data: dict) -> bool:
         for key, value in update_data.items():
             setattr(route, key, value)
         await self.session.commit()
         return True
+
+    async def delete(self, route: RouteModel):
+        if not route:
+            return False
+        await self.session.delete(route)
+        await self.session.commit()
