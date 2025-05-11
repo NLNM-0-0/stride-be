@@ -59,6 +59,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -164,24 +165,32 @@ public class ActivityServiceImpl implements ActivityService {
                 .images(request.getImages())
                 .build();
 
-        List<List<Double>> coordinates = request.getCoordinates()
-                .stream()
-                .map(CoordinateRequest::getCoordinate).toList();
-        coordinates = RouteUtils.mergeCloseStartEnd(coordinates, 5);
+        // Add some coordinates info if recorded sport supports map
+        if (sport.getSportMapType() != null) {
+            List<List<Double>> coordinates = request.getCoordinates()
+                    .stream()
+                    .map(CoordinateRequest::getCoordinate).toList();
+            coordinates = RouteUtils.mergeCloseStartEnd(coordinates, 5);
 
-        List<Long> coordinatesTimestamps = new ArrayList<>(request.getCoordinates()
-                .stream()
-                .map(CoordinateRequest::getTimestamp).toList());
-        coordinatesTimestamps.add(coordinatesTimestamps.get(coordinates.size() - 1));
+            List<Long> coordinatesTimestamps = new ArrayList<>(request.getCoordinates()
+                    .stream()
+                    .map(CoordinateRequest::getTimestamp).toList());
+            coordinatesTimestamps.add(coordinatesTimestamps.get(coordinates.size() - 1));
 
-        List<Integer> elevations = elevationService.calculateElevations(coordinates);
+            List<Integer> elevations = elevationService.calculateElevations(coordinates);
 
-        addSpeedInfo(
-                activity,
-                coordinates,
-                coordinatesTimestamps,
-                request.getMovingTimeSeconds()
-        );
+            addSpeedInfo(
+                    activity,
+                    coordinates,
+                    coordinatesTimestamps,
+                    request.getMovingTimeSeconds()
+            );
+            addElevationInfo(activity, elevations);
+            addMapImageAndLocation(activity, coordinates);
+            addCarbonSavedInfo(activity, activity.getTotalDistance());
+        }
+
+
         addCaloriesInfo(
                 activity,
                 request.getMovingTimeSeconds(),
@@ -189,30 +198,11 @@ public class ActivityServiceImpl implements ActivityService {
                 sport,
                 user
         );
-        addSpeedInfo(
-                activity,
-                coordinates,
-                coordinatesTimestamps,
-                request.getMovingTimeSeconds()
-        );
-        addElevationInfo(activity, elevations);
-        addCarbonSavedInfo(activity, activity.getTotalDistance());
         addHeartRateInfo(activity, request, user);
-        addMapImageAndLocation(activity, coordinates);
 
         activity = activityRepository.save(activity);
 
-        if (activity.getRouteId() != null) {
-            routeService.updateRoute(
-                    activity.getRouteId(),
-                    UpdateRouteRequest.builder()
-                            .activityId(activity.getId())
-                            .images(activity.getImages())
-                            .avgTime(activity.getMovingTimeSeconds())
-                            .avgDistance(activity.getTotalDistance())
-                            .build()
-            );
-        }
+        updateRoute(activity);
 
         return activityMapper.mapToShortResponse(
                 activity,
@@ -260,9 +250,13 @@ public class ActivityServiceImpl implements ActivityService {
             Sport sport,
             UserResponse user
     ) {
-        double equipmentWeight = user.getEquipmentsWeight().values().stream()
-                .mapToInt(Integer::intValue)
-                .sum();
+        double equipmentWeight = Optional.ofNullable(user.getEquipmentsWeight())
+                .map(m ->
+                        m.values().stream()
+                                .mapToInt(Integer::intValue)
+                                .sum()
+                )
+                .orElse(0);
 
         return caloriesCalculator.calculateCalories(
                 sport,
@@ -325,6 +319,20 @@ public class ActivityServiceImpl implements ActivityService {
                 .city(locationResponse.getCity())
                 .ward(locationResponse.getWard())
                 .build());
+    }
+
+    private void updateRoute(Activity activity) {
+        if (activity.getRouteId() != null) {
+            routeService.updateRoute(
+                    activity.getRouteId(),
+                    UpdateRouteRequest.builder()
+                            .activityId(activity.getId())
+                            .images(activity.getImages())
+                            .avgTime(activity.getMovingTimeSeconds())
+                            .avgDistance(activity.getTotalDistance())
+                            .build()
+            );
+        }
     }
 
     @Override
