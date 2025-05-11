@@ -12,6 +12,7 @@ from dto.route.request.route_filter import RouteFilter
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
+from dto.route.response.save_route_response import SaveRouteResponse
 from dto.simple_response import SimpleResponse
 from repositories.crud.route_repository import RouteRepository
 from services.mapbox_service import MapboxService
@@ -20,6 +21,7 @@ from services.supabase_service import SupabaseService
 from utils.auth_helper import AuthHelper
 
 route_router = APIRouter(prefix="/stride-routes", tags=["Routes"])
+
 
 def get_route_service(
         route_repository: RouteRepository = Depends(get_repository(RouteRepository)),
@@ -72,16 +74,6 @@ async def get_user_route(
         page=page,
     )
 
-@route_router.get(
-    path="/{route_id}",
-    response_model=RouteResponse
-)
-async def get_route(
-        route_id: str,
-        service: RouteService = Depends(get_route_service)
-):
-    response = await service.get_route(route_id)
-    return response
 
 @route_router.post(
     path="",
@@ -100,14 +92,51 @@ async def create_route(
         request=body,
     )
 
+
+@route_router.post(
+    path="/{route_id}/save",
+    response_model=SaveRouteResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def save_route(
+        request: Request,
+        route_id: str,
+        service: RouteService = Depends(get_route_service)
+):
+    user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
+
+    return await service.save_route(
+        user_id=user_id,
+        route_id=route_id
+    )
+
+
 @route_router.put(
     path="/{route_id}",
     response_model=SimpleResponse
 )
 async def update_route(
+        request: Request,
         route_id: str,
         body: UpdateRouteRequest,
         service: RouteService = Depends(get_route_service)
 ):
-    await service.update_route(route_id, body)
+    user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
+
+    await service.update_route(user_id, route_id, body)
+    return SimpleResponse()
+
+
+@route_router.delete(
+    path="/{route_id}",
+    response_model=SimpleResponse
+)
+async def delete_route(
+        request: Request,
+        route_id: str,
+        service: RouteService = Depends(get_route_service)
+):
+    user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
+
+    await service.delete_route(user_id, route_id)
     return SimpleResponse()
