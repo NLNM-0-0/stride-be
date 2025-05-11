@@ -19,7 +19,6 @@ import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.coreservice.utils.NumberUtils;
-import com.stride.tracking.coreservice.utils.RouteUtils;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Sport;
