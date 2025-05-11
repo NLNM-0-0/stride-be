@@ -6,6 +6,7 @@ import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
 import com.stride.tracking.dto.activity.request.CreateActivityRequest;
+import com.stride.tracking.dto.activity.request.SaveRouteRequest;
 import com.stride.tracking.dto.activity.request.UpdateActivityRequest;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
@@ -40,8 +41,11 @@ public class ActivityController {
     }
 
     @PostMapping("/{id}/routes")
-    ResponseEntity<SimpleResponse> saveRoute(@PathVariable String id) {
-        activityService.saveRoute(id);
+    ResponseEntity<SimpleResponse> saveRoute(
+            @PathVariable String id,
+            @RequestBody SaveRouteRequest request
+    ) {
+        activityService.saveRoute(id, request);
         return new ResponseEntity<>(new SimpleResponse(), HttpStatus.CREATED);
     }
 

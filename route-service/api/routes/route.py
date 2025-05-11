@@ -1,18 +1,14 @@
 from fastapi import APIRouter, Depends, status, Request
-from typing import List
 
 from api.dependencies.mapbox_service import get_mapbox_service
 from api.dependencies.repository import get_repository
 from api.dependencies.supabase_service import get_supabase_service
 from constants.custom_headers import CustomHeaders
-from dto.app_page_request import AppPageRequest
+from dto.app_page_request import AppPage
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
 from dto.route.request.update_route_request import UpdateRouteRequest
-from dto.route.response.create_route_response import CreateRouteResponse
-from dto.route.response.route_response import RouteResponse
-from dto.route.response.save_route_response import SaveRouteResponse
 from dto.simple_response import SimpleResponse
 from repositories.crud.route_repository import RouteRepository
 from services.mapbox_service import MapboxService
@@ -37,8 +33,6 @@ def get_route_service(
 
 @route_router.get(
     path="",
-    response_model=List[RouteResponse],
-    status_code=status.HTTP_200_OK,
 )
 async def get_all_routes(service: RouteService = Depends(get_route_service)):
     return await service.get_all_routes()
@@ -46,7 +40,6 @@ async def get_all_routes(service: RouteService = Depends(get_route_service)):
 
 @route_router.post(
     path="/recommend",
-    response_model=List[RouteResponse]
 )
 async def get_recommended_routes(
         body: GetRecommendRouteRequest,
@@ -57,13 +50,11 @@ async def get_recommended_routes(
 
 @route_router.get(
     path="/profile",
-    response_model=List[RouteResponse],
-    status_code=status.HTTP_200_OK,
 )
 async def get_user_route(
         request: Request,
         route_filter: RouteFilter = Depends(),
-        page: AppPageRequest = Depends(),
+        page: AppPage = Depends(),
         service: RouteService = Depends(get_route_service)
 ):
     user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
@@ -77,8 +68,7 @@ async def get_user_route(
 
 @route_router.post(
     path="",
-    response_model=CreateRouteResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_route(
         request: Request,
@@ -95,8 +85,7 @@ async def create_route(
 
 @route_router.post(
     path="/{route_id}/save",
-    response_model=SaveRouteResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def save_route(
         request: Request,
@@ -113,7 +102,6 @@ async def save_route(
 
 @route_router.put(
     path="/{route_id}",
-    response_model=SimpleResponse
 )
 async def update_route(
         request: Request,
@@ -129,7 +117,6 @@ async def update_route(
 
 @route_router.delete(
     path="/{route_id}",
-    response_model=SimpleResponse
 )
 async def delete_route(
         request: Request,

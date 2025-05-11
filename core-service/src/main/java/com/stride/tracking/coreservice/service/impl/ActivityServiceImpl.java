@@ -23,10 +23,7 @@ import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.utils.*;
-import com.stride.tracking.dto.activity.request.ActivityFilter;
-import com.stride.tracking.dto.activity.request.CoordinateRequest;
-import com.stride.tracking.dto.activity.request.CreateActivityRequest;
-import com.stride.tracking.dto.activity.request.UpdateActivityRequest;
+import com.stride.tracking.dto.activity.request.*;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.dto.activity.response.ActivityUserResponse;
@@ -209,7 +206,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (distance <= THRESHOLD_METERS) {
             request.getCoordinates()
                     .get(request.getCoordinates().size() - 1)
-                    .setCoordinate(new double[] {start[0], start[1]});
+                    .setCoordinate(new double[]{start[0], start[1]});
         }
     }
 
@@ -300,9 +297,6 @@ public class ActivityServiceImpl implements ActivityService {
         );
 
         activity.setCoordinatesTimestamps(timestamps);
-
-        String encodedCoordinate = StridePolylineUtils.encode(coordinates);
-        activity.setGeometry(encodedCoordinate);
     }
 
     private void addCaloriesInfo(
@@ -329,10 +323,11 @@ public class ActivityServiceImpl implements ActivityService {
                                 .sum()
                 )
                 .orElse(0);
+        int weight = Optional.ofNullable(user.getWeight()).orElse(0);
 
         return caloriesCalculator.calculateCalories(
                 sport,
-                user.getWeight(),
+                weight,
                 movingTimeSeconds,
                 Map.of(
                         RuleCaloriesType.SPEED, avgSpeed,
@@ -518,7 +513,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
-    public void saveRoute(String activityId) {
+    public void saveRoute(String activityId, SaveRouteRequest request) {
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
         if (activity.getRouteId() != null) {
@@ -529,6 +524,7 @@ public class ActivityServiceImpl implements ActivityService {
                 CreateRouteRequest.builder()
                         .sportId(activity.getSport().getId())
                         .activityId(activityId)
+                        .routeName(request.getRouteName())
                         .sportMapType(activity.getSport().getSportMapType().name())
                         .images(activity.getImages())
                         .avgTime(activity.getMovingTimeSeconds().doubleValue())

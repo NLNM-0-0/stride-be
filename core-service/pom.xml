@@ -28,7 +28,7 @@
     </scm>
     <properties>
         <java.version>17</java.version>
-        <stride-dto.version>0.0.97-SNAPSHOT</stride-dto.version>
+        <stride-dto.version>0.0.101-SNAPSHOT</stride-dto.version>
         <stride-common.version>0.0.28-SNAPSHOT</stride-common.version>
         <loki.version>1.6.0</loki.version>
         <mapbox-geojson.version>5.8.0</mapbox-geojson.version>
@@ -104,7 +104,6 @@
             <artifactId>mapbox-sdk-geojson</artifactId>
             <version>${mapbox-geojson.version}</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

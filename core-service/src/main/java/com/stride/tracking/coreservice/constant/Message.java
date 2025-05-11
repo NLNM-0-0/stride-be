@@ -10,6 +10,8 @@ public class Message {
     public static final String JSON_ERR = "Invalid JSON format";
     public static final String COMMON_ERR = "An error has occurred. Please try again later";
     public static final String VIEW_PROFILE_FAILED = "View profile failed";
+    public static final String UPDATE_ROUTE_FAILED = "Update route failed";
+    public static final String CREATE_ROUTE_FAILED = "Create route failed";
     public static final String CALCULATE_ELEVATIONS_FAILED = "Calculate elevations failed";
     public static final String GENERATE_IMAGE_FAILED = "Generate image failed";
     public static final String UPLOAD_IMAGE_FAILED = "Upload image failed";

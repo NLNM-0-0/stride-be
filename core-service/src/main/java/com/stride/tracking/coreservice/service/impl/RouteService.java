@@ -23,7 +23,7 @@ public class RouteService {
         ResponseEntity<SimpleResponse> response = routeClient.update(routeId, request);
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
             log.error("[updateRoute] Failed to update route for activity id: {}", request.getActivityId());
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.VIEW_PROFILE_FAILED);
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.UPDATE_ROUTE_FAILED);
         }
 
         log.debug("[updateRoute] Success to update route for activity id: {}", request.getActivityId());
@@ -33,7 +33,7 @@ public class RouteService {
         ResponseEntity<CreateRouteResponse> response = routeClient.create(request);
         if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
             log.error("[createRoute] Failed to create route for activity id: {}", request.getActivityId());
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.VIEW_PROFILE_FAILED);
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CREATE_ROUTE_FAILED);
         }
 
         log.debug("[createRoute] Success to create route for activity id: {}", request.getActivityId());

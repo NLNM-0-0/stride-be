@@ -8,6 +8,7 @@ from utils.json_format import to_camel
 class CreateRouteRequest(BaseModel):
     sport_id: str
     activity_id: str
+    route_name: str
     sport_map_type: str
     avg_time: Optional[float]
     avg_distance: Optional[float]

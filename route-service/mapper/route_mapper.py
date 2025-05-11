@@ -14,7 +14,7 @@ class RouteMapper(BaseModel):
         location_data = route.location
 
         return RouteResponse(
-            id=route.id,
+            id=str(route.id),
             user_id=route.user_id,
             sport_id=route.sport_id,
             name=route.name,

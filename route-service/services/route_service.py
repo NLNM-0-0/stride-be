@@ -7,7 +7,9 @@ from rdp import rdp
 
 from constants.geometry_encode_type import GeometryEncodeType
 from constants.map_type import SportMapType
-from dto.app_page_request import AppPageRequest
+from dto.app_page_request import AppPage
+from dto.list_response import ListResponse
+from dto.route.request import route_filter
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
@@ -15,6 +17,7 @@ from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
 from dto.route.response.save_route_response import SaveRouteResponse
+from dto.simple_list_response import SimpleListResponse
 from dto.supbase.request.find_districts_contain_geometry_request import FindDistrictsContainGeometryRequest
 from dto.supbase.request.find_districts_near_point_request import FindDistrictNearPointRequest
 from dto.supbase.request.find_nearest_way_points_request import FindNearestWayPointsRequest
@@ -46,14 +49,17 @@ class RouteService:
         self.mapbox_service = mapbox_service
         self.supabase_service = supabase_service
 
-    async def get_all_routes(self) -> List[RouteResponse]:
+    async def get_all_routes(self) -> SimpleListResponse[RouteResponse]:
         routes = await self.route_repository.get_all()
-        return [RouteMapper.map_to_route_response(route) for route in routes]
+
+        return SimpleListResponse[RouteResponse](
+            data=[RouteMapper.map_to_route_response(route) for route in routes],
+        )
 
     async def get_recommended_routes(
             self,
             request: GetRecommendRouteRequest
-    ) -> List[RouteResponse]:
+    ) -> SimpleListResponse[RouteResponse]:
         routes = await self.route_repository.get_by_filters(
             route_filter=RouteFilter(sport_id=request.sport_id, user_id=None)
         )
@@ -73,22 +79,35 @@ class RouteService:
 
         result = filtered_routes[:request.limit]
 
-        return [RouteMapper.map_to_route_response(route) for route in result]
+        return SimpleListResponse[RouteResponse](
+            data=[RouteMapper.map_to_route_response(route) for route in result],
+        )
+
 
     async def get_routes(
             self,
             route_filter: RouteFilter,
-            page: AppPageRequest
-    ) -> List[RouteResponse]:
+            page: AppPage
+    ) -> ListResponse[RouteResponse, RouteFilter]:
         routes = await self.route_repository.get_by_filters_and_paging(
             route_filter,
             page.page,
             page.limit
         )
-        return [RouteMapper.map_to_route_response(route) for route in routes]
+
+        return ListResponse[RouteResponse, RouteFilter](
+            data=[RouteMapper.map_to_route_response(route) for route in routes],
+            filter=route_filter,
+            page=page
+        )
 
     async def create_route(self, user_id: str, request: CreateRouteRequest) -> CreateRouteResponse:
+        user_route_id = uuid.uuid4()
         route_id = uuid.uuid4()
+
+        print(f"Creating new_user_route with ID: {user_route_id}")
+        print(f"Creating new_route with ID: {route_id}")
+
         map_type = SportMapType[request.sport_map_type]
 
         # Map geometry to the way points
@@ -103,7 +122,7 @@ class RouteService:
             coordinates=mapbox_response.coordinates,
             encode_type=GeometryEncodeType.GEOJSON
         )
-        map_image = self.mapbox_service.generate_and_upload(geometry, f"Route_{route_id}")
+        map_image = self.mapbox_service.generate_and_upload(geometry, f"Route_{user_route_id}")
 
         # Find districts
         districts_response = self.supabase_service.find_districts_contain_geometry(
@@ -117,15 +136,15 @@ class RouteService:
         districts = [district.name for district in districts_response.districts]
 
         # Generate route name
-        route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
+        public_route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
                       or request.ward)
 
         # Create and save user route
         new_user_route = RouteModel(
-            id=route_id,
+            id=user_route_id,
             user_id=user_id,
             sport_id=request.sport_id,
-            name=route_name,
+            name=request.route_name,
             total_time=request.avg_time,
             total_distance=request.avg_distance,
             location={
@@ -139,12 +158,13 @@ class RouteService:
             geometry=geometry,
             heat=1,
         )
-        new_user_route = await self.route_repository.insert_one(new_user_route)
+        await self.route_repository.insert_one(new_user_route)
 
         # Create and save route
         new_route = RouteModel(
+            id = route_id,
             sport_id=request.sport_id,
-            name=route_name,
+            name=public_route_name,
             total_time=request.avg_time,
             total_distance=request.avg_distance,
             location={
@@ -160,7 +180,7 @@ class RouteService:
         )
         await self.route_repository.insert_one(new_route)
 
-        return CreateRouteResponse(route_id=new_user_route.id)
+        return CreateRouteResponse(route_id=str(user_route_id))
 
     def _map_points_to_map(self, map_type: SportMapType, points: list[list[float]]) -> list[list[float]]:
         count = WayPointHelper.get_simplification_step(map_type=map_type)
@@ -198,7 +218,7 @@ class RouteService:
 
         new_route = await self.route_repository.insert_one(route)
 
-        return SaveRouteResponse(route_id=new_route.id)
+        return SaveRouteResponse(route_id=str(new_route.id))
 
     async def update_route(self, user_id: str, route_id: str, request: UpdateRouteRequest):
         route = await self._get_route_by_id(route_id)

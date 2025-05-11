@@ -5,7 +5,7 @@ from utils.json_format import to_camel
 
 
 class CreateRouteResponse(BaseModel):
-    route_id: UUID
+    route_id: str
 
     class Config:
         alias_generator = to_camel
