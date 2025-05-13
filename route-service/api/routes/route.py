@@ -71,14 +71,10 @@ async def get_user_route(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_route(
-        request: Request,
         body: CreateRouteRequest,
         service: RouteService = Depends(get_route_service)
 ):
-    user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
-
     return await service.create_route(
-        user_id=user_id,
         request=body,
     )
 

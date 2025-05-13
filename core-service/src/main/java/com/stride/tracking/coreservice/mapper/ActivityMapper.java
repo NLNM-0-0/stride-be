@@ -65,6 +65,7 @@ public class ActivityMapper {
                 .avgHearRate(activity.getAvgHearRate())
                 .maxHearRate(activity.getMaxHearRate())
                 .location(mapToLocationResponse(activity.getLocation()))
+                .routeId(activity.getRouteId())
                 .createdAt(Date.from(activity.getCreatedAt()))
                 .build();
     }
