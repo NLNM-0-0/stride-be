@@ -1,3 +1,4 @@
+import math
 import uuid
 from uuid import UUID
 
@@ -5,8 +6,9 @@ from rdp import rdp
 
 from constants.geometry_encode_type import GeometryEncodeType
 from constants.map_type import SportMapType
-from dto.app_page_request import AppPage
+from dto.page.app_page_request import AppPageRequest
 from dto.list_response import ListResponse
+from dto.page.app_page_response import AppPageResponse
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
@@ -85,18 +87,25 @@ class RouteService:
     async def get_routes(
             self,
             route_filter: RouteFilter,
-            page: AppPage
+            page: AppPageRequest
     ) -> ListResponse[RouteResponse, RouteFilter]:
-        routes = await self.route_repository.get_by_filters_and_paging(
+        routes, total_elements = await self.route_repository.get_by_filters_and_paging(
             route_filter,
             page.page,
             page.limit
         )
 
+        total_pages = math.ceil(total_elements / page.limit)
+
         return ListResponse[RouteResponse, RouteFilter](
             data=[RouteMapper.map_to_route_response(route) for route in routes],
             filter=route_filter,
-            page=page
+            page=AppPageResponse(
+                page=page.page,
+                limit=page.limit,
+                total_elements=total_elements,
+                total_pages=total_pages
+            )
         )
 
     async def create_route(self, request: CreateRouteRequest) -> CreateRouteResponse:
@@ -183,7 +192,6 @@ class RouteService:
         return [district.name for district in districts_response.districts]
 
     def _map_points_to_map(self, map_type: SportMapType, points: list[list[float]]) -> list[list[float]]:
-        count = WayPointHelper.get_simplification_step(map_type=map_type)
         simplified = rdp(points, epsilon=0.0005)
 
         formatted_data = [PointRequest(

@@ -4,7 +4,7 @@ from api.dependencies.mapbox_service import get_mapbox_service
 from api.dependencies.repository import get_repository
 from api.dependencies.supabase_service import get_supabase_service
 from constants.custom_headers import CustomHeaders
-from dto.app_page_request import AppPage
+from dto.page.app_page_request import AppPageRequest
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
@@ -54,7 +54,7 @@ async def get_recommended_routes(
 async def get_user_route(
         request: Request,
         route_filter: RouteFilter = Depends(),
-        page: AppPage = Depends(),
+        page: AppPageRequest = Depends(),
         service: RouteService = Depends(get_route_service)
 ):
     user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)

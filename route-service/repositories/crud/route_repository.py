@@ -35,20 +35,23 @@ class RouteRepository(BaseSQLRepository):
             route_filter: RouteFilter,
             page: int,
             limit: int,
-    ) -> Sequence[RouteModel]:
-        query = select(RouteModel)
+    ) -> tuple[Sequence[RouteModel], int]:
+        base_query = select(RouteModel)
 
         if route_filter.user_id:
-            query = RouteSpecs.has_user(route_filter.user_id)(query)
+            base_query = RouteSpecs.has_user(route_filter.user_id)(base_query)
         if route_filter.sport_id:
-            query = RouteSpecs.has_sport(route_filter.sport_id)(query)
+            base_query = RouteSpecs.has_sport(route_filter.sport_id)(base_query)
 
-        query = query.order_by(RouteModel.created_at.desc())
+        count_query = base_query.with_only_columns(func.count()).order_by(None)
+        total_elements_result = await self.session.execute(count_query)
+        total_elements = total_elements_result.scalar()
 
-        query = query.offset((page - 1) * limit).limit(limit)
+        paged_query = base_query.order_by(RouteModel.created_at.desc())
+        paged_query = paged_query.offset((page - 1) * limit).limit(limit)
+        result = await self.session.execute(paged_query)
 
-        result = await self.session.execute(query)
-        return result.scalars().all()
+        return result.scalars().all(), total_elements
 
     async def get_by_id(self, route_id: UUID) -> Optional[RouteModel]:
         result = await self.session.get(RouteModel, route_id)
