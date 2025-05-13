@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import Column, String, Float, Integer, JSON, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
+from geoalchemy2 import Geometry
 
 from configuration.manager import settings
 from models.base_model import Base
@@ -20,7 +21,7 @@ class RouteModel(Base):
     location = Column(JSON, nullable=False)
     map_image = Column(String, nullable=False)
     images = Column(JSON, nullable=False, default=dict)
-    geometry = Column(String, nullable=False)
+    geometry = Column(Geometry(geometry_type="LineString", srid=4326), nullable=False)
     districts = Column(JSON, nullable=False)
     heat = Column(Integer, default=0)
 

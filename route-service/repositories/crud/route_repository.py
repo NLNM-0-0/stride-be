@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import select, Row, RowMapping
+from geoalchemy2 import WKBElement
+from sqlalchemy import select, Row, RowMapping, text, func, and_
 from typing import Optional, Any, Sequence
 
 from dto.route.request.route_filter import RouteFilter
@@ -70,3 +71,22 @@ class RouteRepository(BaseSQLRepository):
             return False
         await self.session.delete(route)
         await self.session.commit()
+
+    async def find_most_similar_route(self, geometry: WKBElement) -> RouteModel:
+        hausdorff_distance = func.ST_HausdorffDistance(RouteModel.geometry, geometry)
+
+        query = (
+            select(RouteModel)
+            .where(
+                and_(
+                    RouteModel.user_id == None,
+                    func.ST_DWithin(RouteModel.geometry, geometry, 1),
+                    hausdorff_distance <= 0.0001
+                )
+            )
+            .order_by(hausdorff_distance)
+            .limit(1)
+        )
+
+        result = await self.session.execute(query)
+        return result.scalars().first()

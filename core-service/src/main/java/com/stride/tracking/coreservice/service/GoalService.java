@@ -6,12 +6,14 @@ import com.stride.tracking.coreservice.dto.goal.request.UpdateGoalRequest;
 import com.stride.tracking.coreservice.dto.goal.response.CreateGoalResponse;
 import com.stride.tracking.coreservice.dto.goal.response.GoalResponse;
 
+import java.time.ZoneId;
+
 public interface GoalService {
-    SimpleListResponse<GoalResponse> getUserGoals();
+    SimpleListResponse<GoalResponse> getUserGoals(ZoneId zoneId);
 
     CreateGoalResponse createGoal(CreateGoalRequest request);
 
-    void updateGoal(String id, UpdateGoalRequest request);
+    void updateGoal(String id, ZoneId zoneId, UpdateGoalRequest request);
 
     void deleteGoal(String id);
 }

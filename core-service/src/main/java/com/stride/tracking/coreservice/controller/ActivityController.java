@@ -1,12 +1,12 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.dto.activity.request.ActivityFilter;
 import com.stride.tracking.dto.activity.request.CreateActivityRequest;
-import com.stride.tracking.dto.activity.request.SaveRouteRequest;
 import com.stride.tracking.dto.activity.request.UpdateActivityRequest;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/activities")
@@ -35,18 +37,14 @@ public class ActivityController {
     }
 
     @PostMapping
-    ResponseEntity<ActivityShortResponse> createActivity(@RequestBody CreateActivityRequest request) {
-        ActivityShortResponse response = activityService.createActivity(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
-    @PostMapping("/{id}/routes")
-    ResponseEntity<SimpleResponse> saveRoute(
-            @PathVariable String id,
-            @RequestBody SaveRouteRequest request
+    ResponseEntity<ActivityShortResponse> createActivity(
+            @RequestBody CreateActivityRequest request,
+            @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
     ) {
-        activityService.saveRoute(id, request);
-        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.CREATED);
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        ActivityShortResponse response = activityService.createActivity(zoneId, request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")

@@ -5,6 +5,7 @@ import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.coreservice.constant.CacheName;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
@@ -16,12 +17,12 @@ import com.stride.tracking.dto.sport.request.RuleRequest;
 import com.stride.tracking.dto.sport.request.SportFilter;
 import com.stride.tracking.dto.sport.request.UpdateSportRequest;
 import com.stride.tracking.dto.sport.response.SportResponse;
-import com.stride.tracking.coreservice.repository.CategoryRepository;
 import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.SportSpecs;
 import com.stride.tracking.coreservice.service.SportService;
 import com.stride.tracking.coreservice.utils.validator.CaloriesExpressionValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,7 +38,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SportServiceImpl implements SportService {
     private final SportRepository sportRepository;
-    private final CategoryRepository categoryRepository;
+
+    private final CategoryCacheService categoryCacheService;
+    private final SportCacheService sportCacheService;
 
     private final SportMapper sportMapper;
     private final CategoryMapper categoryMapper;
@@ -88,7 +91,7 @@ public class SportServiceImpl implements SportService {
     public SportResponse createSport(CreateSportRequest request) {
         validateRules(request.getRules());
 
-        Category category = Common.findCategoryById(request.getCategoryId(), categoryRepository);
+        Category category = categoryCacheService.findById(request.getCategoryId());
 
         Sport sport = sportMapper.mapToModel(request, category);
 
@@ -110,8 +113,9 @@ public class SportServiceImpl implements SportService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheName.SPORT_BY_ID, key = "#sportId")
     public void updateSport(String sportId, UpdateSportRequest request) {
-        Sport sport = Common.findSportById(sportId, sportRepository);
+        Sport sport = sportCacheService.findSportById(sportId);
 
         if (request.getRules() != null) {
             validateRules(request.getRules());
@@ -121,7 +125,7 @@ public class SportServiceImpl implements SportService {
         }
 
         if (request.getCategoryId() != null) {
-            Category category = Common.findCategoryById(request.getCategoryId(), categoryRepository);
+            Category category = categoryCacheService.findById(request.getCategoryId());
             sport.setCategory(category);
         }
 
@@ -134,8 +138,9 @@ public class SportServiceImpl implements SportService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheName.SPORT_BY_ID, key = "#sportId")
     public void deleteSport(String sportId) {
-        Sport sport = Common.findSportById(sportId, sportRepository);
+        Sport sport = sportCacheService.findSportById(sportId);
 
         sportRepository.delete(sport);
     }

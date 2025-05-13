@@ -132,7 +132,7 @@ class MapboxService:
             padding: int
     ) -> bytes:
         try:
-            encoded_path = quote(path, safe="")
+            encoded_path = quote(path.encode('utf-8'), safe="")
 
             return self.mapbox_client.get_static_map_image(
                 map_style=style,

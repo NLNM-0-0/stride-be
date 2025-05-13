@@ -28,10 +28,11 @@
     </scm>
     <properties>
         <java.version>17</java.version>
-        <stride-dto.version>0.0.101-SNAPSHOT</stride-dto.version>
-        <stride-common.version>0.0.28-SNAPSHOT</stride-common.version>
+        <stride-dto.version>0.0.105-SNAPSHOT</stride-dto.version>
+        <stride-common.version>0.0.29-SNAPSHOT</stride-common.version>
         <loki.version>1.6.0</loki.version>
         <mapbox-geojson.version>5.8.0</mapbox-geojson.version>
+        <caffeine.version>3.2.0</caffeine.version>
     </properties>
     <repositories>
         <repository>
@@ -103,6 +104,16 @@
             <groupId>com.mapbox.mapboxsdk</groupId>
             <artifactId>mapbox-sdk-geojson</artifactId>
             <version>${mapbox-geojson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
         </dependency>
 
         <dependency>

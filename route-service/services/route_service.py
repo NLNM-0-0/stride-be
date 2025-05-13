@@ -1,15 +1,12 @@
 import uuid
-from typing import List
 from uuid import UUID
 
-from polyline import polyline
 from rdp import rdp
 
 from constants.geometry_encode_type import GeometryEncodeType
 from constants.map_type import SportMapType
 from dto.app_page_request import AppPage
 from dto.list_response import ListResponse
-from dto.route.request import route_filter
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
@@ -23,6 +20,7 @@ from dto.supbase.request.find_districts_near_point_request import FindDistrictNe
 from dto.supbase.request.find_nearest_way_points_request import FindNearestWayPointsRequest
 from dto.supbase.request.geometry_request import GeometryRequest
 from dto.supbase.request.point_request import PointRequest
+from dto.supbase.response.find_districts_by_geometry_response import FindDistrictsContainGeometryResponse
 from exceptions.common_exception import ResourceNotFoundException, StrideException
 from mapper.route_mapper import RouteMapper
 from models.route_model import RouteModel
@@ -101,90 +99,92 @@ class RouteService:
             page=page
         )
 
-    async def create_route(self, user_id: str, request: CreateRouteRequest) -> CreateRouteResponse:
-        user_route_id = uuid.uuid4()
-        route_id = uuid.uuid4()
-
-        print(f"Creating new_user_route with ID: {user_route_id}")
-        print(f"Creating new_route with ID: {route_id}")
-
+    async def create_route(self, request: CreateRouteRequest) -> CreateRouteResponse:
         map_type = SportMapType[request.sport_map_type]
-
-        # Map geometry to the way points
-        decoded_geometry = [[lng, lat] for lat, lng in polyline.decode(request.geometry, precision=5)]
+        decoded_geometry = GeometryHelper.decode_geometry(request.geometry)
         points = self._map_points_to_map(map_type=map_type, points=decoded_geometry)
 
-        # Get route from Mapbox
         mapbox_response = self.mapbox_service.get_batch_route(coordinates=points, map_type=map_type)
 
-        # Generate map image
-        geometry = GeometryHelper.encode_geometry(
+        geometry_wkb = GeometryHelper.encode_geometry(
+            coordinates=mapbox_response.coordinates,
+            encode_type=GeometryEncodeType.WKB
+        )
+
+        route = await self.route_repository.find_most_similar_route(geometry_wkb)
+        if route:
+            await self._apply_route_update(route, request)
+            return CreateRouteResponse(route_id=str(route.id))
+
+        geometry_geojson = GeometryHelper.encode_geometry(
             coordinates=mapbox_response.coordinates,
             encode_type=GeometryEncodeType.GEOJSON
         )
-        map_image = self.mapbox_service.generate_and_upload(geometry, f"Route_{user_route_id}")
 
-        # Find districts
+        route = await self._create_new_route(request, mapbox_response, geometry_wkb, geometry_geojson)
+
+        return CreateRouteResponse(route_id=str(route.id))
+
+    async def _apply_route_update(self, route: RouteModel, request: CreateRouteRequest | UpdateRouteRequest):
+        if request.activity_id in route.images:
+            route.images[request.activity_id].extend(request.images)
+        else:
+            route.images[request.activity_id] = request.images
+            route.heat += 1
+            route.total_time += request.avg_time
+            route.total_distance += request.avg_distance
+
+        update_data = {
+            "images": route.images,
+            "heat": route.heat,
+            "total_time": route.total_time,
+            "total_distance": route.total_distance,
+        }
+
+        await self.route_repository.update_route(route, update_data)
+
+    async def _create_new_route(self, request, mapbox_response, geometry_wkb, geometry_geojson) -> RouteModel:
+        route_id = uuid.uuid4()
+
+        map_image = self.mapbox_service.generate_and_upload(geometry_geojson, f"Route_{route_id}")
+        districts = self._get_districts_for_route(mapbox_response.coordinates)
+
+        route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
+                             or request.ward)
+
+        new_route = RouteModel(
+            id=route_id,
+            sport_id=request.sport_id,
+            name=route_name,
+            total_time=request.avg_time,
+            total_distance=request.avg_distance,
+            location={
+                "ward": request.ward,
+                "district": request.district,
+                "city": request.city,
+            },
+            map_image=map_image,
+            images={request.activity_id: request.images or []},
+            districts=districts,
+            geometry=geometry_wkb,
+            heat=1,
+        )
+        return await self.route_repository.insert_one(new_route)
+
+    def _get_districts_for_route(self, coordinates: list[list[float]]) -> list[FindDistrictsContainGeometryResponse]:
         districts_response = self.supabase_service.find_districts_contain_geometry(
-            FindDistrictsContainGeometryRequest(
+            data=FindDistrictsContainGeometryRequest(
                 geometry=GeometryRequest(
                     type="LineString",
-                    coordinates=mapbox_response.coordinates
+                    coordinates=coordinates
                 )
             )
         )
-        districts = [district.name for district in districts_response.districts]
-
-        # Generate route name
-        public_route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
-                      or request.ward)
-
-        # Create and save user route
-        new_user_route = RouteModel(
-            id=user_route_id,
-            user_id=user_id,
-            sport_id=request.sport_id,
-            name=request.route_name,
-            total_time=request.avg_time,
-            total_distance=request.avg_distance,
-            location={
-                "ward": request.ward,
-                "district": request.district,
-                "city": request.city,
-            },
-            map_image=map_image,
-            images={request.activity_id: request.images or []},
-            districts=districts,
-            geometry=geometry,
-            heat=1,
-        )
-        await self.route_repository.insert_one(new_user_route)
-
-        # Create and save route
-        new_route = RouteModel(
-            id = route_id,
-            sport_id=request.sport_id,
-            name=public_route_name,
-            total_time=request.avg_time,
-            total_distance=request.avg_distance,
-            location={
-                "ward": request.ward,
-                "district": request.district,
-                "city": request.city,
-            },
-            map_image=map_image,
-            images={request.activity_id: request.images or []},
-            districts=districts,
-            geometry=geometry,
-            heat=1,
-        )
-        await self.route_repository.insert_one(new_route)
-
-        return CreateRouteResponse(route_id=str(user_route_id))
+        return [district.name for district in districts_response.districts]
 
     def _map_points_to_map(self, map_type: SportMapType, points: list[list[float]]) -> list[list[float]]:
         count = WayPointHelper.get_simplification_step(map_type=map_type)
-        simplified = points[::count]
+        simplified = rdp(points, epsilon=0.0005)
 
         formatted_data = [PointRequest(
             lat=lat,
@@ -206,10 +206,10 @@ class RouteService:
     async def save_route(self, user_id: str, route_id: str) -> SaveRouteResponse:
         route = await self._get_route_by_id(route_id)
 
-        if route.user_id == user_id:
+        if route.user_id != None:
             raise StrideException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                message="You cannot save a route twice"
+                message="You cannot save a private route"
             )
 
         route_id = uuid.uuid4()
@@ -223,25 +223,10 @@ class RouteService:
     async def update_route(self, user_id: str, route_id: str, request: UpdateRouteRequest):
         route = await self._get_route_by_id(route_id)
 
-        if route.user_id != None and route.user_id != user_id:
-            raise StrideException(status_code=status.HTTP_400_BAD_REQUEST, message="Can not update other user route")
+        if route.user_id is not None and route.user_id != user_id:
+            raise StrideException(status_code=status.HTTP_400_BAD_REQUEST, message="Cannot update other user's route")
 
-        if request.activity_id in route.images:
-            route.images[request.activity_id].extend(request.images)
-        else:
-            route.images[request.activity_id] = request.images
-            route.heat += 1
-            route.total_time += request.avg_time
-            route.total_distance += request.avg_distance
-
-        update_data = {
-            "images": route.images,
-            "heat": route.heat,
-            "total_time": route.total_time,
-            "total_distance": route.total_distance,
-        }
-
-        await self.route_repository.update_route(route, update_data)
+        await self._apply_route_update(route, request)
 
     async def _get_route_by_id(self, route_id: str) -> RouteModel:
         try:
@@ -261,6 +246,6 @@ class RouteService:
         if route.user_id == None:
             raise StrideException(status_code=status.HTTP_400_BAD_REQUEST, message="Can not delete public route")
         elif route.user_id != user_id:
-            raise StrideException(status_code=status.HTTP_400_BAD_REQUEST, message="Can not delete user route")
+            raise StrideException(status_code=status.HTTP_400_BAD_REQUEST, message="Can not delete other user route")
 
         await self.route_repository.delete(route)

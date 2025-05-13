@@ -32,15 +32,25 @@ class WayPointHelper:
         """
         Keep points that appear at least `min_count` times within a sliding window around each point.
         """
-        result = []
         n = len(points)
+        if n < window_size * 2 + 1:
+            return points
 
-        for i in range(n):
-            window = points[max(0, i - window_size): min(n, i + window_size + 1)]
+        result = []
+
+        for i in range(window_size):
+            result.append(points[i])
+
+
+        for i in range(window_size, n - window_size):
+            window = points[i - window_size: i + window_size + 1]
             name = points[i].name
             count = sum(1 for p in window if p.name == name)
             if count >= min_count:
                 result.append(points[i])
+
+        for i in range(n - window_size, n):
+            result.append(points[i])
 
         return result
 

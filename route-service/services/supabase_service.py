@@ -45,8 +45,10 @@ class SupabaseService:
                 message=f"Error finding nearest way points. Detail: {e}"
             ) from e
 
-    def find_districts_contain_geometry(self,
-                                        data: FindDistrictsContainGeometryRequest) -> FindDistrictsContainGeometryResponse:
+    def find_districts_contain_geometry(
+            self,
+            data: FindDistrictsContainGeometryRequest
+    ) -> FindDistrictsContainGeometryResponse:
         try:
             response = self.supabase_client.find_districts_contain_geometry(
                 data=data.model_dump()

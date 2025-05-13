@@ -28,7 +28,6 @@ import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.dto.activity.response.ActivityUserResponse;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
-import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
@@ -58,6 +57,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -65,9 +65,10 @@ import java.util.*;
 @Slf4j
 public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
-    private final SportRepository sportRepository;
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
+
+    private final SportCacheService sportCacheService;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
@@ -151,8 +152,8 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
-    public ActivityShortResponse createActivity(CreateActivityRequest request) {
-        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+    public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
+        Sport sport = sportCacheService.findSportById(request.getSportId());
         UserResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
@@ -180,11 +181,11 @@ public class ActivityServiceImpl implements ActivityService {
         );
         addHeartRateInfo(activity, request, user);
 
-        addGoalHistories(activity);
+        addGoalHistories(activity, zoneId);
 
         activity = activityRepository.save(activity);
 
-        updateRoute(activity);
+        processRoute(activity);
 
         return activityMapper.mapToShortResponse(
                 activity,
@@ -193,7 +194,7 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
-    public void mergeStartEndPoint(CreateActivityRequest request) {
+    private void mergeStartEndPoint(CreateActivityRequest request) {
         double[] start = request.getCoordinates()
                 .get(0)
                 .getCoordinate();
@@ -386,21 +387,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setHeartRates(request.getHeartRates());
     }
 
-    private void updateRoute(Activity activity) {
-        if (activity.getRouteId() != null) {
-            routeService.updateRoute(
-                    activity.getRouteId(),
-                    UpdateRouteRequest.builder()
-                            .activityId(activity.getId())
-                            .images(activity.getImages())
-                            .avgTime(activity.getMovingTimeSeconds())
-                            .avgDistance(activity.getTotalDistance())
-                            .build()
-            );
-        }
-    }
-
-    private void addGoalHistories(Activity activity) {
+    private void addGoalHistories(Activity activity, ZoneId zoneId) {
         List<Goal> goals = goalRepository.findBySportId(activity.getSport().getId());
 
         List<GoalHistory> histories = new ArrayList<>();
@@ -410,7 +397,7 @@ public class ActivityServiceImpl implements ActivityService {
                 amount = getAmountGoal(goal.getType(), activity);
             }
 
-            Calendar calendar = GoalTimeFrameHelper.getCalendar(goal.getTimeFrame());
+            Calendar calendar = GoalTimeFrameHelper.getCalendar(goal.getTimeFrame(), zoneId);
             Date goalDate = calendar.getTime();
 
             String historyKey = GoalTimeFrameHelper.formatDateKey(goalDate, goal.getTimeFrame());
@@ -451,6 +438,36 @@ public class ActivityServiceImpl implements ActivityService {
         return amount;
     }
 
+    private void processRoute(Activity activity) {
+        if (activity.getRouteId() != null) {
+            routeService.updateRoute(
+                    activity.getRouteId(),
+                    UpdateRouteRequest.builder()
+                            .activityId(activity.getId())
+                            .images(activity.getImages())
+                            .avgTime(activity.getMovingTimeSeconds())
+                            .avgDistance(activity.getTotalDistance())
+                            .build()
+            );
+        } else {
+            CreateRouteResponse routeResponse = routeService.createRoute(
+                    CreateRouteRequest.builder()
+                            .sportId(activity.getSport().getId())
+                            .activityId(activity.getId())
+                            .sportMapType(activity.getSport().getSportMapType().name())
+                            .images(activity.getImages())
+                            .avgTime(activity.getMovingTimeSeconds().doubleValue())
+                            .avgDistance(activity.getTotalDistance())
+                            .geometry(activity.getGeometry())
+                            .ward(activity.getLocation().getWard())
+                            .district(activity.getLocation().getDistrict())
+                            .city(activity.getLocation().getCity())
+                            .build()
+            );
+            activity.setRouteId(routeResponse.getRouteId());
+        }
+    }
+
     @Override
     @Transactional
     public void updateActivity(String activityId, UpdateActivityRequest request) {
@@ -459,7 +476,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getSportId() != null) {
             UserResponse user = profileService.viewProfile();
 
-            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+            Sport sport = sportCacheService.findSportById(request.getSportId());
 
             addCaloriesInfo(
                     activity,
@@ -509,35 +526,5 @@ public class ActivityServiceImpl implements ActivityService {
         goalHistoryRepository.saveAll(histories);
 
         activityRepository.delete(activity);
-    }
-
-    @Override
-    @Transactional
-    public void saveRoute(String activityId, SaveRouteRequest request) {
-        Activity activity = Common.findActivityById(activityId, activityRepository);
-
-        if (activity.getRouteId() != null) {
-            throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_CREATE_SAVED_ROUTE);
-        }
-
-        CreateRouteResponse routeResponse = routeService.createRoute(
-                CreateRouteRequest.builder()
-                        .sportId(activity.getSport().getId())
-                        .activityId(activityId)
-                        .routeName(request.getRouteName())
-                        .sportMapType(activity.getSport().getSportMapType().name())
-                        .images(activity.getImages())
-                        .avgTime(activity.getMovingTimeSeconds().doubleValue())
-                        .avgDistance(activity.getTotalDistance())
-                        .geometry(activity.getGeometry())
-                        .ward(activity.getLocation().getWard())
-                        .district(activity.getLocation().getDistrict())
-                        .city(activity.getLocation().getCity())
-                        .build()
-        );
-
-        activity.setRouteId(routeResponse.getRouteId());
-
-        activityRepository.save(activity);
     }
 }
