@@ -84,7 +84,6 @@ class RouteService:
             data=[RouteMapper.map_to_route_response(route) for route in result],
         )
 
-
     async def get_routes(
             self,
             route_filter: RouteFilter,
@@ -160,7 +159,7 @@ class RouteService:
         districts = self._get_districts_for_route(mapbox_response.coordinates)
 
         route_name = (ComposeNameHelper.compose_route_name(mapbox_response.waypoints)
-                             or request.ward)
+                      or request.ward)
 
         new_route = RouteModel(
             id=route_id,
@@ -225,7 +224,7 @@ class RouteService:
             id=uuid.uuid4(),
             user_id=user_id,
             sport_id=route.sport_id,
-            name=request.route_name if request.route_name is not None else route.name,
+            name=request.route_name if request.route_name is not None and request.route_name == "" else route.name,
             total_time=route.total_time,
             total_distance=route.total_distance,
             location=route.location,
