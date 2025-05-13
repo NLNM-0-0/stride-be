@@ -1,10 +1,13 @@
+from geoalchemy2 import WKBElement
 from pydantic import BaseModel
-from shapely.geometry.base import BaseGeometry
+from shapely import wkb
 from shapely.geometry.multilinestring import MultiLineString
 
+from constants.geometry_encode_type import GeometryEncodeType
 from dto.route.response.location_response import LocationResponse
 from dto.route.response.route_response import RouteResponse
 from models.route_model import RouteModel
+from utils.geometry_helper import GeometryHelper
 
 
 class RouteMapper(BaseModel):
@@ -35,20 +38,20 @@ class RouteMapper(BaseModel):
         )
 
     @staticmethod
-    def _encode_geometry_to_polyline(geom: BaseGeometry, precision: int = 5) -> str | None:
-        import polyline
-
-        if geom is None:
+    def _encode_geometry_to_polyline(geom_wkb: WKBElement, precision: int = 5) -> str | None:
+        if geom_wkb is None:
             return None
 
-        if geom.geom_type == "LineString":
-            coords = [(lat, lon) for lon, lat in geom.coords]
-            return polyline.encode(coords, precision=precision)
+        shapely_geom = wkb.loads(bytes(geom_wkb.data))
 
-        elif geom.geom_type == "MultiLineString" and isinstance(geom, MultiLineString):
+        if shapely_geom.geom_type == "LineString":
+            coords = [[lon, lat] for lon, lat in shapely_geom.coords]
+            return GeometryHelper.encode_geometry(coords, GeometryEncodeType.GEOJSON)
+
+        elif shapely_geom.geom_type == "MultiLineString" and isinstance(shapely_geom, MultiLineString):
             coords = []
-            for line in geom.geoms:
-                coords.extend([(lat, lon) for lon, lat in line.coords])
-            return polyline.encode(coords, precision=precision)
+            for line in shapely_geom.geoms:
+                coords.extend([[lon, lat] for lon, lat in line.coords])
+            return GeometryHelper.encode_geometry(coords, GeometryEncodeType.GEOJSON)
 
         return None
