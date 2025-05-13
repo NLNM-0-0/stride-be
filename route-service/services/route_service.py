@@ -12,6 +12,7 @@ from dto.page.app_page_response import AppPageResponse
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
+from dto.route.request.save_route_request import SaveRouteRequest
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.route.response.create_route_response import CreateRouteResponse
 from dto.route.response.route_response import RouteResponse
@@ -211,7 +212,7 @@ class RouteService:
         epsilon = WayPointHelper.get_rdp_epsilon(map_type=map_type)
         return rdp(filtered_points, epsilon=epsilon)
 
-    async def save_route(self, user_id: str, route_id: str) -> SaveRouteResponse:
+    async def save_route(self, user_id: str, route_id: str, request: SaveRouteRequest) -> SaveRouteResponse:
         route = await self._get_route_by_id(route_id)
 
         if route.user_id != None:
@@ -220,11 +221,22 @@ class RouteService:
                 message="You cannot save a private route"
             )
 
-        route_id = uuid.uuid4()
-        route.id = route_id
-        route.user_id = user_id
+        new_route = RouteModel(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            sport_id=route.sport_id,
+            name=request.route_name if request.route_name is not None else route.name,
+            total_time=route.total_time,
+            total_distance=route.total_distance,
+            location=route.location,
+            map_image=route.map_image,
+            images=route.images,
+            geometry=route.geometry,
+            districts=route.districts,
+            heat=route.heat
+        )
 
-        new_route = await self.route_repository.insert_one(route)
+        new_route = await self.route_repository.insert_one(new_route)
 
         return SaveRouteResponse(route_id=str(new_route.id))
 

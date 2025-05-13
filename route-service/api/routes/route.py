@@ -8,6 +8,7 @@ from dto.page.app_page_request import AppPageRequest
 from dto.route.request.create_route_request import CreateRouteRequest
 from dto.route.request.get_recommend_route_request import GetRecommendRouteRequest
 from dto.route.request.route_filter import RouteFilter
+from dto.route.request.save_route_request import SaveRouteRequest
 from dto.route.request.update_route_request import UpdateRouteRequest
 from dto.simple_response import SimpleResponse
 from repositories.crud.route_repository import RouteRepository
@@ -86,13 +87,15 @@ async def create_route(
 async def save_route(
         request: Request,
         route_id: str,
+        body: SaveRouteRequest,
         service: RouteService = Depends(get_route_service)
 ):
     user_id = AuthHelper.get_auth_header(request, CustomHeaders.X_AUTH_USER_ID)
 
     return await service.save_route(
         user_id=user_id,
-        route_id=route_id
+        route_id=route_id,
+        request=body,
     )
 
 
