@@ -14,12 +14,14 @@ import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.ProgressRepository;
 import com.stride.tracking.coreservice.service.ProgressService;
+import com.stride.tracking.coreservice.utils.InstantUtils;
 import com.stride.tracking.coreservice.utils.ProgressTimeFrameHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,6 +56,7 @@ public class ProgressServiceImpl implements ProgressService {
                 progresses,
                 filter.getTimeFrame(),
                 filter.getType(),
+                startTime,
                 zoneId
         );
 
@@ -66,45 +69,59 @@ public class ProgressServiceImpl implements ProgressService {
             List<Progress> progresses,
             ProgressTimeFrame timeFrame,
             ProgressType type,
+            Calendar startCalendar,
             ZoneId zoneId
     ) {
         ProgressCountType countType = timeFrame.getCountType();
+        Map<Instant, List<Progress>> groupedProgress = initializeTemplate(timeFrame, zoneId, startCalendar);
 
-        return progresses.stream()
-                .collect(
-                        Collectors.groupingBy(progress ->
-                                toGroupKey(
-                                        progress.getCreatedAt(),
-                                        countType,
-                                        zoneId
-                                )
-                        )
-                )
-                .entrySet().stream()
-                .map(entry ->
-                        toProgressShortResponse(
-                                entry.getKey(),
-                                entry.getValue(),
-                                type,
-                                countType,
-                                zoneId
-                        )
-                )
+        loadProgressToMap(progresses, groupedProgress, zoneId);
+
+        return groupedProgress.entrySet().stream()
+                .map(entry -> toProgressShortResponse(
+                        entry.getKey(),
+                        entry.getValue(),
+                        type,
+                        countType,
+                        zoneId
+                ))
                 .sorted(Comparator.comparing(ProgressShortResponse::getFromDate))
                 .toList();
     }
 
-    private LocalDate toGroupKey(
-            Instant createdAt,
-            ProgressCountType countType,
-            ZoneId zoneId
-    ) {
-        LocalDate date = createdAt.atZone(zoneId).toLocalDate();
-        return countType == ProgressCountType.DAILY ? date : date.with(DayOfWeek.MONDAY);
+    private Map<Instant, List<Progress>> initializeTemplate(ProgressTimeFrame timeFrame, ZoneId zoneId, Calendar startCalendar) {
+        int daysInTimeFrame = (timeFrame.getCountType() == ProgressCountType.DAILY) ? 1 : 7;
+
+        Map<Instant, List<Progress>> template = new HashMap<>();
+        Instant startInstant = startCalendar.toInstant().atZone(zoneId).toInstant();
+        Instant endInstant = LocalDate.now().atTime(LocalTime.MAX).atZone(zoneId).toInstant();
+
+        for (Instant date = startInstant;
+             date.isBefore(endInstant);
+             date = date.plus(Duration.ofDays(daysInTimeFrame))
+        ) {
+            template.putIfAbsent(date, new ArrayList<>());
+        }
+
+        return template;
+    }
+
+    private void loadProgressToMap(
+            List<Progress> progresses,
+            Map<Instant, List<Progress>> template,
+            ZoneId zoneId) {
+        progresses.forEach(progress -> {
+            Instant startDate = InstantUtils.calculateStartDateInstant(
+                    progress.getCreatedAt(),
+                    zoneId
+            );
+            template.computeIfAbsent(startDate, k -> new ArrayList<>())
+                    .add(progress);
+        });
     }
 
     private ProgressShortResponse toProgressShortResponse(
-            LocalDate start,
+            Instant start,
             List<Progress> group,
             ProgressType type,
             ProgressCountType countType,
@@ -112,7 +129,10 @@ public class ProgressServiceImpl implements ProgressService {
     ) {
         long numActivities = group.size();
         long amount = calculateAmount(group, type);
-        LocalDate end = countType == ProgressCountType.DAILY ? start : start.plusDays(6);
+
+        Instant end = countType == ProgressCountType.DAILY
+                ? start
+                : start.plus(6, ChronoUnit.DAYS);
 
         return ProgressShortResponse.builder()
                 .numberActivities(numActivities)
@@ -122,15 +142,10 @@ public class ProgressServiceImpl implements ProgressService {
                 .build();
     }
 
-    private Date toStartOfDay(LocalDate date, ZoneId zoneId) {
-        return Date.from(date.atStartOfDay(zoneId).toInstant());
-    }
-
-    private Date toEndOfDay(LocalDate date, ZoneId zoneId) {
-        return Date.from(date.atTime(LocalTime.MAX).atZone(zoneId).toInstant());
-    }
-
-    private long calculateAmount(List<Progress> group, ProgressType type) {
+    private long calculateAmount(
+            List<Progress> group,
+            ProgressType type
+    ) {
         return switch (type) {
             case DISTANCE -> group.stream()
                     .mapToLong(Progress::getDistance)
@@ -143,6 +158,31 @@ public class ProgressServiceImpl implements ProgressService {
                     .mapToLong(Progress::getTime)
                     .sum();
         };
+    }
+
+    private Date toStartOfDay(
+            Instant date,
+            ZoneId zoneId
+    ) {
+        return Date.from(
+                date.atZone(zoneId)
+                        .toLocalDate()
+                        .atStartOfDay(zoneId)
+                        .toInstant()
+        );
+    }
+
+    private Date toEndOfDay(
+            Instant date,
+            ZoneId zoneId
+    ) {
+        return Date.from(
+                date.atZone(zoneId)
+                        .toLocalDate()
+                        .atTime(LocalTime.MAX)
+                        .atZone(zoneId)
+                        .toInstant()
+        );
     }
 
     @Override
@@ -168,7 +208,8 @@ public class ProgressServiceImpl implements ProgressService {
         List<ProgressResponse> data = buildProgressResponses(
                 progresses,
                 timeFrame,
-                zoneId
+                zoneId,
+                startTime
         );
 
         return SimpleListResponse.<ProgressResponse>builder()
@@ -179,9 +220,14 @@ public class ProgressServiceImpl implements ProgressService {
     private List<ProgressResponse> buildProgressResponses(
             List<Progress> progresses,
             ProgressTimeFrame timeFrame,
-            ZoneId zoneId
+            ZoneId zoneId,
+            Calendar startCalendar
     ) {
-        ProgressCountType countType = timeFrame.getCountType();
+        Map<Instant, List<Progress>> template = initializeTemplate(
+                timeFrame,
+                zoneId,
+                startCalendar
+        );
 
         return progresses.stream()
                 .collect(Collectors.groupingBy(
@@ -191,44 +237,48 @@ public class ProgressServiceImpl implements ProgressService {
                 ))
                 .entrySet().stream()
                 .map(entry ->
-                        buildProgressResponse(
+                        toProgressResponse(
                                 entry.getKey(),
                                 entry.getValue(),
-                                countType,
-                                zoneId
+                                timeFrame,
+                                zoneId,
+                                new HashMap<>(template)
                         )
                 )
                 .toList();
     }
 
-    private ProgressResponse buildProgressResponse(
+    private ProgressResponse toProgressResponse(
             Sport sport,
             List<Progress> sportProgresses,
-            ProgressCountType countType,
-            ZoneId zoneId
+            ProgressTimeFrame timeFrame,
+            ZoneId zoneId,
+            Map<Instant, List<Progress>> template
     ) {
+        loadProgressToMap(sportProgresses, template, zoneId);
 
-        Map<LocalDate, List<Progress>> groupedByTime = sportProgresses.stream()
-                .collect(
-                        Collectors.groupingBy(progress ->
-                                toGroupKey(progress.getCreatedAt(), countType, zoneId)
+        List<ProgressBySportResponse> progressList = template.entrySet().stream()
+                .map(entry ->
+                        toProgressBySportResponse(
+                                entry.getKey(),
+                                entry.getValue(),
+                                timeFrame.getCountType(),
+                                zoneId
                         )
-                );
-
-        List<ProgressBySportResponse> progressList = groupedByTime.entrySet().stream()
-                .map(entry -> buildProgressBySportResponse(entry.getKey(), entry.getValue(), countType, zoneId))
+                )
                 .sorted(Comparator.comparing(ProgressBySportResponse::getFromDate))
                 .toList();
 
         SportShortResponse sportResponse = sportMapper.mapToShortResponse(sport);
+
         return ProgressResponse.builder()
                 .sport(sportResponse)
                 .progress(progressList)
                 .build();
     }
 
-    private ProgressBySportResponse buildProgressBySportResponse(
-            LocalDate start,
+    private ProgressBySportResponse toProgressBySportResponse(
+            Instant start,
             List<Progress> group,
             ProgressCountType countType,
             ZoneId zoneId
@@ -237,7 +287,10 @@ public class ProgressServiceImpl implements ProgressService {
         long distance = group.stream().mapToLong(Progress::getDistance).sum();
         long elevation = group.stream().mapToLong(Progress::getElevation).sum();
         long time = group.stream().mapToLong(Progress::getTime).sum();
-        LocalDate end = countType == ProgressCountType.DAILY ? start : start.plusDays(6);
+
+        Instant end = countType == ProgressCountType.DAILY
+                ? start
+                : start.plus(6, ChronoUnit.DAYS);
 
         return ProgressBySportResponse.builder()
                 .fromDate(toStartOfDay(start, zoneId))
