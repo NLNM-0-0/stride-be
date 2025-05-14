@@ -52,12 +52,14 @@ public class GoalServiceImpl implements GoalService {
             List<GoalHistoryResponse> historiesResponse = new ArrayList<>();
             for (GoalHistory history : histories) {
                 GoalHistoryResponse historyResponse = GoalHistoryResponse.builder()
-                        .key(history.getDateKey())
+                        .date(history.getDate())
                         .amountGain(history.getAmountGain())
                         .amountGoal(history.getAmountGoal())
                         .build();
                 historiesResponse.add(historyResponse);
             }
+
+            historiesResponse.get(historiesResponse.size() - 1).setAmountGoal(goal.getAmount());
 
             GoalResponse goalResponse = goalMapper.mapToResponse(
                     goal,
