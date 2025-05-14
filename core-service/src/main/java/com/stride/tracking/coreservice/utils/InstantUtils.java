@@ -4,7 +4,7 @@ import java.time.*;
 
 public class InstantUtils {
     private InstantUtils() {}
-    
+
     public static Instant calculateStartDateInstant(
             Instant date,
             ZoneId zoneId
