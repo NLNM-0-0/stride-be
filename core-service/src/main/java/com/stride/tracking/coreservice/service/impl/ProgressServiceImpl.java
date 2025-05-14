@@ -160,7 +160,7 @@ public class ProgressServiceImpl implements ProgressService {
         );
 
         List<Progress> progresses =
-                progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqual(
+                progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
                         userId,
                         startTime.toInstant()
                 );
@@ -184,7 +184,11 @@ public class ProgressServiceImpl implements ProgressService {
         ProgressCountType countType = timeFrame.getCountType();
 
         return progresses.stream()
-                .collect(Collectors.groupingBy(Progress::getSport))
+                .collect(Collectors.groupingBy(
+                        Progress::getSport,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
                 .entrySet().stream()
                 .map(entry ->
                         buildProgressResponse(
@@ -205,7 +209,11 @@ public class ProgressServiceImpl implements ProgressService {
     ) {
 
         Map<LocalDate, List<Progress>> groupedByTime = sportProgresses.stream()
-                .collect(Collectors.groupingBy(progress -> toGroupKey(progress.getCreatedAt(), countType, zoneId)));
+                .collect(
+                        Collectors.groupingBy(progress ->
+                                toGroupKey(progress.getCreatedAt(), countType, zoneId)
+                        )
+                );
 
         List<ProgressBySportResponse> progressList = groupedByTime.entrySet().stream()
                 .map(entry -> buildProgressBySportResponse(entry.getKey(), entry.getValue(), countType, zoneId))
@@ -249,10 +257,11 @@ public class ProgressServiceImpl implements ProgressService {
         String userId = SecurityUtils.getCurrentUserId();
 
         List<Progress> progresses =
-                progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+                progressRepository.findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
                         userId,
-                        request.getFromDate().toInstant(),
-                        request.getToDate().toInstant()
+                        request.getSportId(),
+                        Instant.ofEpochMilli(request.getFromDate()),
+                        Instant.ofEpochMilli(request.getToDate())
                 );
 
         long totalDistance = 0;
@@ -265,6 +274,7 @@ public class ProgressServiceImpl implements ProgressService {
             totalTime += progress.getTime();
             totalElevation += progress.getElevation();
             activities.add(ProgressActivityResponse.builder()
+                    .id(progress.getActivity().getId())
                     .distance(progress.getDistance())
                     .elevation(progress.getElevation())
                     .time(progress.getTime())

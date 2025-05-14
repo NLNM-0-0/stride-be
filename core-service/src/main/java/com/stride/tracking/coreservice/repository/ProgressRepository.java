@@ -16,13 +16,14 @@ public interface ProgressRepository extends JpaRepository<Progress, String>, Jpa
             Instant createdAt
     );
 
-    List<Progress> findAllByUserIdAndCreatedAtGreaterThanEqual(
+    List<Progress> findAllByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
             String userId,
             Instant createdAt
     );
 
-    List<Progress> findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+    List<Progress> findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
             String userId,
+            String sportId,
             Instant fromDate,
             Instant toDate
     );
