@@ -353,7 +353,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxSpeed(speedResult.maxSpeed());
         activity.setAvgSpeed(
                 NumberUtils.round(
-                        totalDistance / movingTimeSeconds,
+                        totalDistance / (movingTimeSeconds / 3600.0),
                         RoundRules.SPEED.getValue()
                 )
         );

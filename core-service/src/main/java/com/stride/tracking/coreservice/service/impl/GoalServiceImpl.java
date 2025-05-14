@@ -209,8 +209,13 @@ public class GoalServiceImpl implements GoalService {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOTE_DELETE_OTHER_USER_GOAL);
         }
 
+        // Remove links from activities to goal histories first
+        goalHistoryRepository.deleteLinksToGoalHistories(id);
+
+        // Then delete goal histories associated with the goal
         goalHistoryRepository.deleteByGoalId(id);
 
+        // Finally, delete the goal itself
         goalRepository.delete(goal);
     }
 }
