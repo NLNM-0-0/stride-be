@@ -29,7 +29,7 @@ public class SpeedCalculator {
             double lon2 = curr[1];
 
             double distance = GeometryUtils.distanceToPoint(lat1, lon1, lat2, lon2);
-            long secondDiff = (timestamps.get(i) - timestamps.get(i - 1)) / 1000;
+            double secondDiff = (timestamps.get(i) - timestamps.get(i - 1)) / 1000.0;
 
             double speedMs = distance / secondDiff;
 
