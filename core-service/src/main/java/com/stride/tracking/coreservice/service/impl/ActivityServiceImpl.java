@@ -55,11 +55,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.concurrent.DelegatingSecurityContextRunnable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -172,24 +174,34 @@ public class ActivityServiceImpl implements ActivityService {
                 .images(request.getImages())
                 .build();
 
-        processCoordinatesData(activity, request);
-
-        addCaloriesInfo(
+        processCoordinatesData(
                 activity,
-                request.getMovingTimeSeconds(),
-                activity.getAvgSpeed(),
-                sport,
+                request,
                 user
         );
+
         addHeartRateInfo(activity, request, user);
 
-        activity = activityRepository.save(activity);
+        Activity savedActivity = activityRepository.save(activity);
 
-        addGoalHistories(activity, zoneId);
+        CompletableFuture<Void> processRouteFuture = CompletableFuture.runAsync(
+                new DelegatingSecurityContextRunnable(
+                        () -> processRoute(savedActivity)
+                )
+        );
 
-        addProgress(activity);
+        CompletableFuture<Void> addGoalHistoriesFuture = CompletableFuture.runAsync(
+                new DelegatingSecurityContextRunnable(
+                        () -> addGoalHistories(savedActivity, zoneId)
+                )
+        );
 
-        processRoute(activity);
+        addProgress(savedActivity);
+
+        CompletableFuture.allOf(
+                processRouteFuture,
+                addGoalHistoriesFuture
+        ).join();
 
         return activityMapper.mapToShortResponse(
                 activity,
@@ -215,15 +227,32 @@ public class ActivityServiceImpl implements ActivityService {
         }
     }
 
-    private void processCoordinatesData(Activity activity, CreateActivityRequest request) {
+    private void processCoordinatesData(
+            Activity activity,
+            CreateActivityRequest request,
+            UserResponse user
+    ) {
         if (activity.getSport().getSportMapType() != null) {
             List<CoordinateRequest> rawCoordinates = request.getCoordinates();
 
-            addGeometryAndMap(activity, rawCoordinates);
-            processChartInfo(activity, rawCoordinates, request.getMovingTimeSeconds());
+            CompletableFuture<Void> addGeometryMapFuture = CompletableFuture.runAsync(
+                    new DelegatingSecurityContextRunnable(() ->
+                            addGeometryAndMap(activity, rawCoordinates)
+                    )
+            );
 
-            //Ensure to add totalDistance before calling addCarbonSavedInfo
-            addCarbonSavedInfo(activity, activity.getTotalDistance());
+            CompletableFuture<Void> processChartInfoFuture = CompletableFuture.runAsync(
+                    new DelegatingSecurityContextRunnable(() -> processChartInfo(
+                            activity,
+                            rawCoordinates,
+                            request.getMovingTimeSeconds(),
+                            user
+                    )));
+
+            CompletableFuture.allOf(
+                    addGeometryMapFuture,
+                    processChartInfoFuture
+            ).join();
         }
     }
 
@@ -254,7 +283,12 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMapImage(mapImage);
     }
 
-    private void processChartInfo(Activity activity, List<CoordinateRequest> rawCoordinates, Long movingTimeSeconds) {
+    private void processChartInfo(
+            Activity activity,
+            List<CoordinateRequest> rawCoordinates,
+            Long movingTimeSeconds,
+            UserResponse user
+    ) {
         List<CoordinateRequest> sampled = ListUtils.minimized(rawCoordinates, NUMBER_CHART_POINTS);
 
         List<double[]> minimizedCoordinates = sampled.stream()
@@ -265,21 +299,41 @@ public class ActivityServiceImpl implements ActivityService {
                 .map(CoordinateRequest::getTimestamp)
                 .toList());
 
-        addSpeedInfo(
-                activity,
-                minimizedCoordinates,
-                minimizedTimestamps,
-                movingTimeSeconds
-        );
-        addElevationInfo(activity, minimizedCoordinates);
-        addLocation(activity, minimizedCoordinates);
+        //Run add speed info, elevation, location in multiple task
+        CompletableFuture<Void> addSpeedInfoFuture = CompletableFuture.runAsync(
+                new DelegatingSecurityContextRunnable(() -> addSpeedInfo(
+                        activity,
+                        minimizedCoordinates,
+                        minimizedTimestamps,
+                        movingTimeSeconds,
+                        user
+                )));
+
+        CompletableFuture<Void> addElevationInfoFuture = CompletableFuture.runAsync(
+                new DelegatingSecurityContextRunnable(() -> addElevationInfo(
+                        activity,
+                        minimizedCoordinates
+                )));
+
+        CompletableFuture<Void> addLocationFuture = CompletableFuture.runAsync(
+                new DelegatingSecurityContextRunnable(() -> addLocation(
+                        activity,
+                        minimizedCoordinates
+                )));
+
+        CompletableFuture.allOf(
+                addSpeedInfoFuture,
+                addElevationInfoFuture,
+                addLocationFuture
+        ).join();
     }
 
     private void addSpeedInfo(
             Activity activity,
             List<double[]> coordinates,
             List<Long> timestamps,
-            Long movingTimeSeconds
+            Long movingTimeSeconds,
+            UserResponse user
     ) {
         SpeedCalculatorResult speedResult = speedCalculator.calculate(coordinates, timestamps);
 
@@ -292,6 +346,9 @@ public class ActivityServiceImpl implements ActivityService {
                 )
         );
 
+        //Ensure to add totalDistance before calling addCarbonSavedInfo
+        addCarbonSavedInfo(activity, activity.getTotalDistance());
+
         activity.setSpeeds(speedResult.speeds());
         activity.setMaxSpeed(speedResult.maxSpeed());
         activity.setAvgSpeed(
@@ -302,6 +359,14 @@ public class ActivityServiceImpl implements ActivityService {
         );
 
         activity.setCoordinatesTimestamps(timestamps);
+
+        addCaloriesInfo(
+                activity,
+                movingTimeSeconds,
+                activity.getAvgSpeed(),
+                activity.getSport(),
+                user
+        );
     }
 
     private void addCaloriesInfo(
@@ -444,9 +509,11 @@ public class ActivityServiceImpl implements ActivityService {
 
     private void addProgress(Activity activity) {
         Progress progress = Progress.builder()
+                .userId(activity.getUserId())
+                .activity(activity)
                 .sport(activity.getSport())
                 .activity(activity)
-                .distance(Long.parseLong(activity.getTotalDistance().toString()))
+                .distance((long) (activity.getTotalDistance() * 1000))
                 .time(activity.getMovingTimeSeconds())
                 .elevation(activity.getElevationGain())
                 .build();
