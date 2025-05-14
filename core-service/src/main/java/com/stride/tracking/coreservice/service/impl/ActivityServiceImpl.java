@@ -17,6 +17,7 @@ import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.*;
 import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
+import com.stride.tracking.coreservice.repository.ProgressRepository;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.coreservice.model.Activity;
@@ -67,6 +68,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
+    private final ProgressRepository progressRepository;
 
     private final SportCacheService sportCacheService;
 
@@ -181,9 +183,11 @@ public class ActivityServiceImpl implements ActivityService {
         );
         addHeartRateInfo(activity, request, user);
 
+        activity = activityRepository.save(activity);
+
         addGoalHistories(activity, zoneId);
 
-        activity = activityRepository.save(activity);
+        addProgress(activity);
 
         processRoute(activity);
 
@@ -438,6 +442,18 @@ public class ActivityServiceImpl implements ActivityService {
         return amount;
     }
 
+    private void addProgress(Activity activity) {
+        Progress progress = Progress.builder()
+                .sport(activity.getSport())
+                .activity(activity)
+                .distance(Long.parseLong(activity.getTotalDistance().toString()))
+                .time(activity.getMovingTimeSeconds())
+                .elevation(activity.getElevationGain())
+                .build();
+
+        progressRepository.save(progress);
+    }
+
     private void processRoute(Activity activity) {
         if (activity.getRouteId() != null) {
             routeService.updateRoute(
@@ -518,13 +534,23 @@ public class ActivityServiceImpl implements ActivityService {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_DELETE_OTHER_USER_ACTIVITIES);
         }
 
+        deleteGoalHistory(activity);
+
+        deleteProgress(activity);
+
+        activityRepository.delete(activity);
+    }
+
+    private void deleteGoalHistory(Activity activity) {
         List<GoalHistory> histories = activity.getGoalHistories();
         for (GoalHistory history : histories) {
             Long amount = getAmountGoal(history.getGoal().getType(), activity);
             history.setAmountGain(history.getAmountGain() - amount);
         }
         goalHistoryRepository.saveAll(histories);
+    }
 
-        activityRepository.delete(activity);
+    private void deleteProgress(Activity activity) {
+        progressRepository.deleteByActivity_Id(activity.getId());
     }
 }
