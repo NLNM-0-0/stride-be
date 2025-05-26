@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.constant;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -16,4 +17,9 @@ public enum ProgressTimeFrame {
 
     private final String name;
     private final ProgressCountType countType;
+
+    @JsonValue
+    public String getJsonValue() {
+        return name;
+    }
 }

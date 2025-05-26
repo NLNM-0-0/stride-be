@@ -5,8 +5,8 @@ import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.coreservice.dto.progress.request.GetProgressActivityRequest;
 import com.stride.tracking.coreservice.dto.progress.request.ProgressFilter;
 import com.stride.tracking.coreservice.dto.progress.response.GetProgressActivityResponse;
+import com.stride.tracking.coreservice.dto.progress.response.ProgressDetailResponse;
 import com.stride.tracking.coreservice.dto.progress.response.ProgressResponse;
-import com.stride.tracking.coreservice.dto.progress.response.ProgressShortResponse;
 import com.stride.tracking.coreservice.service.ProgressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ public class ProgressController {
     }
 
     @GetMapping("/profile/detail")
-    ResponseEntity<SimpleListResponse<ProgressShortResponse>> getProgress(
+    ResponseEntity<ProgressDetailResponse> getProgress(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid ProgressFilter filter
     ) {

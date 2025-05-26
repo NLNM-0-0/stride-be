@@ -2,9 +2,7 @@ package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.utils.SecurityUtils;
-import com.stride.tracking.coreservice.constant.ProgressCountType;
 import com.stride.tracking.coreservice.constant.ProgressTimeFrame;
-import com.stride.tracking.coreservice.constant.ProgressType;
 import com.stride.tracking.coreservice.dto.progress.request.GetProgressActivityRequest;
 import com.stride.tracking.coreservice.dto.progress.request.ProgressFilter;
 import com.stride.tracking.coreservice.dto.progress.response.*;
@@ -14,15 +12,17 @@ import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.ProgressRepository;
 import com.stride.tracking.coreservice.service.ProgressService;
-import com.stride.tracking.coreservice.utils.InstantUtils;
+import com.stride.tracking.coreservice.utils.DateUtils;
 import com.stride.tracking.coreservice.utils.ProgressTimeFrameHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,89 +30,113 @@ import java.util.stream.Collectors;
 public class ProgressServiceImpl implements ProgressService {
     private final ProgressRepository progressRepository;
 
+    private final SportCacheService sportCacheService;
+
     private final SportMapper sportMapper;
 
     @Override
     @Transactional
-    public SimpleListResponse<ProgressShortResponse> getProgress(
+    public ProgressDetailResponse getProgress(
             ZoneId zoneId,
             ProgressFilter filter
     ) {
         String userId = SecurityUtils.getCurrentUserId();
 
-        Calendar startTime = ProgressTimeFrameHelper.getAuditStartCalendar(
-                filter.getTimeFrame(),
-                zoneId
-        );
+        Instant start = ProgressTimeFrameHelper.getAuditStartInstant(zoneId);
 
+        Sport sport = sportCacheService.findSportById(filter.getSportId());
+
+        //Get shared progresses for all time frames
         List<Progress> progresses =
-                progressRepository.findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqual(
+                progressRepository.findAllByUserIdAndSportAndCreatedAtGreaterThanEqual(
                         userId,
-                        filter.getSportId(),
-                        startTime.toInstant()
+                        sport,
+                        start
                 );
 
-        List<ProgressShortResponse> data = buildProgressShortResponses(
-                progresses,
-                filter.getTimeFrame(),
-                filter.getType(),
-                startTime,
-                zoneId
+        Map<ProgressTimeFrame, List<ProgressBySportResponse>> progressesByTimeFrame = new ConcurrentHashMap<>();
+        AtomicReference<List<SportShortResponse>> availableSportsRef = new AtomicReference<>();
+
+        List<CompletableFuture<Void>> futures = List.of(
+                CompletableFuture.runAsync(() -> {
+                    processTimeFrame(ProgressTimeFrame.YEAR, progresses, zoneId, progressesByTimeFrame);
+                    processTimeFrame(ProgressTimeFrame.YEAR_TO_DATE, progresses, zoneId, progressesByTimeFrame);
+                }),
+                CompletableFuture.runAsync(() -> {
+                    processTimeFrame(ProgressTimeFrame.THREE_MONTHS, progresses, zoneId, progressesByTimeFrame);
+                    processTimeFrame(ProgressTimeFrame.MONTH, progresses, zoneId, progressesByTimeFrame);
+                    processTimeFrame(ProgressTimeFrame.WEEK, progresses, zoneId, progressesByTimeFrame);
+                }),
+                CompletableFuture.runAsync(() -> {
+                    processTimeFrame(ProgressTimeFrame.SIX_MONTHS, progresses, zoneId, progressesByTimeFrame);
+
+                    buildAvailableSport(start, availableSportsRef);
+                })
         );
 
-        return SimpleListResponse.<ProgressShortResponse>builder()
-                .data(data)
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        List<SportShortResponse> availableSports = availableSportsRef.get();
+
+        return ProgressDetailResponse.builder()
+                .sport(sportMapper.mapToShortResponse(sport))
+                .availableSports(availableSports)
+                .progresses(progressesByTimeFrame)
                 .build();
     }
 
-    private List<ProgressShortResponse> buildProgressShortResponses(
-            List<Progress> progresses,
+    private void processTimeFrame(
             ProgressTimeFrame timeFrame,
-            ProgressType type,
-            Calendar startCalendar,
-            ZoneId zoneId
+            List<Progress> progresses,
+            ZoneId zoneId,
+            Map<ProgressTimeFrame, List<ProgressBySportResponse>> progressesByTimeFrame
     ) {
-        ProgressCountType countType = timeFrame.getCountType();
-        Map<Instant, List<Progress>> groupedProgress = initializeTemplate(timeFrame, zoneId, startCalendar);
+        Instant startAuditDate = ProgressTimeFrameHelper.getAuditStartInstant(timeFrame, zoneId);
 
-        loadProgressToMap(progresses, groupedProgress, zoneId);
-
-        return groupedProgress.entrySet().stream()
-                .map(entry -> toProgressShortResponse(
-                        entry.getKey(),
-                        entry.getValue(),
-                        type,
-                        countType,
-                        zoneId
-                ))
-                .sorted(Comparator.comparing(ProgressShortResponse::getFromDate))
+        List<Progress> filteredProgresses = progresses.stream()
+                .filter(progress -> !progress.getCreatedAt().isBefore(startAuditDate))
                 .toList();
+
+        List<ProgressBySportResponse> data = buildProgressBySportResponses(
+                filteredProgresses,
+                timeFrame,
+                zoneId
+        );
+
+        progressesByTimeFrame.put(timeFrame, data); // No synchronization needed
     }
 
-    private Map<Instant, List<Progress>> initializeTemplate(ProgressTimeFrame timeFrame, ZoneId zoneId, Calendar startCalendar) {
-        int daysInTimeFrame = (timeFrame.getCountType() == ProgressCountType.DAILY) ? 1 : 7;
-
+    private List<ProgressBySportResponse> buildProgressBySportResponses(
+            List<Progress> progresses,
+            ProgressTimeFrame timeFrame,
+            ZoneId zoneId
+    ) {
+        // Simply return the relevant data by extracting the Instant from each Progress
+        // there's no need to generate any template dates
         Map<Instant, List<Progress>> template = new HashMap<>();
-        Instant startInstant = startCalendar.toInstant().atZone(zoneId).toInstant();
-        Instant endInstant = LocalDate.now().atTime(LocalTime.MAX).atZone(zoneId).toInstant();
 
-        for (Instant date = startInstant;
-             date.isBefore(endInstant);
-             date = date.plus(Duration.ofDays(daysInTimeFrame))
-        ) {
-            template.putIfAbsent(date, new ArrayList<>());
-        }
+        loadProgressToMap(progresses, template, timeFrame, zoneId);
 
-        return template;
+        return template.entrySet().stream()
+                .map(entry -> buildProgressBySportResponse(
+                        entry.getKey(),
+                        timeFrame,
+                        entry.getValue(),
+                        zoneId
+                ))
+                .sorted(Comparator.comparing(ProgressBySportResponse::getFromDate))
+                .toList();
     }
 
     private void loadProgressToMap(
             List<Progress> progresses,
             Map<Instant, List<Progress>> template,
+            ProgressTimeFrame timeFrame,
             ZoneId zoneId) {
         progresses.forEach(progress -> {
-            Instant startDate = InstantUtils.calculateStartDateInstant(
+            Instant startDate = ProgressTimeFrameHelper.resolveStartDate(
                     progress.getCreatedAt(),
+                    timeFrame,
                     zoneId
             );
             template.computeIfAbsent(startDate, k -> new ArrayList<>())
@@ -120,69 +144,48 @@ public class ProgressServiceImpl implements ProgressService {
         });
     }
 
-    private ProgressShortResponse toProgressShortResponse(
+    private ProgressBySportResponse buildProgressBySportResponse(
             Instant start,
+            ProgressTimeFrame timeFrame,
             List<Progress> group,
-            ProgressType type,
-            ProgressCountType countType,
             ZoneId zoneId
     ) {
-        long numActivities = group.size();
-        long amount = calculateAmount(group, type);
+        long distance = 0;
+        long elevation = 0;
+        long time = 0;
+        long numberActivities = 0;
 
-        Instant end = countType == ProgressCountType.DAILY
-                ? start
-                : start.plus(6, ChronoUnit.DAYS);
+        for (Progress progress : group) {
+            distance += progress.getDistance();
+            elevation += progress.getElevation();
+            time += progress.getTime();
+            numberActivities++;
+        }
 
-        return ProgressShortResponse.builder()
-                .numberActivities(numActivities)
-                .amount(amount)
-                .fromDate(toStartOfDay(start, zoneId))
-                .toDate(toEndOfDay(end, zoneId))
+        Date fromDate = DateUtils.toStartDate(start, zoneId);
+        Date toDate = Date.from(ProgressTimeFrameHelper.resolveEndDate(start, timeFrame, zoneId));
+
+        return ProgressBySportResponse.builder()
+                .distance(distance)
+                .time(time)
+                .elevation(elevation)
+                .numberActivities(numberActivities)
+                .fromDate(fromDate)
+                .toDate(toDate)
                 .build();
     }
 
-    private long calculateAmount(
-            List<Progress> group,
-            ProgressType type
-    ) {
-        return switch (type) {
-            case DISTANCE -> group.stream()
-                    .mapToLong(Progress::getDistance)
-                    .sum();
-            case ACTIVITY -> group.size();
-            case ELEVATION -> group.stream()
-                    .mapToLong(Progress::getElevation)
-                    .sum();
-            case TIME -> group.stream()
-                    .mapToLong(Progress::getTime)
-                    .sum();
-        };
-    }
+    private void buildAvailableSport(
+            Instant start,
+            AtomicReference<List<SportShortResponse>> availableSportsRef
+    ){
+        List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(start);
 
-    private Date toStartOfDay(
-            Instant date,
-            ZoneId zoneId
-    ) {
-        return Date.from(
-                date.atZone(zoneId)
-                        .toLocalDate()
-                        .atStartOfDay(zoneId)
-                        .toInstant()
-        );
-    }
+        List<SportShortResponse> responses = availableSport.stream()
+                .map(sportMapper::mapToShortResponse)
+                .toList();
 
-    private Date toEndOfDay(
-            Instant date,
-            ZoneId zoneId
-    ) {
-        return Date.from(
-                date.atZone(zoneId)
-                        .toLocalDate()
-                        .atTime(LocalTime.MAX)
-                        .atZone(zoneId)
-                        .toInstant()
-        );
+        availableSportsRef.set(responses);
     }
 
     @Override
@@ -194,7 +197,7 @@ public class ProgressServiceImpl implements ProgressService {
 
         ProgressTimeFrame timeFrame = ProgressTimeFrame.THREE_MONTHS; //default
 
-        Calendar startTime = ProgressTimeFrameHelper.getAuditStartCalendar(
+        Instant start = ProgressTimeFrameHelper.getAuditStartInstant(
                 timeFrame,
                 zoneId
         );
@@ -202,14 +205,13 @@ public class ProgressServiceImpl implements ProgressService {
         List<Progress> progresses =
                 progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
                         userId,
-                        startTime.toInstant()
+                        start
                 );
 
         List<ProgressResponse> data = buildProgressResponses(
                 progresses,
                 timeFrame,
-                zoneId,
-                startTime
+                zoneId
         );
 
         return SimpleListResponse.<ProgressResponse>builder()
@@ -220,15 +222,8 @@ public class ProgressServiceImpl implements ProgressService {
     private List<ProgressResponse> buildProgressResponses(
             List<Progress> progresses,
             ProgressTimeFrame timeFrame,
-            ZoneId zoneId,
-            Calendar startCalendar
+            ZoneId zoneId
     ) {
-        Map<Instant, List<Progress>> template = initializeTemplate(
-                timeFrame,
-                zoneId,
-                startCalendar
-        );
-
         return progresses.stream()
                 .collect(Collectors.groupingBy(
                         Progress::getSport,
@@ -242,7 +237,7 @@ public class ProgressServiceImpl implements ProgressService {
                                 entry.getValue(),
                                 timeFrame,
                                 zoneId,
-                                new HashMap<>(template)
+                                new HashMap<>()
                         )
                 )
                 .toList();
@@ -255,14 +250,14 @@ public class ProgressServiceImpl implements ProgressService {
             ZoneId zoneId,
             Map<Instant, List<Progress>> template
     ) {
-        loadProgressToMap(sportProgresses, template, zoneId);
+        loadProgressToMap(sportProgresses, template, timeFrame, zoneId);
 
-        List<ProgressBySportResponse> progressList = template.entrySet().stream()
+        List<ProgressBySportResponse> progresses = template.entrySet().stream()
                 .map(entry ->
-                        toProgressBySportResponse(
+                        buildProgressBySportResponse(
                                 entry.getKey(),
+                                timeFrame,
                                 entry.getValue(),
-                                timeFrame.getCountType(),
                                 zoneId
                         )
                 )
@@ -273,35 +268,9 @@ public class ProgressServiceImpl implements ProgressService {
 
         return ProgressResponse.builder()
                 .sport(sportResponse)
-                .progress(progressList)
+                .progresses(progresses)
                 .build();
     }
-
-    private ProgressBySportResponse toProgressBySportResponse(
-            Instant start,
-            List<Progress> group,
-            ProgressCountType countType,
-            ZoneId zoneId
-    ) {
-        long numActivities = group.size();
-        long distance = group.stream().mapToLong(Progress::getDistance).sum();
-        long elevation = group.stream().mapToLong(Progress::getElevation).sum();
-        long time = group.stream().mapToLong(Progress::getTime).sum();
-
-        Instant end = countType == ProgressCountType.DAILY
-                ? start
-                : start.plus(6, ChronoUnit.DAYS);
-
-        return ProgressBySportResponse.builder()
-                .fromDate(toStartOfDay(start, zoneId))
-                .toDate(toEndOfDay(end, zoneId))
-                .distance(distance)
-                .elevation(elevation)
-                .time(time)
-                .numberActivities(numActivities)
-                .build();
-    }
-
 
     @Override
     public GetProgressActivityResponse getProgressActivity(
@@ -313,8 +282,8 @@ public class ProgressServiceImpl implements ProgressService {
                 progressRepository.findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
                         userId,
                         request.getSportId(),
-                        Instant.ofEpochMilli(request.getFromDate()),
-                        Instant.ofEpochMilli(request.getToDate())
+                        DateUtils.toInstant(request.getFromDate()),
+                        DateUtils.toInstant(request.getToDate())
                 );
 
         long totalDistance = 0;
