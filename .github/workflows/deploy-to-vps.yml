@@ -1,8 +1,8 @@
 name: Deploy to VPS
 
 on:
-  push:
-    branches: [ main ]
+  pull_request:
+    branches: [ feature/fix-cicd-pr ]
 
 jobs:
   build-gateway:
@@ -29,41 +29,41 @@ jobs:
     uses: ./.github/workflows/route-service-build.yml
     secrets: inherit
 
-  deploy-to-vps:
-    needs: [
-      build-gateway,
-      build-bridge-ms,
-      build-core-ms,
-      build-identity-ms,
-      build-profile-ms,
-      build-route-ms
-    ]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy via SSH
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
-          
-            cd stride
-
-            echo "Stopping and removing containers..."
-            docker-compose down --volumes --remove-orphans
-
-            echo "Removing all unused images, containers, volumes, and networks..."
-            docker system prune -af --volumes
-
-            echo "Pulling fresh images..."
-            docker-compose pull
-
-            echo "Starting containers..."
-            docker-compose up -d
-          EOF
+#  deploy-to-vps:
+#    needs: [
+#      build-gateway,
+#      build-bridge-ms,
+#      build-core-ms,
+#      build-identity-ms,
+#      build-profile-ms,
+#      build-route-ms
+#    ]
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Set up SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.VPS_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+#
+#      - name: Deploy via SSH
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+#            set -e
+#
+#            cd stride
+#
+#            echo "Stopping and removing containers..."
+#            docker-compose down --volumes --remove-orphans
+#
+#            echo "Removing all unused images, containers, volumes, and networks..."
+#            docker system prune -af --volumes
+#
+#            echo "Pulling fresh images..."
+#            docker-compose pull
+#
+#            echo "Starting containers..."
+#            docker-compose up -d
+#          EOF
