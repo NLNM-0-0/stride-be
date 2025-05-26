@@ -63,7 +63,6 @@ public class GoalServiceImpl implements GoalService {
 
             GoalResponse goalResponse = goalMapper.mapToResponse(
                     goal,
-                    sportMapper.mapToShortResponse(goal.getSport()),
                     historiesResponse.get(historiesResponse.size() - 1).getAmountGain(),
                     historiesResponse
             );
