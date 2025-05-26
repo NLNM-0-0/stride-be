@@ -4,6 +4,6 @@ public enum ProgressType {
     TIME,
     DISTANCE,
     ELEVATION,
-    ACTIVITY
+    ACTIVITY,
     ;
 }

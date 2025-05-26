@@ -12,8 +12,6 @@ import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
-import com.stride.tracking.coreservice.mapper.CategoryMapper;
-import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.*;
 import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
@@ -27,7 +25,6 @@ import com.stride.tracking.coreservice.utils.*;
 import com.stride.tracking.dto.activity.request.*;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
-import com.stride.tracking.dto.activity.response.ActivityUserResponse;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
@@ -87,8 +84,6 @@ public class ActivityServiceImpl implements ActivityService {
     private final CaloriesCalculator caloriesCalculator;
 
     private final ActivityMapper activityMapper;
-    private final SportMapper sportMapper;
-    private final CategoryMapper categoryMapper;
 
     private static final double RDP_EPSILON = 0.00005;
     private static final int NUMBER_CHART_POINTS = 100;
@@ -114,11 +109,9 @@ public class ActivityServiceImpl implements ActivityService {
 
         List<Activity> activities = activityPage.getContent();
 
-        ActivityUserResponse activityUserResponse = activityMapper.mapToUserResponse(userResponse);
         List<ActivityShortResponse> data = activities.stream().map(activity -> activityMapper.mapToShortResponse(
                 activity,
-                sportMapper.mapToResponse(activity.getSport(), categoryMapper.mapToCategoryResponse(activity.getSport().getCategory())),
-                activityUserResponse
+                userResponse
         )).toList();
 
         return ListResponse.<ActivityShortResponse, ActivityFilter>builder()
@@ -149,8 +142,7 @@ public class ActivityServiceImpl implements ActivityService {
 
         return activityMapper.mapToActivityResponse(
                 activity,
-                sportMapper.mapToResponse(activity.getSport(), categoryMapper.mapToCategoryResponse(activity.getSport().getCategory())),
-                activityMapper.mapToUserResponse(user)
+                user
         );
     }
 
@@ -205,8 +197,7 @@ public class ActivityServiceImpl implements ActivityService {
 
         return activityMapper.mapToShortResponse(
                 activity,
-                sportMapper.mapToResponse(sport, categoryMapper.mapToCategoryResponse(sport.getCategory())),
-                activityMapper.mapToUserResponse(user)
+                user
         );
     }
 

@@ -7,7 +7,6 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.UpdateHelper;
 import com.stride.tracking.coreservice.constant.CacheName;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
@@ -43,7 +42,6 @@ public class SportServiceImpl implements SportService {
     private final SportCacheService sportCacheService;
 
     private final SportMapper sportMapper;
-    private final CategoryMapper categoryMapper;
 
     @Override
     @Transactional
@@ -59,9 +57,9 @@ public class SportServiceImpl implements SportService {
 
         List<Sport> sports = sportPage.getContent();
 
-        List<SportResponse> data = sports.stream().map(sport ->
-                sportMapper.mapToResponse(sport, categoryMapper.mapToCategoryResponse(sport.getCategory()))
-        ).toList();
+        List<SportResponse> data = sports.stream()
+                .map(sportMapper::mapToResponse)
+                .toList();
 
         return ListResponse.<SportResponse, SportFilter>builder()
                 .data(data)
@@ -97,10 +95,7 @@ public class SportServiceImpl implements SportService {
 
         sport = sportRepository.save(sport);
 
-        return sportMapper.mapToResponse(
-                sport,
-                categoryMapper.mapToCategoryResponse(category)
-        );
+        return sportMapper.mapToResponse(sport);
     }
 
     private void validateRules(List<RuleRequest> requests) {

@@ -3,27 +3,29 @@ package com.stride.tracking.coreservice.mapper;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.coreservice.model.Location;
+import com.stride.tracking.coreservice.utils.DateUtils;
 import com.stride.tracking.dto.activity.response.*;
-import com.stride.tracking.dto.sport.response.SportResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-
 @Component
+@RequiredArgsConstructor
 public class ActivityMapper {
-    public ActivityShortResponse mapToShortResponse(Activity activity, SportResponse sport, ActivityUserResponse user) {
+    private final SportMapper sportMapper;
+
+    public ActivityShortResponse mapToShortResponse(Activity activity, UserResponse user) {
         return ActivityShortResponse.builder()
                 .id(activity.getId())
                 .name(activity.getName())
-                .sport(sport)
-                .user(user)
+                .sport(sportMapper.mapToResponse(activity.getSport()))
+                .user(mapToUserResponse(user))
                 .totalDistance(activity.getTotalDistance())
                 .elevationGain(activity.getElevationGain())
                 .movingTimeSeconds(activity.getMovingTimeSeconds())
                 .mapImage(activity.getMapImage())
                 .location(mapToLocationResponse(activity.getLocation()))
-                .createdAt(Date.from(activity.getCreatedAt()))
+                .createdAt(DateUtils.toDate(activity.getCreatedAt()))
                 .build();
     }
 
@@ -35,13 +37,13 @@ public class ActivityMapper {
                 .build();
     }
 
-    public ActivityResponse mapToActivityResponse(Activity activity, SportResponse sport, ActivityUserResponse user) {
+    public ActivityResponse mapToActivityResponse(Activity activity, UserResponse user) {
         return ActivityResponse.builder()
                 .id(activity.getId())
                 .name(activity.getName())
                 .description(activity.getDescription())
-                .sport(sport)
-                .user(user)
+                .sport(sportMapper.mapToResponse(activity.getSport()))
+                .user(mapToUserResponse(user))
                 .distances(activity.getDistances())
                 .totalDistance(activity.getTotalDistance())
                 .elapsedTimeSeconds(activity.getElapsedTimeSeconds())
@@ -66,7 +68,7 @@ public class ActivityMapper {
                 .maxHearRate(activity.getMaxHearRate())
                 .location(mapToLocationResponse(activity.getLocation()))
                 .routeId(activity.getRouteId())
-                .createdAt(Date.from(activity.getCreatedAt()))
+                .createdAt(DateUtils.toDate(activity.getCreatedAt()))
                 .build();
     }
 
@@ -81,7 +83,7 @@ public class ActivityMapper {
                 .build();
     }
 
-    public ActivityUserResponse mapToUserResponse(UserResponse user) {
+    private ActivityUserResponse mapToUserResponse(UserResponse user) {
         return ActivityUserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())

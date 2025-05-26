@@ -1,8 +1,11 @@
 package com.stride.tracking.coreservice.repository;
 
 import com.stride.tracking.coreservice.model.Progress;
+import com.stride.tracking.coreservice.model.Sport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,9 +13,9 @@ import java.util.List;
 public interface ProgressRepository extends JpaRepository<Progress, String>, JpaSpecificationExecutor<Progress> {
     void deleteByActivity_Id(String activityId);
 
-    List<Progress> findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqual(
+    List<Progress> findAllByUserIdAndSportAndCreatedAtGreaterThanEqual(
             String userId,
-            String sportId,
+            Sport sport,
             Instant createdAt
     );
 
@@ -27,4 +30,26 @@ public interface ProgressRepository extends JpaRepository<Progress, String>, Jpa
             Instant fromDate,
             Instant toDate
     );
+
+    List<Progress> findAllByUserIdAndSport_IdInAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+            String userId,
+            List<String> sportId,
+            Instant fromDate,
+            Instant toDate
+    );
+
+    List<Progress> findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+            String userId,
+            Instant fromDate,
+            Instant toDate
+    );
+
+    @Query("""
+        SELECT s
+        FROM progress p
+        JOIN p.sport s
+        WHERE p.createdAt >= :fromDate
+        GROUP BY s.id
+    """)
+    List<Sport> findDistinctSportsSinceNative(@Param("fromDate") Instant fromDate);
 }

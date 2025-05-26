@@ -3,16 +3,23 @@ package com.stride.tracking.coreservice.mapper;
 import com.stride.tracking.coreservice.dto.goal.request.CreateGoalRequest;
 import com.stride.tracking.coreservice.dto.goal.response.GoalHistoryResponse;
 import com.stride.tracking.coreservice.dto.goal.response.GoalResponse;
-import com.stride.tracking.coreservice.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.model.Goal;
 import com.stride.tracking.coreservice.model.Sport;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class GoalMapper {
-    public Goal mapToModel(CreateGoalRequest request, Sport sport, String userId) {
+    private final SportMapper sportMapper;
+
+    public Goal mapToModel(
+            CreateGoalRequest request,
+            Sport sport,
+            String userId
+    ) {
         return Goal.builder()
                 .sport(sport)
                 .userId(userId)
@@ -25,13 +32,12 @@ public class GoalMapper {
 
     public GoalResponse mapToResponse(
             Goal goal,
-            SportShortResponse sport,
             Long amountGain,
             List<GoalHistoryResponse> histories
     ) {
         return GoalResponse.builder()
                 .id(goal.getId())
-                .sport(sport)
+                .sport(sportMapper.mapToShortResponse(goal.getSport()))
                 .type(goal.getType())
                 .timeFrame(goal.getTimeFrame())
                 .amountGain(amountGain)

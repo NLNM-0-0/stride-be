@@ -3,32 +3,20 @@ package com.stride.tracking.coreservice.utils;
 import com.stride.tracking.coreservice.constant.ProgressTimeFrame;
 
 import java.time.*;
-import java.util.Calendar;
-import java.util.Date;
 
 public class ProgressTimeFrameHelper {
     private ProgressTimeFrameHelper() {
     }
 
-    public static Calendar getAuditStartCalendar(ProgressTimeFrame timeFrame, ZoneId zoneId) {
-        Instant instant = resolveStartDate(
-                new Date().toInstant(),
-                timeFrame,
-                zoneId
-        );
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(Date.from(instant));
-
-        return calendar;
+    public static Instant getAuditStartInstant(ZoneId zoneId) {
+        return getAuditStartInstant(ProgressTimeFrame.YEAR, zoneId);
     }
 
-    private static Instant resolveStartDate(
-            Instant date,
+    public static Instant getAuditStartInstant(
             ProgressTimeFrame timeFrame,
             ZoneId zoneId
     ) {
-        Instant instant = InstantUtils.calculateStartDateInstant(date, zoneId);
+        Instant instant = DateUtils.toStartOfDayInstant(Instant.now(), zoneId);
         ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, zoneId);
 
         ZonedDateTime result = switch (timeFrame) {
@@ -45,5 +33,42 @@ public class ProgressTimeFrameHelper {
         };
 
         return result.toInstant();
+    }
+
+    public static Instant resolveStartDate(
+            Instant date,
+            ProgressTimeFrame timeFrame,
+            ZoneId zoneId
+    ) {
+        Instant instant = DateUtils.toStartOfDayInstant(date, zoneId);
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, zoneId);
+
+        return switch (timeFrame.getCountType()) {
+            case DAILY -> instant;
+            case WEEKLY -> zonedDateTime
+                    .with(DayOfWeek.MONDAY)
+                    .toLocalDate()
+                    .atStartOfDay(zoneId)
+                    .toInstant();
+        };
+    }
+
+    public static Instant resolveEndDate(
+            Instant start,
+            ProgressTimeFrame timeFrame,
+            ZoneId zoneId
+    ) {
+        Instant instant = DateUtils.toEndOfDayInstant(start, zoneId);
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, zoneId);
+
+        return switch (timeFrame.getCountType()) {
+            case DAILY -> instant;
+            case WEEKLY -> zonedDateTime
+                    .with(DayOfWeek.SUNDAY)
+                    .toLocalDate()
+                    .atTime(LocalTime.MAX)
+                    .atZone(zoneId)
+                    .toInstant();
+        };
     }
 }
