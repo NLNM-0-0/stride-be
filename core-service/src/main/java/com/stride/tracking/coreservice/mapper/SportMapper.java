@@ -4,15 +4,18 @@ import com.stride.tracking.coreservice.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.dto.category.response.CategoryResponse;
 import com.stride.tracking.dto.sport.request.CreateSportRequest;
 import com.stride.tracking.dto.sport.request.RuleRequest;
 import com.stride.tracking.dto.sport.response.RuleResponse;
 import com.stride.tracking.dto.sport.response.SportResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class SportMapper {
+    private final CategoryMapper categoryMapper;
+
     public Sport mapToModel(CreateSportRequest request, Category category) {
         return Sport.builder()
                 .name(request.getName())
@@ -37,10 +40,10 @@ public class SportMapper {
                 .build();
     }
 
-    public SportResponse mapToResponse(Sport sport, CategoryResponse category) {
+    public SportResponse mapToResponse(Sport sport) {
         return SportResponse.builder()
                 .id(sport.getId())
-                .category(category)
+                .category(categoryMapper.mapToCategoryResponse(sport.getCategory()))
                 .name(sport.getName())
                 .image(sport.getImage())
                 .rules(sport.getRules().stream().map(this::mapToRuleResponse).toList())
