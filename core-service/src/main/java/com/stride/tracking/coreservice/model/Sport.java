@@ -17,7 +17,7 @@ import java.util.List;
 @Entity(
         name = "sports"
 )
-public class Sport  extends BaseEntity {
+public class Sport extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -29,6 +29,8 @@ public class Sport  extends BaseEntity {
     @Column(columnDefinition = "json")
     @ColumnTransformer(write = "?::json")
     private List<Rule> rules;
+
+    private String color;
 
     private SportMapType sportMapType;
 }

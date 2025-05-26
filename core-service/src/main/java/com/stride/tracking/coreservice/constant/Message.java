@@ -17,8 +17,8 @@ public class Message {
     public static final String UPLOAD_IMAGE_FAILED = "Upload image failed";
     public static final String RULE_INVALID = "Rule calculation calories is invalid";
     public static final String CAN_NOT_DELETE_OTHER_USER_ACTIVITIES = "Can not delete other user's activities";
-    public static final String CAN_NOT_CREATE_SAVED_ROUTE = "Can not create saved route";
     public static final String CAN_NOT_GET_LOCATION_FOR_GEOMETRY = "Can not get location for geometry";
     public static final String GOAL_IS_ALREADY_EXISTED = "Goal is already existed";
     public static final String CAN_NOTE_DELETE_OTHER_USER_GOAL = "Can not delete other user's goals";
+    public static final String TRAINING_LOG_FILTER_VALIDATE = "Both fromDate and toDate must be provided together or left blank to use defaults";
 }
