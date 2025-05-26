@@ -27,18 +27,19 @@ jobs:
             echo "Skipping diff check as requested."
             echo "changed=true" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "pull_request" ]; then
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            echo "Checking differences between PR and target branch: $TARGET_BRANCH"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Diffing between $BASE_SHA and $HEAD_SHA"
 
-            git fetch origin $TARGET_BRANCH
+            git fetch --no-tags --prune --depth=1 origin +$BASE_SHA:$BASE_SHA +$HEAD_SHA:$HEAD_SHA
 
-            if git diff --quiet origin/$TARGET_BRANCH..HEAD -- api-gateway; then
-              echo "No changes detected in api-gateway."
+            if git diff --quiet $BASE_SHA $HEAD_SHA -- api-gateway; then
+              echo "No changes in api-gateway"
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in api-gateway."
+              echo "Changes detected in api-gateway"
               echo "changed=true" >> $GITHUB_OUTPUT
-            fi
+              fi
           else
             CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
             echo "Checking differences between current branch ($CURRENT_BRANCH) and origin/$CURRENT_BRANCH"
