@@ -26,17 +26,18 @@ jobs:
           if [ "${{ inputs.skip_diff_check }}" == "true" ]; then
             echo "Skipping diff check as requested."
             echo "changed=true" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" == "pull_request" ]; then
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            echo "Checking differences between PR and target branch: $TARGET_BRANCH"
+          else [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Diffing between $BASE_SHA and $HEAD_SHA"
 
-            git fetch origin $TARGET_BRANCH
+            git fetch --no-tags --prune --depth=1 origin +$BASE_SHA:$BASE_SHA +$HEAD_SHA:$HEAD_SHA
 
-            if git diff --quiet origin/$TARGET_BRANCH..HEAD -- route-service; then
-              echo "No changes detected in route-service."
+            if git diff --quiet $BASE_SHA $HEAD_SHA -- route-service; then
+              echo "No changes in route-service"
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in route-service."
+              echo "Changes detected in route-service"
               echo "changed=true" >> $GITHUB_OUTPUT
             fi
           else
