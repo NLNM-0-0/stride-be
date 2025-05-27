@@ -14,9 +14,10 @@ public class SpeedCalculator {
         List<Double> distances = new ArrayList<>(List.of(0.0));
         List<Double> speeds = new ArrayList<>(List.of(0.0));
         double maxSpeed = 0.0;
+        double sumSpeed = 0.0;
 
         if (coordinates == null || coordinates.size() < 2) {
-            return new SpeedCalculatorResult(distances, speeds, maxSpeed);
+            return new SpeedCalculatorResult(distances, sumSpeed, maxSpeed, speeds);
         }
 
         for (int i = 1; i < coordinates.size(); i++) {
@@ -39,6 +40,8 @@ public class SpeedCalculator {
                     RoundRules.SPEED.getValue()
             );
 
+            sumSpeed += speedKms;
+
             speeds.add(speedKms);
             distances.add(distances.get(distances.size() - 1) + distance / 1000);
 
@@ -47,6 +50,6 @@ public class SpeedCalculator {
             }
         }
 
-        return new SpeedCalculatorResult(distances, speeds, maxSpeed);
+        return new SpeedCalculatorResult(distances, sumSpeed / speeds.size(), maxSpeed, speeds);
     }
 }
