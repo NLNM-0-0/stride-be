@@ -5,10 +5,7 @@ import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.dto.sport.request.CreateSportRequest;
 import com.stride.tracking.dto.sport.request.RuleRequest;
-import com.stride.tracking.dto.sport.response.RuleResponse;
-import com.stride.tracking.dto.sport.response.SportResponse;
-import com.stride.tracking.dto.sport.response.SportShortResponse;
-import com.stride.tracking.dto.sport.response.SportWithMapTypeShortResponse;
+import com.stride.tracking.dto.sport.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -61,12 +58,21 @@ public class SportMapper {
                 .build();
     }
 
-    public SportWithMapTypeShortResponse mapToWithMapTypeShortResponse(Sport sport) {
-        return SportWithMapTypeShortResponse.builder()
+    public SportWithMapTypeResponse mapToWithMapTypeResponse(Sport sport) {
+        return SportWithMapTypeResponse.builder()
                 .id(sport.getId())
                 .name(sport.getName())
                 .image(sport.getImage())
                 .sportMapType(sport.getSportMapType())
+                .build();
+    }
+
+    public SportWithColorResponse mapToWithColorResponse(Sport sport) {
+        return SportWithColorResponse.builder()
+                .id(sport.getId())
+                .name(sport.getName())
+                .image(sport.getImage())
+                .color(sport.getColor())
                 .build();
     }
 }
