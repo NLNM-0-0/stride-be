@@ -1,8 +1,8 @@
 package com.stride.tracking.coreservice.repository;
 
-import com.stride.tracking.coreservice.constant.GoalTimeFrame;
-import com.stride.tracking.coreservice.constant.GoalType;
 import com.stride.tracking.coreservice.model.Goal;
+import com.stride.tracking.dto.goal.GoalTimeFrame;
+import com.stride.tracking.dto.goal.GoalType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 

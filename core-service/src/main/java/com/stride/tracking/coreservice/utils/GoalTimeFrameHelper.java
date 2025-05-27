@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.utils;
 
-import com.stride.tracking.coreservice.constant.GoalTimeFrame;
+import com.stride.tracking.dto.goal.GoalTimeFrame;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;

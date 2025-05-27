@@ -6,7 +6,6 @@ import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.coreservice.constant.GoalType;
 import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RoundRules;
@@ -37,6 +36,7 @@ import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalcu
 import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalculatorResult;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorResult;
+import com.stride.tracking.dto.goal.GoalType;
 import com.stride.tracking.dto.route.request.CreateRouteRequest;
 import com.stride.tracking.dto.route.request.UpdateRouteRequest;
 import com.stride.tracking.dto.route.response.CreateRouteResponse;

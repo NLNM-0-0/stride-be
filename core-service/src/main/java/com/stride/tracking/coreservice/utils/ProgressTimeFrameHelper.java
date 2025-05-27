@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.utils;
 
-import com.stride.tracking.coreservice.constant.ProgressTimeFrame;
+import com.stride.tracking.dto.progress.ProgressTimeFrame;
 
 import java.time.*;
 

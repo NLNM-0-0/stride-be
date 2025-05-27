@@ -4,13 +4,7 @@ import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.coreservice.dto.goal.request.CreateGoalRequest;
-import com.stride.tracking.coreservice.dto.goal.request.UpdateGoalRequest;
-import com.stride.tracking.coreservice.dto.goal.response.CreateGoalResponse;
-import com.stride.tracking.coreservice.dto.goal.response.GoalHistoryResponse;
-import com.stride.tracking.coreservice.dto.goal.response.GoalResponse;
 import com.stride.tracking.coreservice.mapper.GoalMapper;
-import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Goal;
 import com.stride.tracking.coreservice.model.GoalHistory;
 import com.stride.tracking.coreservice.model.Sport;
@@ -18,6 +12,11 @@ import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
 import com.stride.tracking.coreservice.service.GoalService;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
+import com.stride.tracking.dto.goal.request.CreateGoalRequest;
+import com.stride.tracking.dto.goal.request.UpdateGoalRequest;
+import com.stride.tracking.dto.goal.response.CreateGoalResponse;
+import com.stride.tracking.dto.goal.response.GoalHistoryResponse;
+import com.stride.tracking.dto.goal.response.GoalResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,6 @@ public class GoalServiceImpl implements GoalService {
     private final SportCacheService sportCacheService;
 
     private final GoalMapper goalMapper;
-    private final SportMapper sportMapper;
 
     @Override
     @Transactional
