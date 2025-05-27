@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.service.impl;
 
-import com.stride.tracking.commons.dto.ListWithoutPagingResponse;
+import com.stride.tracking.commons.dto.ListWithMetadataResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.coreservice.constant.Message;
@@ -10,6 +10,7 @@ import com.stride.tracking.coreservice.repository.ProgressRepository;
 import com.stride.tracking.coreservice.service.TrainingLogService;
 import com.stride.tracking.coreservice.utils.DateUtils;
 import com.stride.tracking.dto.traininglog.request.TrainingLogFilter;
+import com.stride.tracking.dto.traininglog.response.TrainingLogMetadata;
 import com.stride.tracking.dto.traininglog.response.TrainingLogResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ public class TrainingLogServiceImpl implements TrainingLogService {
 
     @Override
     @Transactional
-    public ListWithoutPagingResponse<TrainingLogResponse, TrainingLogFilter> getTrainingLogs(
+    public ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata> getTrainingLogs(
             TrainingLogFilter filter,
             ZoneId zoneId
     ) {
@@ -53,7 +54,7 @@ public class TrainingLogServiceImpl implements TrainingLogService {
         }
     }
 
-    private ListWithoutPagingResponse<TrainingLogResponse, TrainingLogFilter> findTrainingLogs(
+    private ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata> findTrainingLogs(
             TrainingLogFilter filter,
             ZoneId zoneId
     ) {
@@ -77,9 +78,10 @@ public class TrainingLogServiceImpl implements TrainingLogService {
             data.add(trainingLog);
         }
 
-        return ListWithoutPagingResponse.<TrainingLogResponse, TrainingLogFilter>builder()
+        return ListWithMetadataResponse.<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata>builder()
                 .data(data)
                 .filter(filter)
+                .metadata(findTrainingLogMetadata(filter.getUserId(), zoneId))
                 .build();
     }
 
@@ -99,5 +101,23 @@ public class TrainingLogServiceImpl implements TrainingLogService {
                         fromInstant,
                         toInstant
                 ));
+    }
+
+    private TrainingLogMetadata findTrainingLogMetadata(
+            String userId,
+            ZoneId zoneId
+    ) {
+        if (userId == null) {
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_FIND_USER_ID);
+        }
+
+        Object[] result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
+        Instant min = (Instant) result[0];
+        Instant max = (Instant) result[1];
+
+        return TrainingLogMetadata.builder()
+                .from(DateUtils.toStartDate(min, zoneId))
+                .to(DateUtils.toEndDate(max, zoneId))
+                .build();
     }
 }

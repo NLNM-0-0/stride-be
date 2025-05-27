@@ -21,4 +21,5 @@ public class Message {
     public static final String GOAL_IS_ALREADY_EXISTED = "Goal is already existed";
     public static final String CAN_NOTE_DELETE_OTHER_USER_GOAL = "Can not delete other user's goals";
     public static final String TRAINING_LOG_FILTER_VALIDATE = "Both fromDate and toDate must be provided together or left blank to use defaults";
+    public static final String CAN_NOT_FIND_USER_ID = "Can not find user id";
 }

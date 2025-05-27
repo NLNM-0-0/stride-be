@@ -52,4 +52,11 @@ public interface ProgressRepository extends JpaRepository<Progress, String>, Jpa
         GROUP BY s.id
     """)
     List<Sport> findDistinctSportsSinceNative(@Param("fromDate") Instant fromDate);
+
+    @Query("""
+                SELECT MIN(p.createdAt), MAX(p.createdAt)
+                FROM progress p
+                WHERE p.userId = :userId
+            """)
+    Object[] findMinAndMaxCreatedAtByUserId(@Param("userId") String userId);
 }

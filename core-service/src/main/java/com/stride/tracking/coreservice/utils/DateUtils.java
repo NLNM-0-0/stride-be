@@ -17,6 +17,15 @@ public class DateUtils {
         );
     }
 
+    public static Date toEndDate(Instant instant, ZoneId zoneId) {
+        return Date.from(
+                toEndOfDayInstant(
+                        instant,
+                        zoneId
+                )
+        );
+    }
+
     public static Long getStartOfWeekDate(ZoneId zoneId) {
         LocalDate localDate = Instant
                 .now()
