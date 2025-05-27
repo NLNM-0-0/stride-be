@@ -1,10 +1,10 @@
 package com.stride.tracking.coreservice.mapper;
 
-import com.stride.tracking.coreservice.dto.goal.request.CreateGoalRequest;
-import com.stride.tracking.coreservice.dto.goal.response.GoalHistoryResponse;
-import com.stride.tracking.coreservice.dto.goal.response.GoalResponse;
 import com.stride.tracking.coreservice.model.Goal;
 import com.stride.tracking.coreservice.model.Sport;
+import com.stride.tracking.dto.goal.request.CreateGoalRequest;
+import com.stride.tracking.dto.goal.response.GoalHistoryResponse;
+import com.stride.tracking.dto.goal.response.GoalResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

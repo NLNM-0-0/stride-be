@@ -17,6 +17,7 @@ services:
     environment:
       SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
   bridge-ms:
@@ -33,6 +34,7 @@ services:
     environment:
       SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
   profile-ms:
@@ -46,6 +48,7 @@ services:
     environment:
       SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
   core-ms:
@@ -62,6 +65,7 @@ services:
     environment:
       SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
   route-ms:
@@ -119,6 +123,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  grafana-agent:
+    image: grafana/agent:v0.44.2
+    container_name: grafana-agent
+    restart: unless-stopped
+    volumes:
+      - ./stride-config/grafana-agent/grafana-agent.yml:/etc/agent.yaml:ro
+    command:
+      - '--config.file=/etc/agent.yaml'
+    networks:
+      - stride-network
 
 networks:
   stride-network:

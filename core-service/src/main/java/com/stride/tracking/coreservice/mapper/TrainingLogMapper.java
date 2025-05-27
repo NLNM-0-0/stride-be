@@ -1,10 +1,10 @@
 package com.stride.tracking.coreservice.mapper;
 
 import com.stride.tracking.coreservice.constant.SportColorConst;
-import com.stride.tracking.coreservice.dto.traininglog.response.TrainingLogActivityResponse;
-import com.stride.tracking.coreservice.dto.traininglog.response.TrainingLogResponse;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.utils.DateUtils;
+import com.stride.tracking.dto.traininglog.response.TrainingLogActivityResponse;
+import com.stride.tracking.dto.traininglog.response.TrainingLogResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

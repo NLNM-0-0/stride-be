@@ -32,6 +32,8 @@ declare -A services=(
     ["route/.env.dev"]="route-service/deploy/.env.dev"
     ["route/.env.prod"]="route-service/deploy/.env.prod"
 
+    ["grafana-agent/grafana-agent.yml"]="z-etc/log/grafana-agent.yml"
+
     [".env"]=".env"
 )
 

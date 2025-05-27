@@ -2,12 +2,12 @@ package com.stride.tracking.coreservice.controller;
 
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.SimpleListResponse;
-import com.stride.tracking.coreservice.dto.progress.request.GetProgressActivityRequest;
-import com.stride.tracking.coreservice.dto.progress.request.ProgressFilter;
-import com.stride.tracking.coreservice.dto.progress.response.GetProgressActivityResponse;
-import com.stride.tracking.coreservice.dto.progress.response.ProgressDetailResponse;
-import com.stride.tracking.coreservice.dto.progress.response.ProgressResponse;
 import com.stride.tracking.coreservice.service.ProgressService;
+import com.stride.tracking.dto.progress.request.GetProgressActivityRequest;
+import com.stride.tracking.dto.progress.request.ProgressFilter;
+import com.stride.tracking.dto.progress.response.GetProgressActivityResponse;
+import com.stride.tracking.dto.progress.response.ProgressDetailResponse;
+import com.stride.tracking.dto.progress.response.ProgressResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

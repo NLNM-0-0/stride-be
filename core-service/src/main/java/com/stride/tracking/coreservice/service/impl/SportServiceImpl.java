@@ -1,6 +1,7 @@
 package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.dto.ListResponse;
+import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
@@ -20,6 +21,7 @@ import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.SportSpecs;
 import com.stride.tracking.coreservice.service.SportService;
 import com.stride.tracking.coreservice.utils.validator.CaloriesExpressionValidator;
+import com.stride.tracking.dto.sport.response.SportWithColorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
@@ -82,6 +84,20 @@ public class SportServiceImpl implements SportService {
             spec = spec.and(SportSpecs.hasCategory(filter.getCategoryId()));
         }
         return spec;
+    }
+
+    @Override
+    @Transactional
+    public SimpleListResponse<SportWithColorResponse> getSports() {
+        List<Sport> sports = sportRepository.findAll();
+
+        List<SportWithColorResponse> data = sports.stream()
+                .map(sportMapper::mapToWithColorResponse)
+                .toList();
+
+        return SimpleListResponse.<SportWithColorResponse>builder()
+                .data(data)
+                .build();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.stride.tracking.coreservice.controller;
 
 import com.stride.tracking.commons.dto.ListResponse;
+import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.dto.sport.request.CreateSportRequest;
@@ -8,6 +9,7 @@ import com.stride.tracking.dto.sport.request.SportFilter;
 import com.stride.tracking.dto.sport.request.UpdateSportRequest;
 import com.stride.tracking.dto.sport.response.SportResponse;
 import com.stride.tracking.coreservice.service.SportService;
+import com.stride.tracking.dto.sport.response.SportWithColorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,11 @@ public class SportController {
             @Valid AppPageRequest page,
             @Valid SportFilter filter) {
         return ResponseEntity.ok(sportService.getSports(page, filter));
+    }
+
+    @GetMapping("/all/with-colors")
+    ResponseEntity<SimpleListResponse<SportWithColorResponse>> getSports() {
+        return ResponseEntity.ok(sportService.getSports());
     }
 
     @PostMapping

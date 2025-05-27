@@ -1,10 +1,11 @@
 package com.stride.tracking.coreservice.controller;
 
 import com.stride.tracking.commons.constants.CustomHeaders;
-import com.stride.tracking.commons.dto.ListWithoutPagingResponse;
-import com.stride.tracking.coreservice.dto.traininglog.request.TrainingLogFilter;
-import com.stride.tracking.coreservice.dto.traininglog.response.TrainingLogResponse;
+import com.stride.tracking.commons.dto.ListWithMetadataResponse;
 import com.stride.tracking.coreservice.service.TrainingLogService;
+import com.stride.tracking.dto.traininglog.request.TrainingLogFilter;
+import com.stride.tracking.dto.traininglog.response.TrainingLogMetadata;
+import com.stride.tracking.dto.traininglog.response.TrainingLogResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class TrainingLogController {
     private final TrainingLogService trainingLogService;
 
     @GetMapping("/profile")
-    ResponseEntity<ListWithoutPagingResponse<TrainingLogResponse, TrainingLogFilter>> getTrainingLogs(
+    ResponseEntity<ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata>> getTrainingLogs(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid TrainingLogFilter filter
     ) {

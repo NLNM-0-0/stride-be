@@ -1,8 +1,8 @@
 package com.stride.tracking.coreservice.model;
 
-import com.stride.tracking.coreservice.constant.GoalTimeFrame;
-import com.stride.tracking.coreservice.constant.GoalType;
 import com.stride.tracking.coreservice.persistence.BaseEntity;
+import com.stride.tracking.dto.goal.GoalTimeFrame;
+import com.stride.tracking.dto.goal.GoalType;
 import jakarta.persistence.*;
 import lombok.*;
 
