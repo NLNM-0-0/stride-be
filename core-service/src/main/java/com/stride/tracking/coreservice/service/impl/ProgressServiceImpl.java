@@ -6,7 +6,7 @@ import com.stride.tracking.coreservice.constant.ProgressTimeFrame;
 import com.stride.tracking.coreservice.dto.progress.request.GetProgressActivityRequest;
 import com.stride.tracking.coreservice.dto.progress.request.ProgressFilter;
 import com.stride.tracking.coreservice.dto.progress.response.*;
-import com.stride.tracking.coreservice.dto.sport.response.SportShortResponse;
+import com.stride.tracking.coreservice.dto.sport.response.SportWithMapTypeShortResponse;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
@@ -55,7 +55,7 @@ public class ProgressServiceImpl implements ProgressService {
                 );
 
         Map<ProgressTimeFrame, List<ProgressBySportResponse>> progressesByTimeFrame = new ConcurrentHashMap<>();
-        AtomicReference<List<SportShortResponse>> availableSportsRef = new AtomicReference<>();
+        AtomicReference<List<SportWithMapTypeShortResponse>> availableSportsRef = new AtomicReference<>();
 
         List<CompletableFuture<Void>> futures = List.of(
                 CompletableFuture.runAsync(() -> {
@@ -76,10 +76,10 @@ public class ProgressServiceImpl implements ProgressService {
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        List<SportShortResponse> availableSports = availableSportsRef.get();
+        List<SportWithMapTypeShortResponse> availableSports = availableSportsRef.get();
 
         return ProgressDetailResponse.builder()
-                .sport(sportMapper.mapToShortResponse(sport))
+                .sport(sportMapper.mapToWithMapTypeShortResponse(sport))
                 .availableSports(availableSports)
                 .progresses(progressesByTimeFrame)
                 .build();
@@ -177,12 +177,12 @@ public class ProgressServiceImpl implements ProgressService {
 
     private void buildAvailableSport(
             Instant start,
-            AtomicReference<List<SportShortResponse>> availableSportsRef
+            AtomicReference<List<SportWithMapTypeShortResponse>> availableSportsRef
     ){
         List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(start);
 
-        List<SportShortResponse> responses = availableSport.stream()
-                .map(sportMapper::mapToShortResponse)
+        List<SportWithMapTypeShortResponse> responses = availableSport.stream()
+                .map(sportMapper::mapToWithMapTypeShortResponse)
                 .toList();
 
         availableSportsRef.set(responses);
@@ -264,7 +264,7 @@ public class ProgressServiceImpl implements ProgressService {
                 .sorted(Comparator.comparing(ProgressBySportResponse::getFromDate))
                 .toList();
 
-        SportShortResponse sportResponse = sportMapper.mapToShortResponse(sport);
+        SportWithMapTypeShortResponse sportResponse = sportMapper.mapToWithMapTypeShortResponse(sport);
 
         return ProgressResponse.builder()
                 .sport(sportResponse)
