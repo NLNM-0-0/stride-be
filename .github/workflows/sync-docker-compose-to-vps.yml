@@ -1,0 +1,23 @@
+name: Sync docker-compose to VPS
+
+on:
+  workflow_call:
+
+jobs:
+  sync-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy docker-compose file
+        run: |
+          scp -r ./docker-compose.vps.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/stride/docker-compose.yml
