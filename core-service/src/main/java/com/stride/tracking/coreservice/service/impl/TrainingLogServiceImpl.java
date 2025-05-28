@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
@@ -111,13 +112,20 @@ public class TrainingLogServiceImpl implements TrainingLogService {
             throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_FIND_USER_ID);
         }
 
-        Object[] result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
-        Instant min = (Instant) result[0];
-        Instant max = (Instant) result[1];
+        Optional<Instant> min = Optional.empty();
+        Optional<Instant> max = Optional.empty();
+        try {
+            Object[] result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
+            min = Optional.of(((Timestamp) result[0]).toInstant());
+            max = Optional.of(((Timestamp) result[1]).toInstant());
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
 
         return TrainingLogMetadata.builder()
-                .from(DateUtils.toStartDate(min, zoneId))
-                .to(DateUtils.toEndDate(max, zoneId))
+                .from(DateUtils.toStartDate(min.orElse(Instant.now()), zoneId))
+                .to(DateUtils.toEndDate(max.orElse(Instant.now()), zoneId))
                 .build();
     }
 }

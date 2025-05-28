@@ -21,7 +21,7 @@ import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.SportSpecs;
 import com.stride.tracking.coreservice.service.SportService;
 import com.stride.tracking.coreservice.utils.validator.CaloriesExpressionValidator;
-import com.stride.tracking.dto.sport.response.SportWithColorResponse;
+import com.stride.tracking.dto.sport.response.SportShortResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
@@ -88,14 +88,14 @@ public class SportServiceImpl implements SportService {
 
     @Override
     @Transactional
-    public SimpleListResponse<SportWithColorResponse> getSports() {
+    public SimpleListResponse<SportShortResponse> getSports() {
         List<Sport> sports = sportRepository.findAll();
 
-        List<SportWithColorResponse> data = sports.stream()
-                .map(sportMapper::mapToWithColorResponse)
+        List<SportShortResponse> data = sports.stream()
+                .map(sportMapper::mapToShortResponse)
                 .toList();
 
-        return SimpleListResponse.<SportWithColorResponse>builder()
+        return SimpleListResponse.<SportShortResponse>builder()
                 .data(data)
                 .build();
     }

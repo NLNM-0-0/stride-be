@@ -7,14 +7,14 @@ import com.stride.tracking.dto.sport.request.CreateSportRequest;
 import com.stride.tracking.dto.sport.request.SportFilter;
 import com.stride.tracking.dto.sport.request.UpdateSportRequest;
 import com.stride.tracking.dto.sport.response.SportResponse;
-import com.stride.tracking.dto.sport.response.SportWithColorResponse;
+import com.stride.tracking.dto.sport.response.SportShortResponse;
 
 public interface SportService {
     ListResponse<SportResponse, SportFilter> getSports(
             AppPageRequest page,
             SportFilter filter
     );
-    SimpleListResponse<SportWithColorResponse> getSports();
+    SimpleListResponse<SportShortResponse> getSports();
     SportResponse createSport(CreateSportRequest request);
     void updateSport(String sportId, UpdateSportRequest request);
     void deleteSport(String sportId);
