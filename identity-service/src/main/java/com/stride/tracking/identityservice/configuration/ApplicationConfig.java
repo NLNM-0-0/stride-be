@@ -3,6 +3,7 @@ package com.stride.tracking.identityservice.configuration;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.configuration.log.LoggingConfig;
+import com.stride.tracking.commons.configuration.metrics.MetricsConfiguration;
 import com.stride.tracking.commons.configuration.security.SecurityConfig;
 import com.stride.tracking.commons.exception.GlobalExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
         SecurityConfig.class,
         LoggingConfig.class,
         KafkaProducer.class,
-        GlobalExceptionHandler.class})
+        GlobalExceptionHandler.class,
+        MetricsConfiguration.class
+})
 public class ApplicationConfig {
     @Bean
     public PasswordEncoder getPasswordEncoder() {
