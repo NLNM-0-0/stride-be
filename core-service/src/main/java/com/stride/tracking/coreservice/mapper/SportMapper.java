@@ -55,24 +55,8 @@ public class SportMapper {
                 .id(sport.getId())
                 .name(sport.getName())
                 .image(sport.getImage())
-                .build();
-    }
-
-    public SportWithMapTypeResponse mapToWithMapTypeResponse(Sport sport) {
-        return SportWithMapTypeResponse.builder()
-                .id(sport.getId())
-                .name(sport.getName())
-                .image(sport.getImage())
-                .sportMapType(sport.getSportMapType())
-                .build();
-    }
-
-    public SportWithColorResponse mapToWithColorResponse(Sport sport) {
-        return SportWithColorResponse.builder()
-                .id(sport.getId())
-                .name(sport.getName())
-                .image(sport.getImage())
                 .color(sport.getColor())
+                .sportMapType(sport.getSportMapType())
                 .build();
     }
 }
