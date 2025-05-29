@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.annotations.PreAuthorizeAdmin;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
@@ -21,6 +22,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
+    @PreAuthorizeAdmin
     ResponseEntity<ListResponse<CategoryResponse, CategoryFilter>> getCategories(
             @Valid AppPageRequest page,
             @Valid CategoryFilter filter) {
@@ -28,12 +30,14 @@ public class CategoryController {
     }
 
     @PostMapping
+    @PreAuthorizeAdmin
     ResponseEntity<CategoryResponse> createCategory(@RequestBody CreateCategoryRequest request) {
         CategoryResponse response = categoryService.createCategory(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateCategory(
             @PathVariable String id,
             @RequestBody UpdateCategoryRequest request) {
@@ -42,6 +46,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> deleteCategory(
             @PathVariable String id) {
         categoryService.deleteCategory(id);

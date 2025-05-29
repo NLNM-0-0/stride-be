@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.ListWithMetadataResponse;
 import com.stride.tracking.coreservice.service.TrainingLogService;
@@ -23,6 +24,7 @@ public class TrainingLogController {
     private final TrainingLogService trainingLogService;
 
     @GetMapping("/profile")
+    @PreAuthorizeUser
     ResponseEntity<ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata>> getTrainingLogs(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid TrainingLogFilter filter

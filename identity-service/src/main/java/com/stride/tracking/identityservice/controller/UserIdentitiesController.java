@@ -10,6 +10,7 @@ import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserSendOTPReq
 import com.stride.tracking.dto.resetpassword.response.VerifyResetPasswordResponse;
 import com.stride.tracking.identityservice.service.ResetPasswordService;
 import com.stride.tracking.identityservice.service.UserIdentityService;
+import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,12 +26,14 @@ public class UserIdentitiesController {
     private final ResetPasswordService resetPasswordService;
 
     @PostMapping("/register")
+    @PermitAll
     ResponseEntity<EmailRegisterResponse> createUser(@RequestBody EmailRegisterRequest request) {
         EmailRegisterResponse response = identityService.register(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/{id}/verify")
+    @PermitAll
     ResponseEntity<SimpleResponse> verifyUser(
             @PathVariable String id,
             @RequestBody VerifyAccountRequest request) {
@@ -39,6 +42,7 @@ public class UserIdentitiesController {
     }
 
     @PostMapping("/{id}/verify/send-otp")
+    @PermitAll
     ResponseEntity<SimpleResponse> sendOTPVerifyUser(
             @PathVariable String id) {
         identityService.sendVerifiedOTP(id);
@@ -46,6 +50,7 @@ public class UserIdentitiesController {
     }
 
     @PostMapping("/reset-password/send-otp")
+    @PermitAll
     ResponseEntity<SimpleResponse> sendOTPResetPassword(
             @RequestBody ResetPasswordUserSendOTPRequest request
     ) {
@@ -54,6 +59,7 @@ public class UserIdentitiesController {
     }
 
     @PostMapping("/reset-password/verify")
+    @PermitAll
     ResponseEntity<VerifyResetPasswordResponse> verifyResetPasswordToken(
             @RequestBody VerifyResetPasswordRequest request
     ) {
@@ -62,6 +68,7 @@ public class UserIdentitiesController {
     }
 
     @PostMapping("/reset-password/{resetPasswordTokenId}/change-password")
+    @PermitAll
     ResponseEntity<SimpleResponse> resetPassword(
             @PathVariable String resetPasswordTokenId,
             @RequestBody ResetPasswordUserRequest request

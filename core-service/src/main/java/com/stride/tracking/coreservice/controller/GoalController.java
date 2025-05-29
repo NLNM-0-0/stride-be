@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
@@ -22,6 +23,7 @@ public class GoalController {
     private final GoalService goalService;
 
     @GetMapping("/profile")
+    @PreAuthorizeUser
     ResponseEntity<SimpleListResponse<GoalResponse>> getGoals(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
     ) {
@@ -30,12 +32,14 @@ public class GoalController {
     }
 
     @PostMapping
+    @PreAuthorizeUser
     ResponseEntity<CreateGoalResponse> createGoal(@RequestBody CreateGoalRequest request) {
         CreateGoalResponse response = goalService.createGoal(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorizeUser
     ResponseEntity<SimpleResponse> updateGoal(
             @PathVariable String id,
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
@@ -47,6 +51,7 @@ public class GoalController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorizeUser
     ResponseEntity<SimpleResponse> deleteGoal(
             @PathVariable String id) {
         goalService.deleteGoal(id);

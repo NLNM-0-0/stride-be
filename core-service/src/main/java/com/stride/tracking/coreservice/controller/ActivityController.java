@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
@@ -25,18 +26,21 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @GetMapping("/users/profile")
+    @PreAuthorizeUser
     ResponseEntity<ListResponse<ActivityShortResponse, ActivityFilter>> getActivitiesOfUser(
             @Valid AppPageRequest page) {
         return ResponseEntity.ok(activityService.getActivitiesOfUser(page));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorizeUser
     ResponseEntity<ActivityResponse> getActivity(
             @PathVariable String id) {
         return ResponseEntity.ok(activityService.getActivity(id));
     }
 
     @PostMapping
+    @PreAuthorizeUser
     ResponseEntity<ActivityShortResponse> createActivity(
             @RequestBody CreateActivityRequest request,
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
@@ -48,6 +52,7 @@ public class ActivityController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorizeUser
     ResponseEntity<SimpleResponse> updateActivity(
             @PathVariable String id,
             @RequestBody UpdateActivityRequest request) {
@@ -56,6 +61,7 @@ public class ActivityController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorizeUser
     ResponseEntity<SimpleResponse> deleteActivity(
             @PathVariable String id) {
         activityService.deleteActivity(id);
