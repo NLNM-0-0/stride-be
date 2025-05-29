@@ -1,7 +1,7 @@
 package com.stride.tracking.identityservice.configuration;
 
 import com.nimbusds.jose.JWSAlgorithm;
-import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.configuration.kafka.KafkaProducerConfig;
 import com.stride.tracking.commons.configuration.log.LoggingConfig;
 import com.stride.tracking.commons.configuration.metrics.MetricsConfiguration;
 import com.stride.tracking.commons.configuration.security.SecurityConfig;
@@ -16,7 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Import({
         SecurityConfig.class,
         LoggingConfig.class,
-        KafkaProducer.class,
+        KafkaProducerConfig.class,
         GlobalExceptionHandler.class,
         MetricsConfiguration.class
 })

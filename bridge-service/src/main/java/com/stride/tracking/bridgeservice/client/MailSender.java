@@ -23,7 +23,7 @@ public class MailSender {
     @Value("${mail.gmail.password}")
     private String GMAIL_PASSWORD;
 
-    @Async
+    @Async("asyncExecutor")
     public void sendMail(EmailRequest request) {
         log.info(
                 "[sendMail] Preparing to send email to: {}",
