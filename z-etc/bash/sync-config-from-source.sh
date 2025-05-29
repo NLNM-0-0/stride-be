@@ -17,6 +17,7 @@ declare -A services=(
     ["core/application-dev.yml"]="core-service/src/main/resources/application-dev.yml"
     ["core/application-prod.yml"]="core-service/src/main/resources/application-prod.yml"
     ["core/logback-spring.xml"]="core-service/src/main/resources/logback-spring.xml"
+    ["core/ehcache.xml"]="core-service/src/main/resources/ehcache.xml"
 
     ["identity/application.yml"]="identity-service/src/main/resources/application.yml"
     ["identity/application-dev.yml"]="identity-service/src/main/resources/application-dev.yml"
