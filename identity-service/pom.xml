@@ -30,8 +30,8 @@
         <java.version>17</java.version>
         <postgresql.version>42.7.5</postgresql.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
-        <stride-dto.version>0.0.113-SNAPSHOT</stride-dto.version>
-        <stride-common.version>0.0.32-SNAPSHOT</stride-common.version>
+        <stride-dto.version>0.0.119-SNAPSHOT</stride-dto.version>
+        <stride-common.version>0.0.41-SNAPSHOT</stride-common.version>
         <feign.version>13.6</feign.version>
         <loki.version>1.6.0</loki.version>
     </properties>
@@ -78,10 +78,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
+
+        <!--Feign Client-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-micrometer</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>

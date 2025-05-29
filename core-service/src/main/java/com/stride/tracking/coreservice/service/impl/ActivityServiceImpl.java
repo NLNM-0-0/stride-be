@@ -5,6 +5,7 @@ import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
+import com.stride.tracking.commons.utils.TaskHelper;
 import com.stride.tracking.commons.utils.UpdateHelper;
 import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
@@ -12,9 +13,7 @@ import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.model.*;
-import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
-import com.stride.tracking.coreservice.repository.GoalRepository;
-import com.stride.tracking.coreservice.repository.ProgressRepository;
+import com.stride.tracking.coreservice.repository.*;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.coreservice.model.Activity;
@@ -24,7 +23,6 @@ import com.stride.tracking.coreservice.utils.*;
 import com.stride.tracking.dto.activity.request.*;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
-import com.stride.tracking.coreservice.repository.ActivityRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
@@ -44,6 +42,8 @@ import com.stride.tracking.dto.supabase.request.GeometryRequest;
 import com.stride.tracking.dto.supabase.request.GetLocationByGeometryRequest;
 import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -52,13 +52,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.concurrent.DelegatingSecurityContextRunnable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Service
 @RequiredArgsConstructor
@@ -69,7 +69,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final GoalHistoryRepository goalHistoryRepository;
     private final ProgressRepository progressRepository;
 
-    private final SportCacheService sportCacheService;
+    private final SportRepository sportRepository;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
@@ -85,12 +85,15 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityMapper activityMapper;
 
+    private final Executor asyncExecutor;
+    private final Tracer tracer;
+
     private static final double RDP_EPSILON = 0.00005;
     private static final int NUMBER_CHART_POINTS = 100;
     private static final int THRESHOLD_METERS = 10;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
             AppPageRequest page) {
         UserResponse userResponse = profileService.viewProfile();
@@ -149,7 +152,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        Sport sport = sportCacheService.findSportById(request.getSportId());
+        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
         UserResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
@@ -176,16 +179,18 @@ public class ActivityServiceImpl implements ActivityService {
 
         Activity savedActivity = activityRepository.save(activity);
 
-        CompletableFuture<Void> processRouteFuture = CompletableFuture.runAsync(
-                new DelegatingSecurityContextRunnable(
-                        () -> processRoute(savedActivity)
-                )
+        Span parent = tracer.currentSpan();
+
+        CompletableFuture<Void> processRouteFuture = runAsyncSecurityContextWithSpan(
+                "process-route",
+                parent,
+                () -> processRoute(savedActivity)
         );
 
-        CompletableFuture<Void> addGoalHistoriesFuture = CompletableFuture.runAsync(
-                new DelegatingSecurityContextRunnable(
-                        () -> addGoalHistories(savedActivity, zoneId)
-                )
+        CompletableFuture<Void> addGoalHistoriesFuture = runAsyncSecurityContextWithSpan(
+                "add-goal-histories",
+                parent,
+                () -> addGoalHistories(savedActivity, zoneId)
         );
 
         addProgress(savedActivity);
@@ -198,6 +203,16 @@ public class ActivityServiceImpl implements ActivityService {
         return activityMapper.mapToShortResponse(
                 activity,
                 user
+        );
+    }
+
+    private CompletableFuture<Void> runAsyncSecurityContextWithSpan(String spanName, Span parent, Runnable task) {
+        return TaskHelper.runAsyncSecurityContextWithSpan(
+                spanName,
+                parent,
+                task,
+                asyncExecutor,
+                tracer
         );
     }
 
@@ -226,19 +241,24 @@ public class ActivityServiceImpl implements ActivityService {
         if (activity.getSport().getSportMapType() != null) {
             List<CoordinateRequest> rawCoordinates = request.getCoordinates();
 
-            CompletableFuture<Void> addGeometryMapFuture = CompletableFuture.runAsync(
-                    new DelegatingSecurityContextRunnable(() ->
-                            addGeometryAndMap(activity, rawCoordinates)
-                    )
+            Span parent = tracer.currentSpan();
+
+            CompletableFuture<Void> addGeometryMapFuture = runAsyncSecurityContextWithSpan(
+                    "add-geometry_map",
+                    parent,
+                    () -> addGeometryAndMap(activity, rawCoordinates)
             );
 
-            CompletableFuture<Void> processChartInfoFuture = CompletableFuture.runAsync(
-                    new DelegatingSecurityContextRunnable(() -> processChartInfo(
+            CompletableFuture<Void> processChartInfoFuture = runAsyncSecurityContextWithSpan(
+                    "process-chart-info",
+                    parent,
+                    () -> processChartInfo(
                             activity,
                             rawCoordinates,
                             request.getMovingTimeSeconds(),
                             user
-                    )));
+                    )
+            );
 
             CompletableFuture.allOf(
                     addGeometryMapFuture,
@@ -290,27 +310,38 @@ public class ActivityServiceImpl implements ActivityService {
                 .map(CoordinateRequest::getTimestamp)
                 .toList());
 
+        Span parent = tracer.currentSpan();
+
         //Run add speed info, elevation, location in multiple task
-        CompletableFuture<Void> addSpeedInfoFuture = CompletableFuture.runAsync(
-                new DelegatingSecurityContextRunnable(() -> addSpeedInfo(
+        CompletableFuture<Void> addSpeedInfoFuture = runAsyncSecurityContextWithSpan(
+                "add-speed-info",
+                parent,
+                () -> addSpeedInfo(
                         activity,
                         minimizedCoordinates,
                         minimizedTimestamps,
                         movingTimeSeconds,
                         user
-                )));
+                )
+        );
 
-        CompletableFuture<Void> addElevationInfoFuture = CompletableFuture.runAsync(
-                new DelegatingSecurityContextRunnable(() -> addElevationInfo(
+        CompletableFuture<Void> addElevationInfoFuture = runAsyncSecurityContextWithSpan(
+                "add-elevation-info",
+                parent,
+                () -> addElevationInfo(
                         activity,
                         minimizedCoordinates
-                )));
+                )
+        );
 
-        CompletableFuture<Void> addLocationFuture = CompletableFuture.runAsync(
-                new DelegatingSecurityContextRunnable(() -> addLocation(
+        CompletableFuture<Void> addLocationFuture = runAsyncSecurityContextWithSpan(
+                "add-location-info",
+                parent,
+                () -> addLocation(
                         activity,
                         minimizedCoordinates
-                )));
+                )
+        );
 
         CompletableFuture.allOf(
                 addSpeedInfoFuture,
@@ -545,7 +576,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getSportId() != null) {
             UserResponse user = profileService.viewProfile();
 
-            Sport sport = sportCacheService.findSportById(request.getSportId());
+            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
 
             addCaloriesInfo(
                     activity,

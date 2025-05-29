@@ -3,7 +3,6 @@ package com.stride.tracking.coreservice.service.impl;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
-import com.stride.tracking.coreservice.constant.CacheName;
 import com.stride.tracking.coreservice.mapper.CategoryMapper;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.dto.category.request.CategoryFilter;
@@ -14,7 +13,6 @@ import com.stride.tracking.coreservice.repository.CategoryRepository;
 import com.stride.tracking.coreservice.repository.specs.CategorySpecs;
 import com.stride.tracking.coreservice.service.CategoryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
-    private final CategoryCacheService categoryCacheService;
+
     private final CategoryMapper categoryMapper;
 
     @Override
@@ -80,18 +78,16 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheName.CATEGORY_BY_ID, key = "#categoryId")
     public void updateCategory(String categoryId, UpdateCategoryRequest request) {
-        Category category = categoryCacheService.findById(categoryId);
+        Category category = Common.findCategoryById(categoryId, categoryRepository);
 
         categoryRepository.save(category);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheName.CATEGORY_BY_ID, key = "#categoryId")
     public void deleteCategory(String categoryId) {
-        Category category = categoryCacheService.findById(categoryId);
+        Category category = Common.findCategoryById(categoryId, categoryRepository);
 
         categoryRepository.delete(category);
     }

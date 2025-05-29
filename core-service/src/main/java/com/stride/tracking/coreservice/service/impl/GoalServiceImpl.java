@@ -10,6 +10,7 @@ import com.stride.tracking.coreservice.model.GoalHistory;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
+import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.service.GoalService;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.dto.goal.request.CreateGoalRequest;
@@ -32,12 +33,12 @@ public class GoalServiceImpl implements GoalService {
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
 
-    private final SportCacheService sportCacheService;
+    private final SportRepository sportRepository;
 
     private final GoalMapper goalMapper;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public SimpleListResponse<GoalResponse> getUserGoals(ZoneId zoneId) {
         String userId = SecurityUtils.getCurrentUserId();
 
@@ -121,7 +122,7 @@ public class GoalServiceImpl implements GoalService {
     @Override
     @Transactional
     public CreateGoalResponse createGoal(CreateGoalRequest request) {
-        Sport sport = sportCacheService.findSportById(request.getSportId());
+        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
         String userId = SecurityUtils.getCurrentUserId();
 
         Optional<Goal> goalOptional = goalRepository.findByUserIdAndSportIdAndTypeAndTimeFrame(

@@ -4,6 +4,7 @@ import com.stride.tracking.commons.dto.ListWithMetadataResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.coreservice.constant.Message;
+import com.stride.tracking.coreservice.dto.progress.FindMinAndMaxCreatedAtByUserIdResult;
 import com.stride.tracking.coreservice.mapper.TrainingLogMapper;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.repository.ProgressRepository;
@@ -17,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
@@ -30,7 +30,7 @@ public class TrainingLogServiceImpl implements TrainingLogService {
     private final TrainingLogMapper trainingLogMapper;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata> getTrainingLogs(
             TrainingLogFilter filter,
             ZoneId zoneId
@@ -115,13 +115,12 @@ public class TrainingLogServiceImpl implements TrainingLogService {
         Optional<Instant> min = Optional.empty();
         Optional<Instant> max = Optional.empty();
         try {
-            Object[] result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
-            min = Optional.of(((Timestamp) result[0]).toInstant());
-            max = Optional.of(((Timestamp) result[1]).toInstant());
+            FindMinAndMaxCreatedAtByUserIdResult result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
+            min = Optional.of(result.getMin());
+            max = Optional.of(result.getMax());
         } catch (Exception e) {
             System.out.println(e);
         }
-
 
         return TrainingLogMetadata.builder()
                 .from(DateUtils.toStartDate(min.orElse(Instant.now()), zoneId))

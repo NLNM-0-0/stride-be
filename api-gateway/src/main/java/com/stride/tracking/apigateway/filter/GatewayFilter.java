@@ -41,13 +41,8 @@ public class GatewayFilter implements GlobalFilter {
         ).orElse("UTC");
 
         if (isPublicEndpoint(exchange.getRequest().getPath().value())) {
-            String requestId = UUID.randomUUID().toString();
-
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .headers(httpHeaders -> {
-                        httpHeaders.set(CustomHeaders.X_REQUEST_ID, requestId);
-                        httpHeaders.set(CustomHeaders.X_USER_TIMEZONE, timezone);
-                    })
+                    .headers(httpHeaders -> httpHeaders.set(CustomHeaders.X_USER_TIMEZONE, timezone))
                     .build();
 
             ServerWebExchange mutatedExchange = exchange.mutate()
@@ -78,7 +73,6 @@ public class GatewayFilter implements GlobalFilter {
                         httpHeaders.set(CustomHeaders.X_AUTH_EMAIL, response.getBody().getEmail());
                         httpHeaders.set(CustomHeaders.X_AUTH_PROVIDER, response.getBody().getProvider());
                         httpHeaders.set(CustomHeaders.X_AUTH_USER_AUTHORITIES, response.getBody().getScope());
-                        httpHeaders.set(CustomHeaders.X_REQUEST_ID, UUID.randomUUID().toString());
                         httpHeaders.set(CustomHeaders.X_USER_TIMEZONE, timezone);
                     })
                     .build();
