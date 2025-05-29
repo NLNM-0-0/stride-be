@@ -78,7 +78,7 @@ public class ProgressServiceImpl implements ProgressService {
                 runAsyncWithSpan("process-time-frame-for-6M-and-build-available-sports", parent, () -> {
                     processTimeFrame(ProgressTimeFrame.SIX_MONTHS, progresses, zoneId, progressesByTimeFrame);
 
-                    buildAvailableSport(start, availableSportsRef);
+                    buildAvailableSport(userId, start, availableSportsRef);
                 })
         );
 
@@ -195,10 +195,11 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     private void buildAvailableSport(
+            String userId,
             Instant start,
             AtomicReference<List<SportShortResponse>> availableSportsRef
     ) {
-        List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(start);
+        List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(userId, start);
 
         List<SportShortResponse> responses = availableSport.stream()
                 .map(sportMapper::mapToShortResponse)

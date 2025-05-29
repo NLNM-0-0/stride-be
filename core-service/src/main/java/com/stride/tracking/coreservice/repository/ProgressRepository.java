@@ -49,10 +49,14 @@ public interface ProgressRepository extends JpaRepository<Progress, String>, Jpa
         SELECT s
         FROM progress p
         JOIN p.sport s
-        WHERE p.createdAt >= :fromDate
+        WHERE p.userId = :userId
+        AND p.createdAt >= :fromDate
         GROUP BY s.id
     """)
-    List<Sport> findDistinctSportsSinceNative(@Param("fromDate") Instant fromDate);
+    List<Sport> findDistinctSportsSinceNative(
+            @Param("userId") String userId,
+            @Param("fromDate") Instant fromDate
+    );
 
     @Query("""
         SELECT new com.stride.tracking.coreservice.dto.progress.FindMinAndMaxCreatedAtByUserIdResult(
