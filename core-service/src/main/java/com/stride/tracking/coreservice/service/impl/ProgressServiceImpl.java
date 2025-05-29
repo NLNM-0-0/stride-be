@@ -7,6 +7,7 @@ import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.ProgressRepository;
+import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.service.ProgressService;
 import com.stride.tracking.coreservice.utils.DateUtils;
 import com.stride.tracking.coreservice.utils.ProgressTimeFrameHelper;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 public class ProgressServiceImpl implements ProgressService {
     private final ProgressRepository progressRepository;
 
-    private final SportCacheService sportCacheService;
+    private final SportRepository sportRepository;
 
     private final SportMapper sportMapper;
 
@@ -42,7 +43,7 @@ public class ProgressServiceImpl implements ProgressService {
     private final Tracer tracer;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ProgressDetailResponse getProgress(
             ZoneId zoneId,
             ProgressFilter filter
@@ -51,7 +52,7 @@ public class ProgressServiceImpl implements ProgressService {
 
         Instant start = ProgressTimeFrameHelper.getAuditStartInstant(zoneId);
 
-        Sport sport = sportCacheService.findSportById(filter.getSportId());
+        Sport sport = Common.findSportById(filter.getSportId(), sportRepository);
 
         //Get shared progresses for all time frames
         List<Progress> progresses =
@@ -209,7 +210,7 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public SimpleListResponse<ProgressResponse> getProgress(
             ZoneId zoneId
     ) {
@@ -293,6 +294,7 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public GetProgressActivityResponse getProgressActivity(
             GetProgressActivityRequest request
     ) {

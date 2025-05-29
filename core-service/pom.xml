@@ -33,7 +33,9 @@
         <spring-cloud.version>2024.0.1</spring-cloud.version>
         <loki.version>1.6.0</loki.version>
         <mapbox-geojson.version>5.8.0</mapbox-geojson.version>
-        <caffeine.version>3.2.0</caffeine.version>
+        <ehcache.version>3.9.9</ehcache.version>
+        <hibernate.jcache>7.0.0.Final</hibernate.jcache>
+        <cache-api.version>1.1.1</cache-api.version>
     </properties>
     <repositories>
         <repository>
@@ -139,14 +141,27 @@
             <version>${mapbox-geojson.version}</version>
         </dependency>
 
+        <!--Caching-->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context-support</artifactId>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>${ehcache.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-            <version>${caffeine.version}</version>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-jcache</artifactId>
+            <version>${hibernate.jcache}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>${cache-api.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.vladmihalcea</groupId>
+            <artifactId>hibernate-types-60</artifactId>
+            <version>2.21.1</version>
         </dependency>
 
         <dependency>

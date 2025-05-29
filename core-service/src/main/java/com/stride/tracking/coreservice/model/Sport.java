@@ -5,6 +5,8 @@ import com.stride.tracking.coreservice.utils.converter.list.concrete.RuleListCon
 import com.stride.tracking.dto.sport.SportMapType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
 @Entity(
         name = "sports"
 )
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class Sport extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)

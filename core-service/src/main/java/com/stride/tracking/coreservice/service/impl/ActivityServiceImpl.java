@@ -13,9 +13,7 @@ import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.model.*;
-import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
-import com.stride.tracking.coreservice.repository.GoalRepository;
-import com.stride.tracking.coreservice.repository.ProgressRepository;
+import com.stride.tracking.coreservice.repository.*;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import com.stride.tracking.coreservice.model.Activity;
@@ -25,7 +23,6 @@ import com.stride.tracking.coreservice.utils.*;
 import com.stride.tracking.dto.activity.request.*;
 import com.stride.tracking.dto.activity.response.ActivityResponse;
 import com.stride.tracking.dto.activity.response.ActivityShortResponse;
-import com.stride.tracking.coreservice.repository.ActivityRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
@@ -72,7 +69,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final GoalHistoryRepository goalHistoryRepository;
     private final ProgressRepository progressRepository;
 
-    private final SportCacheService sportCacheService;
+    private final SportRepository sportRepository;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
@@ -96,7 +93,7 @@ public class ActivityServiceImpl implements ActivityService {
     private static final int THRESHOLD_METERS = 10;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
             AppPageRequest page) {
         UserResponse userResponse = profileService.viewProfile();
@@ -155,7 +152,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        Sport sport = sportCacheService.findSportById(request.getSportId());
+        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
         UserResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
@@ -579,7 +576,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getSportId() != null) {
             UserResponse user = profileService.viewProfile();
 
-            Sport sport = sportCacheService.findSportById(request.getSportId());
+            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
 
             addCaloriesInfo(
                     activity,

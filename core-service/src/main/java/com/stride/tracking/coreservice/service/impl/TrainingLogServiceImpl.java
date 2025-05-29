@@ -30,7 +30,7 @@ public class TrainingLogServiceImpl implements TrainingLogService {
     private final TrainingLogMapper trainingLogMapper;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata> getTrainingLogs(
             TrainingLogFilter filter,
             ZoneId zoneId

@@ -10,6 +10,18 @@ public class Common {
     private Common() {
     }
 
+    public static Category findCategoryById(String categoryId, CategoryRepository categoryRepository) {
+        return categoryRepository.findById(categoryId).orElseThrow(
+                () -> new StrideException(HttpStatus.BAD_REQUEST, Message.CATEGORY_NOT_FOUND)
+        );
+    }
+
+    public static Sport findSportById(String sportId, SportRepository sportRepository) {
+        return sportRepository.findById(sportId).orElseThrow(
+                () -> new StrideException(HttpStatus.BAD_REQUEST, Message.SPORT_NOT_FOUND)
+        );
+    }
+
     public static Activity findActivityById(String activityId, ActivityRepository activityRepository) {
         return activityRepository.findById(activityId).orElseThrow(
                 () -> new StrideException(HttpStatus.BAD_REQUEST, Message.ACTIVITY_NOT_FOUND)

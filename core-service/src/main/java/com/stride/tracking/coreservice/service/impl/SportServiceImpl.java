@@ -6,12 +6,12 @@ import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.coreservice.constant.CacheName;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
+import com.stride.tracking.coreservice.repository.CategoryRepository;
 import com.stride.tracking.dto.sport.request.CreateSportRequest;
 import com.stride.tracking.dto.sport.request.RuleRequest;
 import com.stride.tracking.dto.sport.request.SportFilter;
@@ -23,7 +23,6 @@ import com.stride.tracking.coreservice.service.SportService;
 import com.stride.tracking.coreservice.utils.validator.CaloriesExpressionValidator;
 import com.stride.tracking.dto.sport.response.SportShortResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,13 +39,12 @@ import java.util.List;
 public class SportServiceImpl implements SportService {
     private final SportRepository sportRepository;
 
-    private final CategoryCacheService categoryCacheService;
-    private final SportCacheService sportCacheService;
+    private final CategoryRepository categoryRepository;
 
     private final SportMapper sportMapper;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ListResponse<SportResponse, SportFilter> getSports(AppPageRequest page, SportFilter filter) {
         Pageable pageable = PageRequest.of(
                 page.getPage() - 1,
@@ -87,7 +85,7 @@ public class SportServiceImpl implements SportService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public SimpleListResponse<SportShortResponse> getSports() {
         List<Sport> sports = sportRepository.findAll();
 
@@ -105,7 +103,7 @@ public class SportServiceImpl implements SportService {
     public SportResponse createSport(CreateSportRequest request) {
         validateRules(request.getRules());
 
-        Category category = categoryCacheService.findById(request.getCategoryId());
+        Category category = Common.findCategoryById(request.getCategoryId(), categoryRepository);
 
         Sport sport = sportMapper.mapToModel(request, category);
 
@@ -124,9 +122,8 @@ public class SportServiceImpl implements SportService {
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheName.SPORT_BY_ID, key = "#sportId")
     public void updateSport(String sportId, UpdateSportRequest request) {
-        Sport sport = sportCacheService.findSportById(sportId);
+        Sport sport = Common.findSportById(sportId, sportRepository);
 
         if (request.getRules() != null) {
             validateRules(request.getRules());
@@ -136,7 +133,7 @@ public class SportServiceImpl implements SportService {
         }
 
         if (request.getCategoryId() != null) {
-            Category category = categoryCacheService.findById(request.getCategoryId());
+            Category category = Common.findCategoryById(request.getCategoryId(), categoryRepository);
             sport.setCategory(category);
         }
 
@@ -149,9 +146,8 @@ public class SportServiceImpl implements SportService {
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheName.SPORT_BY_ID, key = "#sportId")
     public void deleteSport(String sportId) {
-        Sport sport = sportCacheService.findSportById(sportId);
+        Sport sport = Common.findSportById(sportId, sportRepository);
 
         sportRepository.delete(sport);
     }
