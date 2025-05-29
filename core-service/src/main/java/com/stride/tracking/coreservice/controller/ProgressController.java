@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
+import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.coreservice.service.ProgressService;
@@ -25,6 +26,7 @@ public class ProgressController {
     private final ProgressService progressService;
 
     @GetMapping("/profile")
+    @PreAuthorizeUser
     ResponseEntity<SimpleListResponse<ProgressResponse>> getProgress(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
     ) {
@@ -34,6 +36,7 @@ public class ProgressController {
     }
 
     @GetMapping("/profile/detail")
+    @PreAuthorizeUser
     ResponseEntity<ProgressDetailResponse> getProgress(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid ProgressFilter filter
@@ -44,6 +47,7 @@ public class ProgressController {
     }
 
     @GetMapping("/profile/detail/activities")
+    @PreAuthorizeUser
     ResponseEntity<GetProgressActivityResponse> getProgressActivity(
             @Valid GetProgressActivityRequest request
     ) {

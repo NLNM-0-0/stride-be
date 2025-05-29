@@ -9,12 +9,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.security.PermitAll;
+
 @Component
 @RequiredArgsConstructor
 public class NotificationKafkaController {
     private final MailService mailService;
 
     @KafkaListener(topics = KafkaTopics.NOTIFICATION_TOPIC)
+    @PermitAll
     public void listenNotificationDelivery(SendEmailEvent message) {
         mailService.sendNotification(SendEmailRequest.builder()
                 .to(Recipient.builder()
