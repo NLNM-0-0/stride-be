@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.repository;
 
+import com.stride.tracking.coreservice.dto.progress.FindMinAndMaxCreatedAtByUserIdResult;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -54,9 +55,11 @@ public interface ProgressRepository extends JpaRepository<Progress, String>, Jpa
     List<Sport> findDistinctSportsSinceNative(@Param("fromDate") Instant fromDate);
 
     @Query("""
-                SELECT MIN(p.createdAt), MAX(p.createdAt)
-                FROM progress p
-                WHERE p.userId = :userId
-            """)
-    Object[] findMinAndMaxCreatedAtByUserId(@Param("userId") String userId);
+        SELECT new com.stride.tracking.coreservice.dto.progress.FindMinAndMaxCreatedAtByUserIdResult(
+            MIN(p.createdAt), MAX(p.createdAt)
+        )
+        FROM progress p
+        WHERE p.userId = :userId
+    """)
+    FindMinAndMaxCreatedAtByUserIdResult findMinAndMaxCreatedAtByUserId(@Param("userId") String userId);
 }
