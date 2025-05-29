@@ -2,6 +2,7 @@ package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.utils.SecurityUtils;
+import com.stride.tracking.commons.utils.TaskHelper;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Progress;
 import com.stride.tracking.coreservice.model.Sport;
@@ -14,6 +15,8 @@ import com.stride.tracking.dto.progress.request.GetProgressActivityRequest;
 import com.stride.tracking.dto.progress.request.ProgressFilter;
 import com.stride.tracking.dto.progress.response.*;
 import com.stride.tracking.dto.sport.response.SportShortResponse;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,7 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,9 @@ public class ProgressServiceImpl implements ProgressService {
     private final SportCacheService sportCacheService;
 
     private final SportMapper sportMapper;
+
+    private final Executor asyncExecutor;
+    private final Tracer tracer;
 
     @Override
     @Transactional
@@ -57,17 +64,18 @@ public class ProgressServiceImpl implements ProgressService {
         Map<ProgressTimeFrame, List<ProgressBySportResponse>> progressesByTimeFrame = new ConcurrentHashMap<>();
         AtomicReference<List<SportShortResponse>> availableSportsRef = new AtomicReference<>();
 
+        Span parent = tracer.currentSpan();
         List<CompletableFuture<Void>> futures = List.of(
-                CompletableFuture.runAsync(() -> {
+                runAsyncWithSpan("process-time-frame-for-YTD-and-1Y", parent, () -> {
                     processTimeFrame(ProgressTimeFrame.YEAR, progresses, zoneId, progressesByTimeFrame);
                     processTimeFrame(ProgressTimeFrame.YEAR_TO_DATE, progresses, zoneId, progressesByTimeFrame);
                 }),
-                CompletableFuture.runAsync(() -> {
+                runAsyncWithSpan("process-time-frame-for-3M-and-1M-and-7D", parent, () -> {
                     processTimeFrame(ProgressTimeFrame.THREE_MONTHS, progresses, zoneId, progressesByTimeFrame);
                     processTimeFrame(ProgressTimeFrame.MONTH, progresses, zoneId, progressesByTimeFrame);
                     processTimeFrame(ProgressTimeFrame.WEEK, progresses, zoneId, progressesByTimeFrame);
                 }),
-                CompletableFuture.runAsync(() -> {
+                runAsyncWithSpan("process-time-frame-for-6M-and-build-available-sports", parent, () -> {
                     processTimeFrame(ProgressTimeFrame.SIX_MONTHS, progresses, zoneId, progressesByTimeFrame);
 
                     buildAvailableSport(start, availableSportsRef);
@@ -84,6 +92,17 @@ public class ProgressServiceImpl implements ProgressService {
                 .progresses(progressesByTimeFrame)
                 .build();
     }
+
+    private CompletableFuture<Void> runAsyncWithSpan(String spanName, Span parent, Runnable task) {
+        return TaskHelper.runAsyncWithSpan(
+                spanName,
+                parent,
+                task,
+                asyncExecutor,
+                tracer
+        );
+    }
+
 
     private void processTimeFrame(
             ProgressTimeFrame timeFrame,
@@ -178,7 +197,7 @@ public class ProgressServiceImpl implements ProgressService {
     private void buildAvailableSport(
             Instant start,
             AtomicReference<List<SportShortResponse>> availableSportsRef
-    ){
+    ) {
         List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(start);
 
         List<SportShortResponse> responses = availableSport.stream()

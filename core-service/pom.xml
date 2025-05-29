@@ -29,7 +29,8 @@
     <properties>
         <java.version>17</java.version>
         <stride-dto.version>0.0.116-SNAPSHOT</stride-dto.version>
-        <stride-common.version>0.0.39-SNAPSHOT</stride-common.version>
+        <stride-common.version>0.0.41-SNAPSHOT</stride-common.version>
+        <spring-cloud.version>2024.0.1</spring-cloud.version>
         <loki.version>1.6.0</loki.version>
         <mapbox-geojson.version>5.8.0</mapbox-geojson.version>
         <caffeine.version>3.2.0</caffeine.version>
@@ -95,6 +96,16 @@
             <optional>true</optional>
         </dependency>
 
+        <!--Feign Client-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-micrometer</artifactId>
+        </dependency>
+
         <!--Logging-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -144,7 +155,17 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <build>
         <plugins>
             <plugin>

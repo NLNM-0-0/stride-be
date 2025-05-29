@@ -1,5 +1,6 @@
 package com.stride.tracking.bridgeservice.client;
 
+import com.stride.tracking.commons.configuration.task.AsyncConfig;
 import com.stride.tracking.dto.email.request.EmailRequest;
 import com.stride.tracking.dto.email.request.Recipient;
 import jakarta.mail.*;
@@ -23,7 +24,7 @@ public class MailSender {
     @Value("${mail.gmail.password}")
     private String GMAIL_PASSWORD;
 
-    @Async("asyncExecutor")
+    @Async(AsyncConfig.EXECUTOR)
     public void sendMail(EmailRequest request) {
         log.info(
                 "[sendMail] Preparing to send email to: {}",
