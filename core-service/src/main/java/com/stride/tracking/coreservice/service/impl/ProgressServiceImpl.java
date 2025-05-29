@@ -322,6 +322,7 @@ public class ProgressServiceImpl implements ProgressService {
                     .time(progress.getTime())
                     .mapImage(progress.getActivity().getMapImage())
                     .name(progress.getActivity().getName())
+                    .createdAt(DateUtils.toDate(progress.getCreatedAt()))
                     .build());
         }
 
