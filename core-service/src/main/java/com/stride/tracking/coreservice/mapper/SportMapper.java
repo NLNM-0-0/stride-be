@@ -54,6 +54,7 @@ public class SportMapper {
         return SportShortResponse.builder()
                 .id(sport.getId())
                 .name(sport.getName())
+                .category(sport.getCategory().getName())
                 .image(sport.getImage())
                 .color(sport.getColor())
                 .sportMapType(sport.getSportMapType())

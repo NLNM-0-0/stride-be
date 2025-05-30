@@ -28,7 +28,7 @@
     </scm>
     <properties>
         <java.version>17</java.version>
-        <stride-dto.version>0.0.119-SNAPSHOT</stride-dto.version>
+        <stride-dto.version>0.0.122-SNAPSHOT</stride-dto.version>
         <stride-common.version>0.0.44-SNAPSHOT</stride-common.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
         <loki.version>1.6.0</loki.version>
