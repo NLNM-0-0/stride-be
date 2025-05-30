@@ -19,6 +19,7 @@ import java.util.List;
 public class Activity extends BaseEntity {
     private static final String USER_ID_KEY = "user_id";
     private static final String SPORT_ID_KEY = "sport_id";
+    private static final String ROUTE_ID = "route_id";
     private static final String ACTIVITY_ID_KEY = "activity_id";
     private static final String GOAL_HISTORY_ID_KEY = "goal_history_id";
 
@@ -28,9 +29,12 @@ public class Activity extends BaseEntity {
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = SPORT_ID_KEY, nullable = false)
+    @JoinColumn(name = SPORT_ID_KEY, insertable = false, updatable = false)
     private Sport sport;
+    @Column(name = SPORT_ID_KEY)
+    private String sportId;
 
+    @Column(name = ROUTE_ID)
     private String routeId;
 
     private String name;

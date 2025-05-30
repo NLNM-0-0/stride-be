@@ -44,6 +44,8 @@ import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.dto.user.response.UserResponse;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -73,7 +75,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
-    private final RouteService routeService;
+    private final RouteServiceImpl routeServiceImpl;
     private final ProfileService profileService;
     private final ElevationService elevationService;
 
@@ -87,6 +89,9 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final Executor asyncExecutor;
     private final Tracer tracer;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final double RDP_EPSILON = 0.00005;
     private static final int NUMBER_CHART_POINTS = 100;
@@ -152,7 +157,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+        Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
         UserResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
@@ -163,6 +168,7 @@ public class ActivityServiceImpl implements ActivityService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
+                .sportId(sport.getId())
                 .movingTimeSeconds(request.getMovingTimeSeconds())
                 .elapsedTimeSeconds(request.getElapsedTimeSeconds())
                 .rpe(request.getRpe())
@@ -217,19 +223,19 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void mergeStartEndPoint(CreateActivityRequest request) {
-        double[] start = request.getCoordinates()
+        List<Double> start = request.getCoordinates()
                 .get(0)
                 .getCoordinate();
-        double[] end = request.getCoordinates()
+        List<Double> end = request.getCoordinates()
                 .get(request.getCoordinates().size() - 1)
                 .getCoordinate();
 
-        double distance = GeometryUtils.distanceToPoint(start[1], start[0], end[1], end[0]);
+        double distance = GeometryUtils.distanceToPoint(start.get(1), start.get(0), end.get(1), end.get(0));
 
         if (distance <= THRESHOLD_METERS) {
             request.getCoordinates()
                     .get(request.getCoordinates().size() - 1)
-                    .setCoordinate(new double[]{start[0], start[1]});
+                    .setCoordinate(List.of(start.get(0), start.get(1)));
         }
     }
 
@@ -268,7 +274,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addGeometryAndMap(Activity activity, List<CoordinateRequest> rawCoordinates) {
-        List<double[]> coordinates = rawCoordinates.stream()
+        List<List<Double>> coordinates = rawCoordinates.stream()
                 .map(CoordinateRequest::getCoordinate)
                 .toList();
 
@@ -276,13 +282,13 @@ public class ActivityServiceImpl implements ActivityService {
         addMapImage(activity, coordinates);
     }
 
-    private void addGeometry(Activity activity, List<double[]> coordinates) {
+    private void addGeometry(Activity activity, List<List<Double>> coordinates) {
         String encodedCoordinate = StridePolylineUtils.encode(coordinates);
         activity.setGeometry(encodedCoordinate);
     }
 
-    private void addMapImage(Activity activity, List<double[]> coordinates) {
-        List<double[]> smoothCoordinates = RamerDouglasPeucker.handle(
+    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
+        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.handle(
                 coordinates,
                 RDP_EPSILON
         );
@@ -302,7 +308,7 @@ public class ActivityServiceImpl implements ActivityService {
     ) {
         List<CoordinateRequest> sampled = ListUtils.minimized(rawCoordinates, NUMBER_CHART_POINTS);
 
-        List<double[]> minimizedCoordinates = sampled.stream()
+        List<List<Double>> minimizedCoordinates = sampled.stream()
                 .map(CoordinateRequest::getCoordinate)
                 .toList();
 
@@ -352,7 +358,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     private void addSpeedInfo(
             Activity activity,
-            List<double[]> coordinates,
+            List<List<Double>> coordinates,
             List<Long> timestamps,
             Long movingTimeSeconds,
             UserResponse user
@@ -423,7 +429,7 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
-    private void addElevationInfo(Activity activity, List<double[]> coordinates) {
+    private void addElevationInfo(Activity activity, List<List<Double>> coordinates) {
         List<Integer> elevations = elevationService.calculateElevations(coordinates);
 
         ElevationCalculatorResult elevationResult = elevationCalculator.calculate(elevations);
@@ -432,7 +438,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxElevation(elevationResult.maxElevation());
     }
 
-    private void addLocation(Activity activity, List<double[]> coordinates) {
+    private void addLocation(Activity activity, List<List<Double>> coordinates) {
         GetLocationByGeometryResponse locationResponse = supabaseService.getLocationByGeometry(
                 GetLocationByGeometryRequest.builder()
                         .geometry(GeometryRequest.builder()
@@ -540,21 +546,21 @@ public class ActivityServiceImpl implements ActivityService {
 
     private void processRoute(Activity activity) {
         if (activity.getRouteId() != null) {
-            routeService.updateRoute(
+            routeServiceImpl.updateRoute(
                     activity.getRouteId(),
                     UpdateRouteRequest.builder()
                             .activityId(activity.getId())
                             .images(activity.getImages())
-                            .avgTime(activity.getMovingTimeSeconds())
+                            .avgTime(Double.valueOf(activity.getMovingTimeSeconds()))
                             .avgDistance(activity.getTotalDistance())
                             .build()
             );
         } else {
-            CreateRouteResponse routeResponse = routeService.createRoute(
+            CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
                     CreateRouteRequest.builder()
                             .sportId(activity.getSport().getId())
                             .activityId(activity.getId())
-                            .sportMapType(activity.getSport().getSportMapType().name())
+                            .sportMapType(activity.getSport().getSportMapType())
                             .images(activity.getImages())
                             .avgTime(activity.getMovingTimeSeconds().doubleValue())
                             .avgDistance(activity.getTotalDistance())
@@ -576,7 +582,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getSportId() != null) {
             UserResponse user = profileService.viewProfile();
 
-            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+            Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
 
             addCaloriesInfo(
                     activity,
@@ -595,7 +601,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getImages() != null) {
             UpdateHelper.updateIfNotNull(request.getImages(), activity::setImages);
             if (activity.getRouteId() != null) {
-                routeService.updateRoute(
+                routeServiceImpl.updateRoute(
                         activity.getRouteId(),
                         UpdateRouteRequest.builder()
                                 .activityId(activity.getId())

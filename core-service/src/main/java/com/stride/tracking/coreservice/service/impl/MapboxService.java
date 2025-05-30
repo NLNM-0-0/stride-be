@@ -1,96 +1,202 @@
-    package com.stride.tracking.coreservice.service.impl;
+package com.stride.tracking.coreservice.service.impl;
 
-    import com.stride.tracking.commons.exception.StrideException;
-    import com.stride.tracking.coreservice.client.BridgeFeignClient;
-    import com.stride.tracking.coreservice.client.MapboxFeignClient;
-    import com.stride.tracking.coreservice.constant.Message;
-    import com.stride.tracking.dto.file.response.FileLinkResponse;
-    import lombok.RequiredArgsConstructor;
-    import lombok.extern.slf4j.Slf4j;
-    import org.springframework.beans.factory.annotation.Value;
-    import org.springframework.http.HttpStatus;
-    import org.springframework.http.ResponseEntity;
-    import org.springframework.stereotype.Service;
+import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.coreservice.client.BridgeFeignClient;
+import com.stride.tracking.coreservice.client.MapboxFeignClient;
+import com.stride.tracking.coreservice.constant.Message;
+import com.stride.tracking.coreservice.utils.JsonHelper;
+import com.stride.tracking.dto.file.response.FileLinkResponse;
+import com.stride.tracking.dto.mapbox.response.MapboxDirectionResponse;
+import com.stride.tracking.dto.mapbox.response.MapboxWayPoint;
+import com.stride.tracking.dto.sport.SportMapType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
-    @Service
-    @RequiredArgsConstructor
-    @Slf4j
-    public class MapboxService {
-        private final MapboxFeignClient mapboxClient;
-        private final BridgeFeignClient bridgeClient;
+import java.util.*;
+import java.util.stream.Collectors;
 
-        @Value("${mapbox.style}")
-        private String defaultStyle;
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class MapboxService {
+    private final MapboxFeignClient mapboxClient;
+    private final BridgeFeignClient bridgeClient;
 
-        @Value("${mapbox.stroke-width}")
-        private int defaultStrokeWidth;
+    @Value("${mapbox.access-token}")
+    private String accessToken;
 
-        @Value("${mapbox.stroke-color}")
-        private String defaultStrokeColor;
+    @Value("${mapbox.static-image.style}")
+    private String staticImageDefaultStyle;
 
-        @Value("${mapbox.stroke-fill}")
-        private String defaultStrokeFill;
+    @Value("${mapbox.static-image.stroke-width}")
+    private int staticImageDefaultStrokeWidth;
 
-        @Value("${mapbox.width}")
-        private int defaultWidth;
+    @Value("${mapbox.static-image.stroke-color}")
+    private String staticImageDefaultStrokeColor;
 
-        @Value("${mapbox.height}")
-        private int defaultHeight;
+    @Value("${mapbox.static-image.stroke-fill}")
+    private String staticImageDefaultStrokeFill;
 
-        @Value("${mapbox.padding}")
-        private int defaultPadding;
+    @Value("${mapbox.static-image.width}")
+    private int staticImageDefaultWidth;
 
-        @Value("${mapbox.access-token}")
-        private String accessToken;
+    @Value("${mapbox.static-image.height}")
+    private int staticImageDefaultHeight;
 
-        @Value("${mapbox.content-type}")
-        private String contentType;
+    @Value("${mapbox.static-image.padding}")
+    private int staticImageDefaultPadding;
 
-        public String generateAndUpload(String path, String fileName) {
-            byte[] imageData = generateImage(path);
+    @Value("${mapbox.static-image.content-type}")
+    private String staticImageContentType;
 
-            return uploadFile(imageData, fileName);
+    @Value("${mapbox.directions.alternatives}")
+    private String directionsAlternatives;
+
+    @Value("${mapbox.directions.geometries}")
+    private String directionsGeometries;
+
+    @Value("${mapbox.directions.overview}")
+    private String directionsOverview;
+
+    @Value("${mapbox.directions.steps}")
+    private String directionsSteps;
+
+    @Value("${mapbox.directions.continue_straight}")
+    private String directionsContinueStraight;
+
+    public MapboxDirectionResponse getBatchRoute(List<List<Double>> coordinates, SportMapType mapType) {
+        int maxCoordsPerRequest = 25;
+        List<List<List<Double>>> chunks = new ArrayList<>();
+
+        for (int i = 0; i < coordinates.size(); i += maxCoordsPerRequest) {
+            int end = Math.min(i + maxCoordsPerRequest, coordinates.size());
+            chunks.add(coordinates.subList(i, end));
         }
 
-        private byte[] generateImage(String path) {
-            return generateImage(
-                    path,
-                    defaultStyle,
-                    defaultStrokeWidth,
-                    defaultStrokeColor,
-                    defaultStrokeFill,
-                    defaultWidth,
-                    defaultHeight,
-                    defaultPadding
-            );
+        List<List<Double>> allCoordinates = new ArrayList<>();
+        List<MapboxWayPoint> allWaypoints = new ArrayList<>();
+
+        for (List<List<Double>> chunk : chunks) {
+            MapboxDirectionResponse response = getRoute(chunk, mapType);
+            allCoordinates.addAll(response.getCoordinates());
+            allWaypoints.addAll(response.getWayPoints());
         }
 
-        private byte[] generateImage(
-                String path,
-                String style,
-                int strokeWidth,
-                String strokeColor,
-                String strokeFill,
-                int width,
-                int height,
-                int padding
-        ) {
-            ResponseEntity<byte[]> response = mapboxClient.getStaticMapImage(
-                    style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
-            );
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                log.error("[getMapImage] Failed to get map image for path: {}", path);
-                throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.GENERATE_IMAGE_FAILED);
-            }
-            return response.getBody();
+        Map<String, MapboxWayPoint> waypointMap = new HashMap<>();
+        for (MapboxWayPoint wp : allWaypoints) {
+            String key = wp.getName().toLowerCase();
+
+            waypointMap.compute(key, (k, v) -> {
+                if (v == null) {
+                    return MapboxWayPoint.builder()
+                            .latitude(wp.getLatitude())
+                            .longitude(wp.getLongitude())
+                            .name(wp.getName())
+                            .freq(wp.getFreq())
+                            .build();
+                }
+                v.setFreq(v.getFreq() + wp.getFreq());
+                return v;
+            });
         }
 
-        private String uploadFile(byte[] data, String name) {
-            ResponseEntity<FileLinkResponse> response = bridgeClient.uploadRawFile(data, name, contentType);
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                log.error("[uploadFile] Failed to upload path image");
-                throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.UPLOAD_IMAGE_FAILED);
-            }
-            return response.getBody().getFile();
-        }
+        List<MapboxWayPoint> mergedWaypoints = new ArrayList<>(waypointMap.values());
+        return new MapboxDirectionResponse(allCoordinates, mergedWaypoints);
     }
+
+    public MapboxDirectionResponse getRoute(List<List<Double>> coordinates, SportMapType mapType) {
+        String encodedCoords = coordinates.stream()
+                .map(coordinate -> String.format("%s,%s", coordinate.get(0), coordinate.get(1)))
+                .collect(Collectors.joining(";"));
+
+        Map<String, Object> response = mapboxClient.getDirections(
+                mapType.name().toLowerCase(), encodedCoords, accessToken,
+                directionsAlternatives, directionsGeometries, directionsOverview,
+                directionsSteps, directionsContinueStraight
+        );
+
+        List<List<Double>> coords = (List<List<Double>>) JsonHelper.getNestedValue(response, "routes", "0", "geometry", "coordinates");
+        List<Map<String, Object>> rawWps = (List<Map<String, Object>>) response.getOrDefault("waypoints", new ArrayList<>());
+
+        Map<String, MapboxWayPoint> counter = new HashMap<>();
+        for (Map<String, Object> wp : rawWps) {
+            String name = (String) wp.get("name");
+            if (name == null || name.isEmpty()) {
+                continue;
+            }
+
+            if (counter.containsKey(name)) {
+                MapboxWayPoint mapboxWayPoint = counter.get(name);
+                mapboxWayPoint.setFreq(mapboxWayPoint.getFreq() + 1);
+            } else {
+                counter.put(
+                        name,
+                        MapboxWayPoint.builder()
+                                .name(name)
+                                .latitude((Double) JsonHelper.getNestedValue(wp, "location", "1"))
+                                .longitude((Double) JsonHelper.getNestedValue(wp, "location", "0"))
+                                .freq(1)
+                                .build()
+                );
+            }
+        }
+
+        List<MapboxWayPoint> waypoints = new ArrayList<>(counter.values());
+
+        waypoints.sort(Comparator.comparingInt(MapboxWayPoint::getFreq).reversed());
+
+        return new MapboxDirectionResponse(coords, waypoints);
+    }
+
+    public String generateAndUpload(String path, String fileName) {
+        byte[] imageData = generateImage(path);
+
+        return uploadFile(imageData, fileName);
+    }
+
+    private byte[] generateImage(String path) {
+        return generateImage(
+                path,
+                staticImageDefaultStyle,
+                staticImageDefaultStrokeWidth,
+                staticImageDefaultStrokeColor,
+                staticImageDefaultStrokeFill,
+                staticImageDefaultWidth,
+                staticImageDefaultHeight,
+                staticImageDefaultPadding
+        );
+    }
+
+    private byte[] generateImage(
+            String path,
+            String style,
+            int strokeWidth,
+            String strokeColor,
+            String strokeFill,
+            int width,
+            int height,
+            int padding
+    ) {
+        ResponseEntity<byte[]> response = mapboxClient.getStaticMapImage(
+                style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
+        );
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            log.error("[getMapImage] Failed to get map image for path: {}", path);
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.GENERATE_IMAGE_FAILED);
+        }
+        return response.getBody();
+    }
+
+    private String uploadFile(byte[] data, String name) {
+        ResponseEntity<FileLinkResponse> response = bridgeClient.uploadRawFile(data, name, staticImageContentType);
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            log.error("[uploadFile] Failed to upload path image");
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.UPLOAD_IMAGE_FAILED);
+        }
+        return response.getBody().getFile();
+    }
+}

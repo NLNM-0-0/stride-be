@@ -20,11 +20,11 @@ import java.util.List;
 public class ElevationService {
     private final OpenElevationFeignClient elevationClient;
 
-    public List<Integer> calculateElevations(List<double[]> coordinates) {
+    public List<Integer> calculateElevations(List<List<Double>> coordinates) {
         List<LocationRequest> locationRequests = coordinates.stream()
                 .map(coordinate -> {
-                    Double longitude = coordinate[0];
-                    Double latitude = coordinate[1];
+                    Double longitude = coordinate.get(0);
+                    Double latitude = coordinate.get(1);
                     return LocationRequest.builder()
                             .longitude(longitude)
                             .latitude(latitude)
