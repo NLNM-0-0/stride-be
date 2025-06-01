@@ -31,10 +31,11 @@
         <java.version>17</java.version>
         <postgresql.version>42.7.5</postgresql.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
-        <stride-dto.version>0.0.134-SNAPSHOT</stride-dto.version>
-        <stride-common.version>0.0.44-SNAPSHOT</stride-common.version>
+        <stride-dto.version>0.0.159-SNAPSHOT</stride-dto.version>
+        <stride-common.version>0.0.47-SNAPSHOT</stride-common.version>
         <feign.version>13.6</feign.version>
         <loki.version>1.6.0</loki.version>
+        <caffeine.version>3.2.0</caffeine.version>
     </properties>
     <repositories>
         <repository>
@@ -50,6 +51,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.stride.tracking</groupId>
+            <artifactId>core-dto</artifactId>
+            <version>${stride-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>com.stride.tracking</groupId>
@@ -91,6 +97,16 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!--Feign Client-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-micrometer</artifactId>
+        </dependency>
+
         <!--Logging-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -116,6 +132,12 @@
             <groupId>com.github.loki4j</groupId>
             <artifactId>loki-logback-appender</artifactId>
             <version>${loki.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
         </dependency>
 
         <dependency>

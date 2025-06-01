@@ -1,4 +1,4 @@
-package com.stride.tracking.coreservice.constant;
+package com.stride.tracking.metricservice.constant;
 
 public class SportColorConst {
     private SportColorConst() {

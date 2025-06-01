@@ -42,7 +42,10 @@ public class ActivityMetric {
 
     private String userId;
     private String sportId;
+    private String name;
+    private String mapImage;
     private long movingTimeSeconds;
-    private int elevationGain;
+    private long elevationGain;
+    private long distance;
     private String location;
 }
