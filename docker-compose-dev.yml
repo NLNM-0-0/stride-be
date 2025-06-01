@@ -28,7 +28,7 @@ services:
       timeout: 10s
       retries: 3
   postgres-db:
-    image: postgis/postgis:16-3.4
+    image: timescale/timescaledb-postgis:latest-pg13
     container_name: postgres-db
     environment:
       POSTGRES_USER: root

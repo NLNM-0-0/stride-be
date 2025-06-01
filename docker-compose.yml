@@ -149,7 +149,7 @@ services:
       retries: 3
 
   postgres-db:
-    image: postgres:16
+    image: timescale/timescaledb-postgis:latest-pg13
     container_name: postgres-db
     environment:
       POSTGRES_USER: root
