@@ -1,14 +1,14 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.bridge.dto.response.FileLinkResponse;
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.core.dto.mapbox.response.MapboxDirectionResponse;
+import com.stride.tracking.core.dto.mapbox.response.MapboxWayPoint;
+import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.coreservice.client.BridgeFeignClient;
 import com.stride.tracking.coreservice.client.MapboxFeignClient;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.utils.JsonHelper;
-import com.stride.tracking.dto.file.response.FileLinkResponse;
-import com.stride.tracking.dto.mapbox.response.MapboxDirectionResponse;
-import com.stride.tracking.dto.mapbox.response.MapboxWayPoint;
-import com.stride.tracking.dto.sport.SportMapType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

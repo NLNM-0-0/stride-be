@@ -1,11 +1,10 @@
 package com.stride.tracking.coreservice.mapper;
 
+import com.stride.tracking.core.dto.activity.response.*;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.coreservice.model.Location;
-import com.stride.tracking.coreservice.utils.DateUtils;
-import com.stride.tracking.dto.activity.response.*;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

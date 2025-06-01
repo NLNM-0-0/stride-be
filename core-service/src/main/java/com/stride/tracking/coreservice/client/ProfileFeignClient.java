@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.client;
 
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

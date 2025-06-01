@@ -4,7 +4,7 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.coreservice.client.ProfileFeignClient;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;

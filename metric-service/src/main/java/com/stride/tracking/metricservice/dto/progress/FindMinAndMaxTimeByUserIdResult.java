@@ -1,4 +1,4 @@
-package com.stride.tracking.coreservice.dto.progress;
+package com.stride.tracking.metricservice.dto.progress;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FindMinAndMaxCreatedAtByUserIdResult {
+public class FindMinAndMaxTimeByUserIdResult {
     private Instant min;
     private Instant max;
 }

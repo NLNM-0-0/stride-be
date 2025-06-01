@@ -1,5 +1,10 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.bridge.dto.supabase.request.GeometryRequest;
+import com.stride.tracking.bridge.dto.supabase.request.GetLocationByGeometryRequest;
+import com.stride.tracking.bridge.dto.supabase.response.GetLocationByGeometryResponse;
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
@@ -7,6 +12,16 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.TaskHelper;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.core.dto.activity.request.ActivityFilter;
+import com.stride.tracking.core.dto.activity.request.CoordinateRequest;
+import com.stride.tracking.core.dto.activity.request.CreateActivityRequest;
+import com.stride.tracking.core.dto.activity.request.UpdateActivityRequest;
+import com.stride.tracking.core.dto.activity.response.ActivityResponse;
+import com.stride.tracking.core.dto.activity.response.ActivityShortResponse;
+import com.stride.tracking.core.dto.goal.GoalType;
+import com.stride.tracking.core.dto.route.request.CreateRouteRequest;
+import com.stride.tracking.core.dto.route.request.UpdateRouteRequest;
+import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
 import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RoundRules;
@@ -20,9 +35,6 @@ import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.utils.*;
-import com.stride.tracking.dto.activity.request.*;
-import com.stride.tracking.dto.activity.response.ActivityResponse;
-import com.stride.tracking.dto.activity.response.ActivityShortResponse;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
@@ -34,14 +46,9 @@ import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalcu
 import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalculatorResult;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorResult;
-import com.stride.tracking.dto.goal.GoalType;
-import com.stride.tracking.dto.route.request.CreateRouteRequest;
-import com.stride.tracking.dto.route.request.UpdateRouteRequest;
-import com.stride.tracking.dto.route.response.CreateRouteResponse;
-import com.stride.tracking.dto.supabase.request.GeometryRequest;
-import com.stride.tracking.dto.supabase.request.GetLocationByGeometryRequest;
-import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
+import com.stride.tracking.metric.dto.activity.event.ActivityDeletedEvent;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import jakarta.persistence.EntityManager;
@@ -69,7 +76,6 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
-    private final ProgressRepository progressRepository;
 
     private final SportRepository sportRepository;
 
@@ -86,6 +92,8 @@ public class ActivityServiceImpl implements ActivityService {
     private final CaloriesCalculator caloriesCalculator;
 
     private final ActivityMapper activityMapper;
+
+    private final KafkaProducer kafkaProducer;
 
     private final Executor asyncExecutor;
     private final Tracer tracer;
@@ -531,17 +539,19 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addProgress(Activity activity) {
-        Progress progress = Progress.builder()
-                .userId(activity.getUserId())
-                .activity(activity)
-                .sport(activity.getSport())
-                .activity(activity)
-                .distance((long) (activity.getTotalDistance() * 1000))
-                .time(activity.getMovingTimeSeconds())
-                .elevation(activity.getElevationGain())
-                .build();
-
-        progressRepository.save(progress);
+        kafkaProducer.send(
+                KafkaTopics.ACTIVITY_DELETED_TOPIC,
+                ActivityCreatedEvent.builder()
+                        .activityId(activity.getId())
+                        .userId(activity.getUserId())
+                        .sportId(activity.getSport().getId())
+                        .distance((long) (activity.getTotalDistance() * 1000))
+                        .movingTimeSeconds(activity.getMovingTimeSeconds())
+                        .elevationGain(activity.getElevationGain())
+                        .time(activity.getCreatedAt())
+                        .location(activity.getLocation().getDistrict())
+                        .build()
+        );
     }
 
     private void processRoute(Activity activity) {
@@ -641,6 +651,11 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void deleteProgress(Activity activity) {
-        progressRepository.deleteByActivity_Id(activity.getId());
+        kafkaProducer.send(
+                KafkaTopics.ACTIVITY_DELETED_TOPIC,
+                ActivityDeletedEvent.builder()
+                        .activityId(activity.getId())
+                        .build()
+        );
     }
 }

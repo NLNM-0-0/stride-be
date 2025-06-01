@@ -1,6 +1,6 @@
-package com.stride.tracking.coreservice.configuration;
+package com.stride.tracking.metricservice.configuration;
 
-import com.stride.tracking.coreservice.utils.converter.ProgressTimeFrameConverter;
+import com.stride.tracking.metricservice.utils.converter.ProgressTimeFrameConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;

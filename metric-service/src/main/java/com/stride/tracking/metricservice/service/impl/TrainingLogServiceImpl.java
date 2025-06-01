@@ -1,18 +1,18 @@
-package com.stride.tracking.coreservice.service.impl;
+package com.stride.tracking.metricservice.service.impl;
 
 import com.stride.tracking.commons.dto.ListWithMetadataResponse;
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.DateUtils;
 import com.stride.tracking.commons.utils.SecurityUtils;
-import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.coreservice.dto.progress.FindMinAndMaxCreatedAtByUserIdResult;
-import com.stride.tracking.coreservice.mapper.TrainingLogMapper;
-import com.stride.tracking.coreservice.model.Progress;
-import com.stride.tracking.coreservice.repository.ProgressRepository;
-import com.stride.tracking.coreservice.service.TrainingLogService;
-import com.stride.tracking.coreservice.utils.DateUtils;
-import com.stride.tracking.dto.traininglog.request.TrainingLogFilter;
-import com.stride.tracking.dto.traininglog.response.TrainingLogMetadata;
-import com.stride.tracking.dto.traininglog.response.TrainingLogResponse;
+import com.stride.tracking.metric.dto.traininglog.request.TrainingLogFilter;
+import com.stride.tracking.metric.dto.traininglog.response.TrainingLogMetadata;
+import com.stride.tracking.metric.dto.traininglog.response.TrainingLogResponse;
+import com.stride.tracking.metricservice.constant.Message;
+import com.stride.tracking.metricservice.dto.progress.FindMinAndMaxTimeByUserIdResult;
+import com.stride.tracking.metricservice.mapper.TrainingLogMapper;
+import com.stride.tracking.metricservice.model.ActivityMetric;
+import com.stride.tracking.metricservice.repository.ActivityMetricRepository;
+import com.stride.tracking.metricservice.service.TrainingLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,15 +25,15 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class TrainingLogServiceImpl implements TrainingLogService {
-    private final ProgressRepository progressRepository;
+    private final ActivityMetricRepository activityMetricRepository;
 
     private final TrainingLogMapper trainingLogMapper;
 
     @Override
     @Transactional(readOnly = true)
     public ListWithMetadataResponse<TrainingLogResponse, TrainingLogFilter, TrainingLogMetadata> getTrainingLogs(
-            TrainingLogFilter filter,
-            ZoneId zoneId
+            ZoneId zoneId,
+            TrainingLogFilter filter
     ) {
         initializeAndValidateFilter(filter, zoneId);
 
@@ -59,19 +59,19 @@ public class TrainingLogServiceImpl implements TrainingLogService {
             TrainingLogFilter filter,
             ZoneId zoneId
     ) {
-        Map<Date, List<Progress>> dates = new HashMap<>();
+        Map<Date, List<ActivityMetric>> dates = new HashMap<>();
 
-        List<Progress> progresses = findProgress(filter);
+        List<ActivityMetric> progresses = findProgress(filter);
 
-        for (Progress progress : progresses) {
-            Date date = DateUtils.toStartDate(progress.getCreatedAt(), zoneId);
+        for (ActivityMetric progress : progresses) {
+            Date date = DateUtils.toStartDate(progress.getTime(), zoneId);
 
             dates.computeIfAbsent(date, k -> new ArrayList<>())
                     .add(progress);
         }
 
         List<TrainingLogResponse> data = new ArrayList<>();
-        for (Map.Entry<Date, List<Progress>> entry : dates.entrySet()) {
+        for (Map.Entry<Date, List<ActivityMetric>> entry : dates.entrySet()) {
             TrainingLogResponse trainingLog = trainingLogMapper.mapToTrainingLogResponse(
                     entry.getValue(),
                     entry.getKey()
@@ -86,18 +86,18 @@ public class TrainingLogServiceImpl implements TrainingLogService {
                 .build();
     }
 
-    private List<Progress> findProgress(TrainingLogFilter filter) {
+    private List<ActivityMetric> findProgress(TrainingLogFilter filter) {
         Instant fromInstant = DateUtils.toInstant(filter.getFromDate());
         Instant toInstant = DateUtils.toInstant(filter.getToDate());
 
         return Optional.ofNullable(filter.getSportIds())
-                .map(sportIds -> progressRepository.findAllByUserIdAndSport_IdInAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+                .map(sportIds -> activityMetricRepository.findAllByUserIdAndSportIdInAndTimeGreaterThanEqualAndTimeLessThanEqual(
                         filter.getUserId(),
                         sportIds,
                         fromInstant,
                         toInstant
                 ))
-                .orElse(progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+                .orElse(activityMetricRepository.findAllByUserIdAndTimeGreaterThanEqualAndTimeLessThanEqual(
                         filter.getUserId(),
                         fromInstant,
                         toInstant
@@ -115,7 +115,7 @@ public class TrainingLogServiceImpl implements TrainingLogService {
         Optional<Instant> min = Optional.empty();
         Optional<Instant> max = Optional.empty();
         try {
-            FindMinAndMaxCreatedAtByUserIdResult result = progressRepository.findMinAndMaxCreatedAtByUserId(userId);
+            FindMinAndMaxTimeByUserIdResult result = activityMetricRepository.findMinAndMaxTimeByUserId(userId);
             min = Optional.of(result.getMin());
             max = Optional.of(result.getMax());
         } catch (Exception e) {

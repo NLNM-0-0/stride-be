@@ -1,11 +1,11 @@
 package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.core.dto.elevation.request.ElevationRequest;
+import com.stride.tracking.core.dto.elevation.request.LocationRequest;
+import com.stride.tracking.core.dto.elevation.response.ElevationResponse;
 import com.stride.tracking.coreservice.client.OpenElevationFeignClient;
 import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.dto.elevation.request.ElevationRequest;
-import com.stride.tracking.dto.elevation.request.LocationRequest;
-import com.stride.tracking.dto.elevation.response.ElevationResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;

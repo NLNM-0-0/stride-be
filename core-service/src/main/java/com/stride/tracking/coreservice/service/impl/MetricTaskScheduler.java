@@ -2,7 +2,6 @@ package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
-import com.stride.tracking.dto.route.event.ActivityMetricEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

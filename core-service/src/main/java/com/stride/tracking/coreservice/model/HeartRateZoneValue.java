@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.model;
 
-import com.stride.tracking.dto.user.HeartRateZone;
+import com.stride.tracking.profile.dto.user.HeartRateZone;
 import lombok.*;
 
 @Builder(toBuilder = true)

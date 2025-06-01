@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.client;
 
-import com.stride.tracking.dto.elevation.request.ElevationRequest;
-import com.stride.tracking.dto.elevation.response.ElevationResponse;
+import com.stride.tracking.core.dto.elevation.request.ElevationRequest;
+import com.stride.tracking.core.dto.elevation.response.ElevationResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

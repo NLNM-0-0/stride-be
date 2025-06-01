@@ -1,11 +1,13 @@
 package com.stride.tracking.coreservice.mapper;
 
+import com.stride.tracking.core.dto.sport.request.CreateSportRequest;
+import com.stride.tracking.core.dto.sport.request.RuleRequest;
+import com.stride.tracking.core.dto.sport.response.RuleResponse;
+import com.stride.tracking.core.dto.sport.response.SportResponse;
+import com.stride.tracking.core.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.dto.sport.request.CreateSportRequest;
-import com.stride.tracking.dto.sport.request.RuleRequest;
-import com.stride.tracking.dto.sport.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

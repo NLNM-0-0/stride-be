@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.utils;
 
-import com.stride.tracking.dto.mapbox.response.MapboxWayPoint;
+import com.stride.tracking.core.dto.mapbox.response.MapboxWayPoint;
 
 import java.util.List;
 import java.util.stream.Collectors;

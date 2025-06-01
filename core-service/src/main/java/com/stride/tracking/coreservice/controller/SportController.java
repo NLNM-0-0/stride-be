@@ -6,12 +6,13 @@ import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
-import com.stride.tracking.dto.sport.request.CreateSportRequest;
-import com.stride.tracking.dto.sport.request.SportFilter;
-import com.stride.tracking.dto.sport.request.UpdateSportRequest;
-import com.stride.tracking.dto.sport.response.SportResponse;
+import com.stride.tracking.core.dto.sport.request.CreateSportRequest;
+import com.stride.tracking.core.dto.sport.request.SportFilter;
+import com.stride.tracking.core.dto.sport.request.UpdateSportRequest;
+import com.stride.tracking.core.dto.sport.response.SportResponse;
+import com.stride.tracking.core.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.service.SportService;
-import com.stride.tracking.dto.sport.response.SportShortResponse;
+import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +34,7 @@ public class SportController {
     }
 
     @GetMapping("/all")
-    @PreAuthorizeUser
+    @PermitAll
     ResponseEntity<SimpleListResponse<SportShortResponse>> getSports() {
         return ResponseEntity.ok(sportService.getSports());
     }

@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.mapper;
 
-import com.stride.tracking.dto.route.response.LocationResponse;
-import com.stride.tracking.dto.route.response.RouteResponse;
+import com.stride.tracking.core.dto.route.response.LocationResponse;
+import com.stride.tracking.core.dto.route.response.RouteResponse;
 import com.stride.tracking.coreservice.model.Location;
 import com.stride.tracking.coreservice.model.Route;
 import com.stride.tracking.coreservice.utils.StridePolylineUtils;

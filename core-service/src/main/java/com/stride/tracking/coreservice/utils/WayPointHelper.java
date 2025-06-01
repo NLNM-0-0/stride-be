@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.utils;
 
-import com.stride.tracking.dto.sport.SportMapType;
-import com.stride.tracking.dto.supabase.response.WayPoint;
+import com.stride.tracking.core.dto.sport.SportMapType;
+import com.stride.tracking.core.dto.supabase.response.WayPoint;
 
 import java.util.ArrayList;
 import java.util.List;

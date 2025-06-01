@@ -1,6 +1,7 @@
-package com.stride.tracking.coreservice.utils;
+package com.stride.tracking.metricservice.utils;
 
-import com.stride.tracking.dto.progress.ProgressTimeFrame;
+import com.stride.tracking.commons.utils.DateUtils;
+import com.stride.tracking.metric.dto.progress.ProgressTimeFrame;
 
 import java.time.*;
 

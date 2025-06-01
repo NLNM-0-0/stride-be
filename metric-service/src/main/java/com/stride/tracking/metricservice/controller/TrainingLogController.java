@@ -1,12 +1,12 @@
-package com.stride.tracking.coreservice.controller;
+package com.stride.tracking.metricservice.controller;
 
 import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.constants.CustomHeaders;
 import com.stride.tracking.commons.dto.ListWithMetadataResponse;
-import com.stride.tracking.coreservice.service.TrainingLogService;
-import com.stride.tracking.dto.traininglog.request.TrainingLogFilter;
-import com.stride.tracking.dto.traininglog.response.TrainingLogMetadata;
-import com.stride.tracking.dto.traininglog.response.TrainingLogResponse;
+import com.stride.tracking.metric.dto.traininglog.request.TrainingLogFilter;
+import com.stride.tracking.metric.dto.traininglog.response.TrainingLogMetadata;
+import com.stride.tracking.metric.dto.traininglog.response.TrainingLogResponse;
+import com.stride.tracking.metricservice.service.TrainingLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +31,6 @@ public class TrainingLogController {
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
 
-        return ResponseEntity.ok(trainingLogService.getTrainingLogs(filter, zoneId));
+        return ResponseEntity.ok(trainingLogService.getTrainingLogs(zoneId, filter));
     }
 }

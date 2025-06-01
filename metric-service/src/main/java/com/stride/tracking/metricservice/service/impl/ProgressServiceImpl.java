@@ -1,28 +1,28 @@
-package com.stride.tracking.coreservice.service.impl;
+package com.stride.tracking.metricservice.service.impl;
 
 import com.stride.tracking.commons.dto.SimpleListResponse;
+import com.stride.tracking.commons.utils.DateUtils;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.TaskHelper;
-import com.stride.tracking.coreservice.mapper.SportMapper;
-import com.stride.tracking.coreservice.model.Progress;
-import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.repository.ProgressRepository;
-import com.stride.tracking.coreservice.repository.SportRepository;
-import com.stride.tracking.coreservice.service.ProgressService;
-import com.stride.tracking.coreservice.utils.DateUtils;
-import com.stride.tracking.coreservice.utils.ProgressTimeFrameHelper;
-import com.stride.tracking.dto.progress.ProgressTimeFrame;
-import com.stride.tracking.dto.progress.request.GetProgressActivityRequest;
-import com.stride.tracking.dto.progress.request.ProgressFilter;
-import com.stride.tracking.dto.progress.response.*;
-import com.stride.tracking.dto.sport.response.SportShortResponse;
+import com.stride.tracking.metric.dto.progress.ProgressTimeFrame;
+import com.stride.tracking.metric.dto.progress.request.GetProgressActivityRequest;
+import com.stride.tracking.metric.dto.progress.request.ProgressFilter;
+import com.stride.tracking.metric.dto.progress.response.*;
+import com.stride.tracking.metric.dto.sport.response.SportShortResponse;
+import com.stride.tracking.metricservice.mapper.SportCacheMapper;
+import com.stride.tracking.metricservice.model.ActivityMetric;
+import com.stride.tracking.metricservice.model.SportCache;
+import com.stride.tracking.metricservice.repository.ActivityMetricRepository;
+import com.stride.tracking.metricservice.service.ProgressService;
+import com.stride.tracking.metricservice.utils.ProgressTimeFrameHelper;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,11 +33,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProgressServiceImpl implements ProgressService {
-    private final ProgressRepository progressRepository;
+    private final ActivityMetricRepository activityMetricRepository;
 
-    private final SportRepository sportRepository;
+    private final SportCacheService sportCacheService;
 
-    private final SportMapper sportMapper;
+    private final SportCacheMapper sportMapper;
 
     private final Executor asyncExecutor;
     private final Tracer tracer;
@@ -50,15 +50,15 @@ public class ProgressServiceImpl implements ProgressService {
     ) {
         String userId = SecurityUtils.getCurrentUserId();
 
+        SportCache sport = sportCacheService.getSport(filter.getSportId());
+
         Instant start = ProgressTimeFrameHelper.getAuditStartInstant(zoneId);
 
-        Sport sport = Common.findSportById(filter.getSportId(), sportRepository);
-
         //Get shared progresses for all time frames
-        List<Progress> progresses =
-                progressRepository.findAllByUserIdAndSportAndCreatedAtGreaterThanEqual(
+        List<ActivityMetric> progresses =
+                activityMetricRepository.findAllByUserIdAndSportIdAndTimeGreaterThanEqual(
                         userId,
-                        sport,
+                        filter.getSportId(),
                         start
                 );
 
@@ -107,14 +107,14 @@ public class ProgressServiceImpl implements ProgressService {
 
     private void processTimeFrame(
             ProgressTimeFrame timeFrame,
-            List<Progress> progresses,
+            List<ActivityMetric> progresses,
             ZoneId zoneId,
             Map<ProgressTimeFrame, List<ProgressBySportResponse>> progressesByTimeFrame
     ) {
         Instant startAuditDate = ProgressTimeFrameHelper.getAuditStartInstant(timeFrame, zoneId);
 
-        List<Progress> filteredProgresses = progresses.stream()
-                .filter(progress -> !progress.getCreatedAt().isBefore(startAuditDate))
+        List<ActivityMetric> filteredProgresses = progresses.stream()
+                .filter(progress -> !progress.getTime().isBefore(startAuditDate))
                 .toList();
 
         List<ProgressBySportResponse> data = buildProgressBySportResponses(
@@ -127,13 +127,13 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     private List<ProgressBySportResponse> buildProgressBySportResponses(
-            List<Progress> progresses,
+            List<ActivityMetric> progresses,
             ProgressTimeFrame timeFrame,
             ZoneId zoneId
     ) {
         // Simply return the relevant data by extracting the Instant from each Progress
         // there's no need to generate any template dates
-        Map<Instant, List<Progress>> template = new HashMap<>();
+        Map<Instant, List<ActivityMetric>> template = new HashMap<>();
 
         loadProgressToMap(progresses, template, timeFrame, zoneId);
 
@@ -149,13 +149,13 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     private void loadProgressToMap(
-            List<Progress> progresses,
-            Map<Instant, List<Progress>> template,
+            List<ActivityMetric> progresses,
+            Map<Instant, List<ActivityMetric>> template,
             ProgressTimeFrame timeFrame,
             ZoneId zoneId) {
         progresses.forEach(progress -> {
             Instant startDate = ProgressTimeFrameHelper.resolveStartDate(
-                    progress.getCreatedAt(),
+                    progress.getTime(),
                     timeFrame,
                     zoneId
             );
@@ -167,7 +167,7 @@ public class ProgressServiceImpl implements ProgressService {
     private ProgressBySportResponse buildProgressBySportResponse(
             Instant start,
             ProgressTimeFrame timeFrame,
-            List<Progress> group,
+            List<ActivityMetric> group,
             ZoneId zoneId
     ) {
         long distance = 0;
@@ -175,10 +175,10 @@ public class ProgressServiceImpl implements ProgressService {
         long time = 0;
         long numberActivities = 0;
 
-        for (Progress progress : group) {
+        for (ActivityMetric progress : group) {
             distance += progress.getDistance();
-            elevation += progress.getElevation();
-            time += progress.getTime();
+            elevation += progress.getElevationGain();
+            time += progress.getMovingTimeSeconds();
             numberActivities++;
         }
 
@@ -200,9 +200,10 @@ public class ProgressServiceImpl implements ProgressService {
             Instant start,
             AtomicReference<List<SportShortResponse>> availableSportsRef
     ) {
-        List<Sport> availableSport = progressRepository.findDistinctSportsSinceNative(userId, start);
+        List<String> availableSport = activityMetricRepository.findDistinctSportsSinceNative(userId, start);
 
         List<SportShortResponse> responses = availableSport.stream()
+                .map(sportCacheService::getSport)
                 .map(sportMapper::mapToShortResponse)
                 .toList();
 
@@ -223,8 +224,8 @@ public class ProgressServiceImpl implements ProgressService {
                 zoneId
         );
 
-        List<Progress> progresses =
-                progressRepository.findAllByUserIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+        List<ActivityMetric> progresses =
+                activityMetricRepository.findAllByUserIdAndTimeGreaterThanEqualOrderByTimeDesc(
                         userId,
                         start
                 );
@@ -241,35 +242,36 @@ public class ProgressServiceImpl implements ProgressService {
     }
 
     private List<ProgressResponse> buildProgressResponses(
-            List<Progress> progresses,
+            List<ActivityMetric> progresses,
             ProgressTimeFrame timeFrame,
             ZoneId zoneId
     ) {
         return progresses.stream()
                 .collect(Collectors.groupingBy(
-                        Progress::getSport,
+                        ActivityMetric::getSportId,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ))
                 .entrySet().stream()
-                .map(entry ->
-                        toProgressResponse(
-                                entry.getKey(),
-                                entry.getValue(),
-                                timeFrame,
-                                zoneId,
-                                new HashMap<>()
-                        )
-                )
+                .map(entry -> toProgressResponse(
+                        entry.getKey(),
+                        entry.getValue(),
+                        timeFrame,
+                        zoneId,
+                        new HashMap<>()
+                ))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .toList();
     }
 
-    private ProgressResponse toProgressResponse(
-            Sport sport,
-            List<Progress> sportProgresses,
+
+    private Optional<ProgressResponse> toProgressResponse(
+            String sportId,
+            List<ActivityMetric> sportProgresses,
             ProgressTimeFrame timeFrame,
             ZoneId zoneId,
-            Map<Instant, List<Progress>> template
+            Map<Instant, List<ActivityMetric>> template
     ) {
         loadProgressToMap(sportProgresses, template, timeFrame, zoneId);
 
@@ -285,12 +287,18 @@ public class ProgressServiceImpl implements ProgressService {
                 .sorted(Comparator.comparing(ProgressBySportResponse::getFromDate))
                 .toList();
 
-        SportShortResponse sportResponse = sportMapper.mapToShortResponse(sport);
+        Optional<SportCache> sportOptional = sportCacheService.getOptionalSport(sportId);
+        if (sportOptional.isEmpty()) {
+            return Optional.empty();
+        }
+        SportShortResponse sportResponse = sportMapper.mapToShortResponse(sportOptional.get());
 
-        return ProgressResponse.builder()
-                .sport(sportResponse)
-                .progresses(progresses)
-                .build();
+        return Optional.of(
+                ProgressResponse.builder()
+                        .sport(sportResponse)
+                        .progresses(progresses)
+                        .build()
+        );
     }
 
     @Override
@@ -300,8 +308,8 @@ public class ProgressServiceImpl implements ProgressService {
     ) {
         String userId = SecurityUtils.getCurrentUserId();
 
-        List<Progress> progresses =
-                progressRepository.findAllByUserIdAndSport_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanEqual(
+        List<ActivityMetric> progresses =
+                activityMetricRepository.findAllByUserIdAndSportIdAndTimeGreaterThanEqualAndTimeLessThanEqual(
                         userId,
                         request.getSportId(),
                         DateUtils.toInstant(request.getFromDate()),
@@ -313,19 +321,21 @@ public class ProgressServiceImpl implements ProgressService {
         long totalElevation = 0;
         List<ProgressActivityResponse> activities = new ArrayList<>();
 
-        for (Progress progress : progresses) {
+        for (ActivityMetric progress : progresses) {
             totalDistance += progress.getDistance();
-            totalTime += progress.getTime();
-            totalElevation += progress.getElevation();
-            activities.add(ProgressActivityResponse.builder()
-                    .id(progress.getActivity().getId())
-                    .distance(progress.getDistance())
-                    .elevation(progress.getElevation())
-                    .time(progress.getTime())
-                    .mapImage(progress.getActivity().getMapImage())
-                    .name(progress.getActivity().getName())
-                    .createdAt(DateUtils.toDate(progress.getCreatedAt()))
-                    .build());
+            totalTime += progress.getMovingTimeSeconds();
+            totalElevation += progress.getElevationGain();
+            activities.add(
+                    ProgressActivityResponse.builder()
+                            .id(progress.getActivityId())
+                            .distance(progress.getDistance())
+                            .elevation(progress.getElevationGain())
+                            .time(progress.getMovingTimeSeconds())
+                            .mapImage(progress.getMapImage())
+                            .name(progress.getName())
+                            .createdAt(DateUtils.toDate(progress.getTime()))
+                            .build()
+            );
         }
 
         return GetProgressActivityResponse.builder()

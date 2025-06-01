@@ -1,6 +1,6 @@
-package com.stride.tracking.coreservice.utils.converter;
+package com.stride.tracking.metricservice.utils.converter;
 
-import com.stride.tracking.dto.progress.ProgressTimeFrame;
+import com.stride.tracking.metric.dto.progress.ProgressTimeFrame;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
