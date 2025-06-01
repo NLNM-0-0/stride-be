@@ -1,5 +1,6 @@
 package com.stride.tracking.coreservice.mapper;
 
+import com.stride.tracking.commons.utils.DateUtils;
 import com.stride.tracking.core.dto.activity.response.*;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
