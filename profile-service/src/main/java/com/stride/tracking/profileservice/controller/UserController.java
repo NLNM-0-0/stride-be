@@ -1,10 +1,10 @@
 package com.stride.tracking.profileservice.controller;
 
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.user.request.CreateUserRequest;
-import com.stride.tracking.dto.user.request.UpdateUserRequest;
-import com.stride.tracking.dto.user.response.CreateUserResponse;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
+import com.stride.tracking.profile.dto.user.request.UpdateUserRequest;
+import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import com.stride.tracking.profileservice.service.impl.UserServiceImpl;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;

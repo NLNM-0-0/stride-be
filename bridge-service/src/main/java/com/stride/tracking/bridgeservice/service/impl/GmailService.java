@@ -1,11 +1,11 @@
 package com.stride.tracking.bridgeservice.service.impl;
 
+import com.stride.tracking.bridge.dto.email.request.EmailRequest;
+import com.stride.tracking.bridge.dto.email.request.SendEmailRequest;
 import com.stride.tracking.bridgeservice.client.MailSender;
 import com.stride.tracking.bridgeservice.model.Notification;
 import com.stride.tracking.bridgeservice.repository.NotificationRepository;
 import com.stride.tracking.bridgeservice.service.MailService;
-import com.stride.tracking.dto.email.request.EmailRequest;
-import com.stride.tracking.dto.email.request.SendEmailRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;

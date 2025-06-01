@@ -1,7 +1,7 @@
 package com.stride.tracking.bridgeservice.service;
 
-import com.stride.tracking.dto.fcm.request.FCMTokenRequest;
-import com.stride.tracking.dto.fcm.request.PushFCMNotificationRequest;
+import com.stride.tracking.bridge.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 
 public interface FCMService {
     void saveFCMToken(FCMTokenRequest request);

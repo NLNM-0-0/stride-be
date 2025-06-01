@@ -1,7 +1,7 @@
 package com.stride.tracking.profileservice.model;
 
-import com.stride.tracking.dto.user.Equipment;
-import com.stride.tracking.dto.user.HeartRateZone;
+import com.stride.tracking.profile.dto.user.Equipment;
+import com.stride.tracking.profile.dto.user.HeartRateZone;
 import com.stride.tracking.profileservice.persistence.BaseEntity;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Document;

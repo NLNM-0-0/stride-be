@@ -3,16 +3,15 @@ package com.stride.tracking.identityservice.service.impl;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.dto.auth.request.AuthenticateWithGoogleRequest;
-import com.stride.tracking.dto.auth.request.AuthenticationRequest;
-import com.stride.tracking.dto.auth.request.IntrospectRequest;
-import com.stride.tracking.dto.auth.request.LogoutRequest;
-import com.stride.tracking.dto.auth.response.AuthenticationResponse;
-import com.stride.tracking.dto.auth.response.IntrospectResponse;
-import com.stride.tracking.dto.register.response.CreateUserResponse;
-import com.stride.tracking.dto.user.request.CreateUserRequest;
-import com.stride.tracking.identityservice.client.ProfileFeignClient;
+import com.stride.tracking.identity.dto.auth.request.AuthenticateWithGoogleRequest;
+import com.stride.tracking.identity.dto.auth.request.AuthenticationRequest;
+import com.stride.tracking.identity.dto.auth.request.IntrospectRequest;
+import com.stride.tracking.identity.dto.auth.request.LogoutRequest;
+import com.stride.tracking.identity.dto.auth.response.AuthenticationResponse;
+import com.stride.tracking.identity.dto.auth.response.IntrospectResponse;
 import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.JWTClaimProperty;
 import com.stride.tracking.identityservice.constant.Message;
@@ -23,12 +22,12 @@ import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.service.AuthenticationService;
 import com.stride.tracking.identityservice.utils.GoogleIdTokenHelper;
 import com.stride.tracking.identityservice.utils.JwtTokenHelper;
+import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +37,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +45,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserIdentityRepository userIdentityRepository;
     private final AuthTokenRepository authTokenRepository;
 
-    private final ProfileFeignClient profileClient;
+    private final ProfileService profileService;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenHelper jwtTokenHelper;
@@ -194,25 +192,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             UserIdentity userIdentity = userIdentityRepository
                     .findByProviderAndEmail(AuthProvider.GOOGLE, email)
-                    .orElseGet(() -> {
-                        String userId = userIdentityRepository.findByUsername(email)
-                                .map(UserIdentity::getUserId)
-                                .orElseGet(() -> createUser(name, ava));
-
-                        UserIdentity newUserIdentity = UserIdentity.builder()
-                                .userId(userId)
-                                .providerId(sub)
-                                .provider(AuthProvider.GOOGLE)
-                                .email(email)
-                                .isBlocked(false)
-                                .isVerified(true)
-                                .isAdmin(false)
-                                .build();
-
-                        log.info("[authenticateWithGoogle] Creating new user in identity service for Google user: {}", email);
-
-                        return userIdentityRepository.save(newUserIdentity);
-                    });
+                    .orElseGet(() -> createNewUserWithGoogleProvider(email, name, ava, sub));
 
 
             return generateAndSaveAuthToken(userIdentity);
@@ -222,23 +202,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-    private String createUser(String name, String ava) {
-        log.debug("[createUser] Creating profile for new user: {}", name);
+    private UserIdentity createNewUserWithGoogleProvider(
+            String email,
+            String name,
+            String ava,
+            String sub
+    ) {
+        String userId = userIdentityRepository.findByUsername(email)
+                .map(UserIdentity::getUserId)
+                .orElseGet(() -> profileService.createUser(
+                                CreateUserRequest.builder()
+                                        .ava(ava)
+                                        .name(name)
+                                        .build(),
+                                AuthProvider.GOOGLE
+                        )
+                );
 
-        ResponseEntity<CreateUserResponse> response = profileClient.createUser(
-                CreateUserRequest.builder()
-                        .name(name)
-                        .ava(ava)
-                        .build()
-        );
-        if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
-            log.error("[createUser] Failed to create user profile, response: {}", response);
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.PROFILE_CREATE_USER_ERROR);
-        }
+        UserIdentity newUserIdentity = UserIdentity.builder()
+                .userId(userId)
+                .providerId(sub)
+                .provider(AuthProvider.GOOGLE)
+                .email(email)
+                .isBlocked(false)
+                .isVerified(true)
+                .isAdmin(false)
+                .build();
 
-        String userId = Objects.requireNonNull(response.getBody()).getUserId();
-        log.debug("[createUser] Created new profile with userId: {}", userId);
+        log.info("[createNewUserWithGoogleProvider] Creating new user in identity service for Google user: {}", email);
 
-        return userId;
+        return userIdentityRepository.save(newUserIdentity);
     }
 }

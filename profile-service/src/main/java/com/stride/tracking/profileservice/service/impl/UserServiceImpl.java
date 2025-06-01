@@ -1,14 +1,17 @@
 package com.stride.tracking.profileservice.service.impl;
 
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.dto.user.HeartRateZone;
-import com.stride.tracking.dto.user.request.CreateUserRequest;
-import com.stride.tracking.dto.user.request.UpdateUserRequest;
-import com.stride.tracking.dto.user.response.CreateUserResponse;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.user.HeartRateZone;
+import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
+import com.stride.tracking.profile.dto.user.request.UpdateUserRequest;
+import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
+import com.stride.tracking.profile.dto.user.response.UserResponse;
 import com.stride.tracking.profileservice.constant.Message;
+import com.stride.tracking.profileservice.mapper.UserMapper;
 import com.stride.tracking.profileservice.model.User;
 import com.stride.tracking.profileservice.repository.UserRepository;
 import com.stride.tracking.profileservice.service.UserService;
@@ -31,6 +34,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     private final MaxHearRateCalculator maxHearRateCalculator;
+
+    private final UserMapper userMapper;
 
     @Transactional
     @Override
@@ -67,21 +72,7 @@ public class UserServiceImpl implements UserService {
 
         log.info("[viewProfile] Successfully fetched profile for user ID: {}", user.getId());
 
-        return UserResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .ava(user.getAva())
-                .city(user.getCity())
-                .dob(user.getDob())
-                .height(user.getHeight())
-                .weight(user.getWeight())
-                .male(user.getMale())
-                .maxHeartRate(user.getMaxHeartRate())
-                .heartRateZones(user.getHeartRateZones())
-                .equipmentsWeight(user.getEquipmentWeight())
-                .isBlock(user.isBlock())
-                .build();
-
+        return userMapper.mapToUserResponse(user);
     }
 
     @Transactional

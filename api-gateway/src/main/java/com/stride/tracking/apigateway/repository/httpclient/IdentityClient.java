@@ -1,7 +1,7 @@
 package com.stride.tracking.apigateway.repository.httpclient;
 
-import com.stride.tracking.dto.auth.request.IntrospectRequest;
-import com.stride.tracking.dto.auth.response.IntrospectResponse;
+import com.stride.tracking.identity.dto.auth.request.IntrospectRequest;
+import com.stride.tracking.identity.dto.auth.response.IntrospectResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;

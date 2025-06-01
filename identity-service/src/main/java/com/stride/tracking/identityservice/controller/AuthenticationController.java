@@ -1,12 +1,12 @@
 package com.stride.tracking.identityservice.controller;
 
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.auth.request.AuthenticateWithGoogleRequest;
-import com.stride.tracking.dto.auth.request.AuthenticationRequest;
-import com.stride.tracking.dto.auth.request.IntrospectRequest;
-import com.stride.tracking.dto.auth.request.LogoutRequest;
-import com.stride.tracking.dto.auth.response.AuthenticationResponse;
-import com.stride.tracking.dto.auth.response.IntrospectResponse;
+import com.stride.tracking.identity.dto.auth.request.AuthenticateWithGoogleRequest;
+import com.stride.tracking.identity.dto.auth.request.AuthenticationRequest;
+import com.stride.tracking.identity.dto.auth.request.IntrospectRequest;
+import com.stride.tracking.identity.dto.auth.request.LogoutRequest;
+import com.stride.tracking.identity.dto.auth.response.AuthenticationResponse;
+import com.stride.tracking.identity.dto.auth.response.IntrospectResponse;
 import com.stride.tracking.identityservice.service.AuthenticationService;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,8 @@
 package com.stride.tracking.identityservice.client;
 
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.register.response.CreateUserResponse;
-import com.stride.tracking.dto.user.request.CreateUserRequest;
+import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
+import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,5 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 public interface ProfileFeignClient {
     @PostMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CreateUserResponse> createUser(
-            CreateUserRequest request);
+            CreateUserRequest request
+    );
 }
