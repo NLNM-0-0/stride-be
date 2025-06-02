@@ -22,6 +22,6 @@ public class AppConstant {
 
             "/profile/ping",
 
-            "/route/ping",
+            "/metric/ping",
     };
 }
