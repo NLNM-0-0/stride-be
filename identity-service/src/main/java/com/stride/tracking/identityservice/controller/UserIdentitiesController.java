@@ -5,10 +5,10 @@ import com.stride.tracking.identity.dto.register.request.EmailRegisterRequest;
 import com.stride.tracking.identity.dto.register.request.VerifyAccountRequest;
 import com.stride.tracking.identity.dto.register.request.VerifyResetPasswordRequest;
 import com.stride.tracking.identity.dto.register.response.EmailRegisterResponse;
-import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserRequest;
-import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
-import com.stride.tracking.identity.dto.resetpassword.response.VerifyResetPasswordResponse;
-import com.stride.tracking.identityservice.service.ResetPasswordService;
+import com.stride.tracking.identity.dto.password.request.ResetPasswordUserRequest;
+import com.stride.tracking.identity.dto.password.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.identity.dto.password.response.VerifyResetPasswordResponse;
+import com.stride.tracking.identityservice.service.PasswordService;
 import com.stride.tracking.identityservice.service.UserIdentityService;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class UserIdentitiesController {
     private final UserIdentityService identityService;
-    private final ResetPasswordService resetPasswordService;
+    private final PasswordService passwordService;
 
     @PostMapping("/register")
     @PermitAll
@@ -38,7 +38,7 @@ public class UserIdentitiesController {
             @PathVariable String id,
             @RequestBody VerifyAccountRequest request) {
         identityService.verifyAccount(id, request);
-        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
+        return ResponseEntity.ok(new SimpleResponse());
     }
 
     @PostMapping("/{id}/verify/send-otp")
@@ -46,7 +46,7 @@ public class UserIdentitiesController {
     ResponseEntity<SimpleResponse> sendOTPVerifyUser(
             @PathVariable String id) {
         identityService.sendVerifiedOTP(id);
-        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
+        return ResponseEntity.ok(new SimpleResponse());
     }
 
     @PostMapping("/reset-password/send-otp")
@@ -54,8 +54,8 @@ public class UserIdentitiesController {
     ResponseEntity<SimpleResponse> sendOTPResetPassword(
             @RequestBody ResetPasswordUserSendOTPRequest request
     ) {
-        resetPasswordService.sendOTPResetPassword(request);
-        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
+        passwordService.sendOTPResetPassword(request);
+        return ResponseEntity.ok(new SimpleResponse());
     }
 
     @PostMapping("/reset-password/verify")
@@ -63,7 +63,7 @@ public class UserIdentitiesController {
     ResponseEntity<VerifyResetPasswordResponse> verifyResetPasswordToken(
             @RequestBody VerifyResetPasswordRequest request
     ) {
-        VerifyResetPasswordResponse response = resetPasswordService.verifyResetPassword(request);
+        VerifyResetPasswordResponse response = passwordService.verifyResetPassword(request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -73,7 +73,7 @@ public class UserIdentitiesController {
             @PathVariable String resetPasswordTokenId,
             @RequestBody ResetPasswordUserRequest request
     ) {
-        resetPasswordService.resetPassword(resetPasswordTokenId, request);
-        return new ResponseEntity<>(new SimpleResponse(), HttpStatus.OK);
+        passwordService.resetPassword(resetPasswordTokenId, request);
+        return ResponseEntity.ok(new SimpleResponse());
     }
 }

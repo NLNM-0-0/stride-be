@@ -1,6 +1,7 @@
 package com.stride.tracking.identityservice.service.impl;
 
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
 import com.stride.tracking.identity.dto.user.request.CreateUserIdentityRequest;
 import com.stride.tracking.identity.dto.user.request.UpdateAdminUserIdentityRequest;
@@ -106,9 +107,18 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
         UserIdentity userIdentity = findStrideUserIdentityByProviderAndUserId(userId);
 
         validateAdmin(userIdentity);
+        validateNotCurrentUser(userIdentity);
 
         userIdentity.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
 
         userIdentityRepository.save(userIdentity);
+    }
+
+    private void validateNotCurrentUser(UserIdentity userIdentity) {
+        String currentUserId = SecurityUtils.getCurrentUserId();
+
+        if (!userIdentity.getUserId().equals(currentUserId)) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_RESET_YOUR_PASSWORD);
+        }
     }
 }

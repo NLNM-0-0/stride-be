@@ -5,16 +5,19 @@ import com.stride.tracking.bridge.dto.email.request.Recipient;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.SecurityUtils;
+import com.stride.tracking.identity.dto.password.request.ChangePasswordRequest;
 import com.stride.tracking.identity.dto.register.request.VerifyResetPasswordRequest;
-import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserRequest;
-import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
-import com.stride.tracking.identity.dto.resetpassword.response.VerifyResetPasswordResponse;
+import com.stride.tracking.identity.dto.password.request.ResetPasswordUserRequest;
+import com.stride.tracking.identity.dto.password.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.identity.dto.password.response.VerifyResetPasswordResponse;
+import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.ResetPasswordToken;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.repository.ResetPasswordTokenRepository;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
-import com.stride.tracking.identityservice.service.ResetPasswordService;
+import com.stride.tracking.identityservice.service.PasswordService;
 import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGeneratorFactory;
@@ -36,7 +39,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Log4j2
-public class ResetPasswordServiceImpl  implements ResetPasswordService {
+public class PasswordServiceImpl implements PasswordService {
     private final UserIdentityRepository userIdentityRepository;
     private final ResetPasswordTokenRepository resetPasswordTokenRepository;
     private final KafkaProducer kafkaProducer;
@@ -56,7 +59,7 @@ public class ResetPasswordServiceImpl  implements ResetPasswordService {
 
         String newOTP = otpGenerator.generateOTP();
 
-        log.debug("[sendOTPResetPassword] Generated OTP for {}: {}",  userIdentity.getUsername(), newOTP);
+        log.debug("[sendOTPResetPassword] Generated OTP for {}: {}", userIdentity.getUsername(), newOTP);
 
         refreshResetPasswordToken(userIdentity, newOTP);
 
@@ -189,5 +192,21 @@ public class ResetPasswordServiceImpl  implements ResetPasswordService {
         resetPasswordTokenRepository.delete(resetPasswordToken);
 
         log.info("[resetPassword] Token updated successfully for user: {}", userIdentity.getUsername());
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        String currentUserId = SecurityUtils.getCurrentUserId();
+
+        UserIdentity userIdentity = userIdentityRepository.findByProviderAndUserId(AuthProvider.STRIDE, currentUserId)
+                .orElseThrow(() -> new StrideException(HttpStatus.BAD_REQUEST, Message.USER_NOT_EXIST));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), userIdentity.getPassword())) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.PASSWORD_NOT_MATCH);
+        }
+
+        userIdentity.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        userIdentityRepository.save(userIdentity);
     }
 }
