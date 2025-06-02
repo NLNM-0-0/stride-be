@@ -1,14 +1,14 @@
 package com.stride.tracking.coreservice.service.impl;
 
-import com.stride.tracking.bridge.dto.supabase.request.GetLocationByGeometryRequest;
-import com.stride.tracking.bridge.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.core.dto.supabase.request.FindDistrictsContainGeometryRequest;
 import com.stride.tracking.core.dto.supabase.request.FindDistrictsNearPointRequest;
 import com.stride.tracking.core.dto.supabase.request.FindNearestWayPointsRequest;
+import com.stride.tracking.core.dto.supabase.request.GetLocationByGeometryRequest;
 import com.stride.tracking.core.dto.supabase.response.FindDistrictsContainGeometryResponse;
 import com.stride.tracking.core.dto.supabase.response.FindDistrictsNearPointResponse;
 import com.stride.tracking.core.dto.supabase.response.FindNearestWayPointsResponse;
+import com.stride.tracking.core.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.coreservice.client.SupabaseClient;
 import com.stride.tracking.coreservice.constant.Message;
 import lombok.RequiredArgsConstructor;

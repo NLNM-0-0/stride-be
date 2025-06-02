@@ -1,8 +1,5 @@
 package com.stride.tracking.coreservice.service.impl;
 
-import com.stride.tracking.bridge.dto.supabase.request.GeometryRequest;
-import com.stride.tracking.bridge.dto.supabase.request.GetLocationByGeometryRequest;
-import com.stride.tracking.bridge.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.dto.ListResponse;
@@ -22,6 +19,9 @@ import com.stride.tracking.core.dto.goal.GoalType;
 import com.stride.tracking.core.dto.route.request.CreateRouteRequest;
 import com.stride.tracking.core.dto.route.request.UpdateRouteRequest;
 import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
+import com.stride.tracking.core.dto.supabase.request.GeometryRequest;
+import com.stride.tracking.core.dto.supabase.request.GetLocationByGeometryRequest;
+import com.stride.tracking.core.dto.supabase.response.GetLocationByGeometryResponse;
 import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RoundRules;
