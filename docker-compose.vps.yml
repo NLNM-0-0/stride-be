@@ -81,7 +81,7 @@ services:
       - "8085"
     restart: on-failure
     volumes:
-      - ./stride-config/core:/app/resources
+      - ./stride-config/metric:/app/resources
     environment:
       SPRING_CONFIG_LOCATION: file:/app/resources/
       SPRING_PROFILES_ACTIVE: prod
