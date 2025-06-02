@@ -1,6 +1,6 @@
 package com.stride.tracking.bridgeservice.controller;
 
-import com.stride.tracking.bridge.dto.response.FileLinkResponse;
+import com.stride.tracking.bridge.dto.supabase.response.FileLinkResponse;
 import com.stride.tracking.bridgeservice.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

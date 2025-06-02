@@ -1,6 +1,6 @@
 package com.stride.tracking.bridgeservice.service.impl;
 
-import com.stride.tracking.bridge.dto.response.FileLinkResponse;
+import com.stride.tracking.bridge.dto.supabase.response.FileLinkResponse;
 import com.stride.tracking.bridgeservice.client.SupabaseFileUploader;
 import com.stride.tracking.bridgeservice.constant.Message;
 import com.stride.tracking.bridgeservice.service.FileService;

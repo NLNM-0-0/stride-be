@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.client;
 
-import com.stride.tracking.bridge.dto.response.FileLinkResponse;
+import com.stride.tracking.bridge.dto.supabase.response.FileLinkResponse;
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;

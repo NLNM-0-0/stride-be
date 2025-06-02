@@ -20,4 +20,6 @@ public class Message {
 	public static final String RESET_PASSWORD_TOKEN_NOT_EXIST = "Reset password token does not exist";
 	public static final String RESET_PASSWORD_TOKEN_NOT_CORRECT = "Reset password token is incorrect. Please try again";
 	public static final String RESET_PASSWORD_TOKEN_EXPIRED = "Reset password token has expired. Please try again";
+	public static final String CAN_NOT_RESET_YOUR_PASSWORD = "Cannot reset password yourself";
+	public static final String PASSWORD_NOT_MATCH = "Password does not match";
 }

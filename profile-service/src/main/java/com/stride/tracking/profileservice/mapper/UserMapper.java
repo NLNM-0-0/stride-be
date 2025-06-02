@@ -30,6 +30,7 @@ public class UserMapper {
                 .name(user.getName())
                 .email(user.getEmail())
                 .ava(user.getAva())
+                .dob(user.getDob())
                 .isAdmin(user.isAdmin())
                 .isBlocked(user.isBlocked())
                 .build();
