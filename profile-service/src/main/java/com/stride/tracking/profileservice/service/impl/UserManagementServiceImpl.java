@@ -91,7 +91,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             criteria = criteria.isBlocked(filter.getIsBlocked());
         }
         if (filter.getSearch() != null) {
-            criteria = criteria.hasNameOrEmailContains(filter.getSearch());
+            criteria = criteria.hasNameOrEmailOrDobContains(filter.getSearch());
         }
         return criteria.build();
     }

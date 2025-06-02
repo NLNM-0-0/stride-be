@@ -26,11 +26,13 @@ public class UserCriteria {
         return this;
     }
 
-    public UserCriteria hasNameOrEmailContains(String key) {
+    public UserCriteria hasNameOrEmailOrDobContains(String key) {
         if (key != null && !key.isBlank()) {
             Criteria nameCriteria = Criteria.where("name").regex(key, "i");
             Criteria emailCriteria = Criteria.where("email").regex(key, "i");
-            criteria.orOperator(nameCriteria, emailCriteria);
+            Criteria dobCriteria = Criteria.where("dob").regex(key, "i");
+
+            criteria.orOperator(nameCriteria, emailCriteria, dobCriteria);
         }
         return this;
     }
