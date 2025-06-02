@@ -29,8 +29,8 @@ public class ReportServiceImpl implements ReportService {
                 DateUtils.toInstant(reportFilter.getFromDate()),
                 zoneId
         );
-        Instant to = DateUtils.toStartOfDayInstant(
-                DateUtils.toInstant(reportFilter.getFromDate()),
+        Instant to = DateUtils.toEndOfDayInstant(
+                DateUtils.toInstant(reportFilter.getToDate()),
                 zoneId
         );
 

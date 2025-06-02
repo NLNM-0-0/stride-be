@@ -1,8 +1,9 @@
 package com.stride.tracking.metricservice.service.impl;
 
+import com.stride.tracking.commons.utils.UpdateHelper;
 import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
 import com.stride.tracking.metric.dto.activity.event.ActivityDeletedEvent;
-import com.stride.tracking.metric.dto.event.ActivityMetricEvent;
+import com.stride.tracking.metric.dto.activity.event.ActivityUpdatedEvent;
 import com.stride.tracking.metric.dto.report.response.ActivityDetailReport;
 import com.stride.tracking.metric.dto.report.response.ActivityReport;
 import com.stride.tracking.metric.dto.report.response.SportDetailReport;
@@ -13,6 +14,7 @@ import com.stride.tracking.metricservice.model.SportCache;
 import com.stride.tracking.metricservice.repository.ActivityMetricRepository;
 import com.stride.tracking.metricservice.service.ActivityMetricService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class ActivityMetricServiceImpl implements ActivityMetricService {
     private final ActivityMetricRepository activityMetricRepository;
 
@@ -110,6 +113,22 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
     public void saveMetric(ActivityCreatedEvent event) {
         ActivityMetric activityMetric = activityMetricMapper.mapToModel(event);
         activityMetricRepository.save(activityMetric);
+    }
+
+    @Override
+    @Transactional
+    public void updateMetric(ActivityUpdatedEvent event) {
+        Optional<ActivityMetric> activityMetricOptional = activityMetricRepository.findByActivityId(event.getActivityId());
+        if (activityMetricOptional.isEmpty()) {
+            log.error("Failed to update activity metric with id: {}", event.getActivityId());
+            return;
+        }
+
+        ActivityMetric activity = activityMetricOptional.get();
+
+        UpdateHelper.updateIfNotNull(event.getName(), activity::setName);
+
+        activityMetricRepository.save(activity);
     }
 
 

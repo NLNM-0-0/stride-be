@@ -3,7 +3,7 @@ package com.stride.tracking.coreservice.utils.calculator.heartrate;
 import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.coreservice.utils.NumberUtils;
-import com.stride.tracking.profile.dto.user.HeartRateZone;
+import com.stride.tracking.profile.dto.profile.HeartRateZone;
 import org.springframework.stereotype.Component;
 
 import java.util.*;

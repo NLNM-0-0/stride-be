@@ -21,6 +21,7 @@ public class SportMapper {
                 .name(request.getName())
                 .image(request.getImage())
                 .category(category)
+                .color(request.getColor())
                 .rules(request.getRules().stream().map(this::mapToModel).toList())
                 .sportMapType(request.getSportMapType())
                 .build();
@@ -56,7 +57,7 @@ public class SportMapper {
         return SportShortResponse.builder()
                 .id(sport.getId())
                 .name(sport.getName())
-                .category(sport.getCategory().getName())
+                .category(categoryMapper.mapToCategoryResponse(sport.getCategory()))
                 .image(sport.getImage())
                 .color(sport.getColor())
                 .sportMapType(sport.getSportMapType())

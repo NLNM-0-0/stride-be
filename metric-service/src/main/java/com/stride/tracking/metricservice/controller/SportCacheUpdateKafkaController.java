@@ -16,7 +16,13 @@ public class SportCacheUpdateKafkaController {
 
     @KafkaListener(topics = KafkaTopics.SPORT_UPDATED_TOPIC)
     @PermitAll
-    public void listSportUpdatedEvent(SportUpdatedEvent event) {
+    public void listenSportUpdatedEvent(SportUpdatedEvent event) {
+        sportCacheService.updateSport(event);
+    }
+
+    @KafkaListener(topics = KafkaTopics.SPORT_CREATED_TOPIC)
+    @PermitAll
+    public void listenSportCreatedEvent(SportUpdatedEvent event) {
         sportCacheService.updateSport(event);
     }
 

@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.repository;
 
-import org.locationtech.jts.geom.Geometry;
 import com.stride.tracking.coreservice.model.Route;
+import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

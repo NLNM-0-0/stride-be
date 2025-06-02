@@ -4,12 +4,10 @@ import com.stride.tracking.bridge.dto.email.event.SendEmailEvent;
 import com.stride.tracking.bridge.dto.email.request.Recipient;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
-import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.identity.dto.register.request.EmailRegisterRequest;
 import com.stride.tracking.identity.dto.register.request.VerifyAccountRequest;
 import com.stride.tracking.identity.dto.register.response.EmailRegisterResponse;
-import com.stride.tracking.identityservice.client.ProfileFeignClient;
 import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.UserIdentity;
@@ -21,14 +19,12 @@ import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGeneratorFactory;
 import com.stride.tracking.identityservice.utils.mail.MailType;
-import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
-import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
+import com.stride.tracking.profile.dto.profile.request.CreateProfileRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,18 +80,19 @@ public class UserIdentityServiceImpl implements UserIdentityService {
                     .map(UserIdentity::getUserId)
                     .orElseGet(() -> {
                         log.warn("[register] Can't find Google user in this system: {}", request.getEmail());
-                        return profileService.createUser(
-                                CreateUserRequest.builder()
+                        return profileService.createProfile(
+                                CreateProfileRequest.builder()
                                         .name(request.getEmail())
+                                        .email(request.getEmail())
                                         .build(),
                                 AuthProvider.STRIDE
                         );
                     });
 
-            boolean isExistingUser = existingGoogleUser.isPresent();
-            UserIdentity userIdentity = createUserIdentity(request, userId, isExistingUser);
+            boolean isExistingGoogleUser = existingGoogleUser.isPresent();
+            UserIdentity userIdentity = createUserIdentity(request, userId, isExistingGoogleUser);
 
-            if (!isExistingUser) {
+            if (!isExistingGoogleUser) {
                 String otp = saveVerifiedToken(userIdentity);
                 sendVerifiedEmail(userIdentity, otp);
                 log.info("[register] Sent verification email to: {}", userIdentity.getEmail());
@@ -108,11 +105,6 @@ public class UserIdentityServiceImpl implements UserIdentityService {
         return EmailRegisterResponse.builder()
                 .userIdentityId(userIdentityId)
                 .build();
-    }
-
-    @Override
-    public SimpleResponse createUser(EmailRegisterRequest request) {
-        return null;
     }
 
     private UserIdentity createUserIdentity(EmailRegisterRequest request, String userId, boolean isVerified) {

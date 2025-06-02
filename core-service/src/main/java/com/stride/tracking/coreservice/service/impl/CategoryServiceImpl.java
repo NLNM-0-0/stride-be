@@ -1,8 +1,13 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.dto.ListResponse;
+import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
+import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.core.dto.category.event.CategoryUpdatedEvent;
 import com.stride.tracking.core.dto.category.request.CategoryFilter;
 import com.stride.tracking.core.dto.category.request.CreateCategoryRequest;
 import com.stride.tracking.core.dto.category.request.UpdateCategoryRequest;
@@ -29,6 +34,8 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
     private final CategoryMapper categoryMapper;
+
+    private final KafkaProducer kafkaProducer;
 
     @Override
     @Transactional
@@ -58,6 +65,19 @@ public class CategoryServiceImpl implements CategoryService {
                 .build();
     }
 
+    @Override
+    public SimpleListResponse<CategoryResponse> getCategories() {
+        List<Category> categories = categoryRepository.findAll();
+
+        List<CategoryResponse> data = categories.stream()
+                .map(categoryMapper::mapToCategoryResponse)
+                .toList();
+
+        return SimpleListResponse.<CategoryResponse>builder()
+                .data(data)
+                .build();
+    }
+
     private Specification<Category> filterCategories(CategoryFilter filter) {
         Specification<Category> spec = Specification.where(null);
         if (filter.getName() != null) {
@@ -73,13 +93,29 @@ public class CategoryServiceImpl implements CategoryService {
 
         category = categoryRepository.save(category);
 
+        sendCategoryUpdatedEvent(KafkaTopics.CATEGORY_CREATED_TOPIC, category);
+
         return categoryMapper.mapToCategoryResponse(category);
+    }
+
+    private void sendCategoryUpdatedEvent(String topic, Category category) {
+        kafkaProducer.send(
+                topic,
+                CategoryUpdatedEvent.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .build()
+        );
     }
 
     @Override
     @Transactional
     public void updateCategory(String categoryId, UpdateCategoryRequest request) {
         Category category = Common.findCategoryById(categoryId, categoryRepository);
+
+        UpdateHelper.updateIfNotNull(request.getName(), category::setName);
+
+        sendCategoryUpdatedEvent(KafkaTopics.CATEGORY_UPDATED_TOPIC, category);
 
         categoryRepository.save(category);
     }

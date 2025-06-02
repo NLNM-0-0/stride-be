@@ -19,6 +19,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TrainingLogMapper {
     private final SportCacheService sportCacheService;
+
     private final SportCacheMapper sportMapper;
 
     public TrainingLogResponse mapToTrainingLogResponse(

@@ -7,8 +7,8 @@ import com.stride.tracking.identityservice.client.ProfileFeignClient;
 import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.metric.dto.user.event.UserCreatedEvent;
-import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
-import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
+import com.stride.tracking.profile.dto.profile.request.CreateProfileRequest;
+import com.stride.tracking.profile.dto.profile.response.CreateProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -26,10 +26,10 @@ public class ProfileService {
 
     private final KafkaProducer kafkaProducer;
 
-    public String createUser(CreateUserRequest request, AuthProvider provider) {
+    public String createProfile(CreateProfileRequest request, AuthProvider provider) {
         log.debug("[createUser] Creating profile for new user: {}", request.getName());
 
-        ResponseEntity<CreateUserResponse> response = profileClient.createUser(request);
+        ResponseEntity<CreateProfileResponse> response = profileClient.createProfile(request);
         if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
             log.error("[createUser] Failed to create user profile, response: {}", response);
             throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.PROFILE_CREATE_USER_ERROR);

@@ -1,4 +1,4 @@
-name: Build and push route-ms image
+name: Build and push metric-ms image
 
 on:
   workflow_call:
@@ -12,15 +12,15 @@ on:
         type: string
 
 jobs:
-  build-route:
+  build-metric:
     runs-on: ubuntu-latest
-    name: Build route-ms only if it changed
+    name: Build metric-ms only if it changed
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Check if route-service has changed
+      - name: Check if metric-service has changed
         id: check_diff
         run: |
           if [ "${{ inputs.skip_diff_check }}" == "true" ]; then
@@ -33,11 +33,11 @@ jobs:
 
             git fetch --no-tags --prune --depth=1 origin +$BASE_SHA:$BASE_SHA +$HEAD_SHA:$HEAD_SHA
 
-            if git diff --quiet $BASE_SHA $HEAD_SHA -- route-service; then
-              echo "No changes in route-service"
+            if git diff --quiet $BASE_SHA $HEAD_SHA -- metric-service; then
+              echo "No changes in metric-service"
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in route-service"
+              echo "Changes detected in metric-service"
               echo "changed=true" >> $GITHUB_OUTPUT
             fi
           else
@@ -46,11 +46,11 @@ jobs:
 
             git fetch origin $CURRENT_BRANCH
 
-            if git diff --quiet origin/$CURRENT_BRANCH..HEAD -- route-service; then
-              echo "No changes detected in route-service."
+            if git diff --quiet origin/$CURRENT_BRANCH..HEAD -- metric-service; then
+              echo "No changes detected in metric-service."
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in route-service."
+              echo "Changes detected in metric-service."
               echo "changed=true" >> $GITHUB_OUTPUT
             fi
           fi
@@ -81,12 +81,12 @@ jobs:
       - name: Copy sensitive files from private repo
         if: steps.check_diff.outputs.changed == 'true'
         run: |
-          mkdir -p ./route-service/src/main/resources
-          echo "Listing contents of /tmp/private-repo/backend/route"
-          ls -R /tmp/private-repo/backend/route
-          cp -r /tmp/private-repo/backend/route ./route-service/deploy
-          echo "Listing contents of ./route-service/deploy"
-          ls -R ./route-service/deploy
+          mkdir -p ./metric-service/src/main/resources
+          echo "Listing contents of /tmp/private-repo/backend/metric"
+          ls -R /tmp/private-repo/backend/metric
+          cp -r /tmp/private-repo/backend/metric ./metric-service/src/main/resources
+          echo "Listing contents of ./metric-service/src/main/resources"
+          ls -R ./metric-service/src/main/resources
 
       - name: Log in to Docker Hub
         if: steps.check_diff.outputs.changed == 'true'
@@ -129,17 +129,17 @@ jobs:
             echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push route-ms
+      - name: Build and push metric-ms
         if: steps.check_diff.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
-          context: ./route-service
-          file: ./route-service/deploy/Dockerfile
+          context: ./metric-service
+          file: ./metric-service/deploy/prod.dockerfile
           push: true
           tags: |
-            nlnm/stride-route-ms:latest
-            nlnm/stride-route-ms:${{ steps.get_version.outputs.new_tag }}
+            nlnm/stride-metric-ms:latest
+            nlnm/stride-metric-ms:${{ steps.get_version.outputs.new_tag }}
           build-args: |
             GITHUB_USERNAME=${{ secrets.GITHUB_USERNAME }}
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-            APP_ENV: prod
+            SPRING_PROFILES_ACTIVE=prod

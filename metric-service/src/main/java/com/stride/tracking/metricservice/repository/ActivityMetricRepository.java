@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface ActivityMetricRepository extends JpaRepository<ActivityMetric, ActivityMetric.ActivityMetricId> {
     List<ActivityMetric> findAllByTimeBetween(
@@ -61,11 +62,13 @@ public interface ActivityMetricRepository extends JpaRepository<ActivityMetric, 
     );
 
     @Query("""
-        SELECT FindMinAndMaxTimeByUserIdResult(
+        SELECT new com.stride.tracking.metricservice.dto.progress.FindMinAndMaxTimeByUserIdResult(
             MIN(am.time), MAX(am.time)
         )
         FROM activity_metrics am
         WHERE am.userId = :userId
     """)
     FindMinAndMaxTimeByUserIdResult findMinAndMaxTimeByUserId(@Param("userId") String userId);
+
+    Optional<ActivityMetric> findByActivityId(String activityId);
 }

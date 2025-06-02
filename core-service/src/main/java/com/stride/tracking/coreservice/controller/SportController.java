@@ -1,7 +1,6 @@
 package com.stride.tracking.coreservice.controller;
 
 import com.stride.tracking.commons.annotations.PreAuthorizeAdmin;
-import com.stride.tracking.commons.annotations.PreAuthorizeUser;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
@@ -25,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class SportController {
     private final SportService sportService;
 
-    @GetMapping
+    @GetMapping("/manage")
     @PreAuthorizeAdmin
     ResponseEntity<ListResponse<SportResponse, SportFilter>> getSports(
             @Valid AppPageRequest page,
@@ -39,14 +38,14 @@ public class SportController {
         return ResponseEntity.ok(sportService.getSports());
     }
 
-    @PostMapping
+    @PostMapping("/manage")
     @PreAuthorizeAdmin
     ResponseEntity<SportResponse> createSport(@RequestBody CreateSportRequest request) {
         SportResponse response = sportService.createSport(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/manage/{id}")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateSport(
             @PathVariable String id,
@@ -55,7 +54,7 @@ public class SportController {
         return ResponseEntity.ok(new SimpleResponse());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/manage/{id}")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> deleteSport(
             @PathVariable String id) {

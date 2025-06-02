@@ -13,6 +13,7 @@ public class AppConstant {
             "/bridge/fcm/tokens/*",
 
             "/core/ping",
+            "/core/sports/all", //For sync sports between microservices
 
             "/identity/ping",
             "/identity/auth/**",

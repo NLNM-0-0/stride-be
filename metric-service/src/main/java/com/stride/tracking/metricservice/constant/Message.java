@@ -10,4 +10,6 @@ public class Message {
     public static final String CAN_NOT_FIND_USER_ID = "Can not find user id";
 
     public static final String SPORT_IS_NOT_EXISTED = "Sport is not existed";
+
+    public static final String CATEGORY_IS_NOT_EXISTED = "Category is not existed";
 }

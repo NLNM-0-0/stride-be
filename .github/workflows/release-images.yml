@@ -45,7 +45,7 @@ jobs:
       version: ${{ inputs.version }}
 
   build-route-ms:
-    uses: ./.github/workflows/route-service-build.yml
+    uses: ./.github/workflows/metric-service-build.yml
     secrets: inherit
     with:
       skip_diff_check: true

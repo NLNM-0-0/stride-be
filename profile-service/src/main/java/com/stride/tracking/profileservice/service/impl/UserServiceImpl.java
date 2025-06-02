@@ -1,15 +1,13 @@
 package com.stride.tracking.profileservice.service.impl;
 
-import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
-import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.profile.dto.user.HeartRateZone;
-import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
-import com.stride.tracking.profile.dto.user.request.UpdateUserRequest;
-import com.stride.tracking.profile.dto.user.response.CreateUserResponse;
-import com.stride.tracking.profile.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.profile.HeartRateZone;
+import com.stride.tracking.profile.dto.profile.request.CreateProfileRequest;
+import com.stride.tracking.profile.dto.profile.request.UpdateProfileRequest;
+import com.stride.tracking.profile.dto.profile.response.CreateProfileResponse;
+import com.stride.tracking.profile.dto.profile.response.ProfileResponse;
 import com.stride.tracking.profileservice.constant.Message;
 import com.stride.tracking.profileservice.mapper.UserMapper;
 import com.stride.tracking.profileservice.model.User;
@@ -21,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -37,29 +34,28 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
 
-    @Transactional
     @Override
-    public CreateUserResponse createNewUser(CreateUserRequest request) {
+    public CreateProfileResponse createNewUser(CreateProfileRequest request) {
         log.info("[createNewUser] Creating new user: {}", request.getName());
 
         User user = User.builder()
                 .name(request.getName())
+                .email(request.getEmail())
                 .ava(request.getAva() != null ? request.getAva() : DEFAULT_AVA)
-                .isBlock(false)
+                .isBlocked(false)
                 .build();
 
         user = userRepository.save(user);
 
         log.info("[createNewUser] Successfully saved user: {}", user.getId());
 
-        return CreateUserResponse.builder()
+        return CreateProfileResponse.builder()
                 .userId(user.getId())
                 .build();
     }
 
-    @Transactional
     @Override
-    public UserResponse viewProfile() {
+    public ProfileResponse viewProfile() {
         String currUserId = SecurityUtils.getCurrentUserId();
         log.info("[viewProfile] Fetching profile for user ID: {}", currUserId);
 
@@ -75,9 +71,8 @@ public class UserServiceImpl implements UserService {
         return userMapper.mapToUserResponse(user);
     }
 
-    @Transactional
     @Override
-    public void updateUserProfile(UpdateUserRequest request) {
+    public void updateUserProfile(UpdateProfileRequest request) {
         String currUserId = SecurityUtils.getCurrentUserId();
         log.info("[updateUserProfile] Updating profile for user ID: {}", currUserId);
 
@@ -122,7 +117,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-    private void validateHeartRate(UpdateUserRequest request) {
+    private void validateHeartRate(UpdateProfileRequest request) {
         if (request.getHeartRateZones() != null &&
                 request.getMaxHeartRate() != null) {
             log.error("[validateHeartRate] Attempt to update both heart rate zones and max heart rate for user");

@@ -15,5 +15,6 @@ public class SportCache {
     private String name;
     private String image;
     private String color;
+    private String categoryId;
     private SportMapType sportMapType;
 }

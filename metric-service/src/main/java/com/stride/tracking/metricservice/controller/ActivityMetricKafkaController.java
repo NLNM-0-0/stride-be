@@ -3,6 +3,7 @@ package com.stride.tracking.metricservice.controller;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
 import com.stride.tracking.metric.dto.activity.event.ActivityDeletedEvent;
+import com.stride.tracking.metric.dto.activity.event.ActivityUpdatedEvent;
 import com.stride.tracking.metricservice.service.ActivityMetricService;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,12 @@ public class ActivityMetricKafkaController {
     @PermitAll
     public void listenActivityCreatedEvent(ActivityCreatedEvent event) {
         activityMetricService.saveMetric(event);
+    }
+
+    @KafkaListener(topics = KafkaTopics.ACTIVITY_UPDATED_TOPIC)
+    @PermitAll
+    public void listenActivityUpdatedEvent(ActivityUpdatedEvent event) {
+        activityMetricService.updateMetric(event);
     }
 
     @KafkaListener(topics = KafkaTopics.ACTIVITY_DELETED_TOPIC)

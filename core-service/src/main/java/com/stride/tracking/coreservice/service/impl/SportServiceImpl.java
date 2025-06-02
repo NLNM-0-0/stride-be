@@ -8,7 +8,6 @@ import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.UpdateHelper;
-import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.core.dto.sport.event.SportUpdatedEvent;
 import com.stride.tracking.core.dto.sport.request.CreateSportRequest;
 import com.stride.tracking.core.dto.sport.request.RuleRequest;
@@ -115,7 +114,23 @@ public class SportServiceImpl implements SportService {
 
         sport = sportRepository.save(sport);
 
+        sendSportUpdatedMetric(KafkaTopics.SPORT_CREATED_TOPIC, sport);
+
         return sportMapper.mapToResponse(sport);
+    }
+
+    private void sendSportUpdatedMetric(String topic, Sport sport) {
+        kafkaProducer.send(
+                topic,
+                SportUpdatedEvent.builder()
+                        .id(sport.getId())
+                        .name(sport.getName())
+                        .image(sport.getImage())
+                        .color(sport.getColor())
+                        .categoryId(sport.getCategory().getId())
+                        .sportMapType(sport.getSportMapType())
+                        .build()
+        );
     }
 
     private void validateRules(List<RuleRequest> requests) {
@@ -150,16 +165,7 @@ public class SportServiceImpl implements SportService {
 
         Sport updatedSport = sportRepository.save(sport);
 
-        kafkaProducer.send(
-                KafkaTopics.SPORT_UPDATED_TOPIC,
-                SportUpdatedEvent.builder()
-                        .id(updatedSport.getId())
-                        .name(updatedSport.getName())
-                        .image(updatedSport.getImage())
-                        .color(updatedSport.getColor())
-                        .sportMapType(SportMapType.valueOf(updatedSport.getSportMapType().toString()))
-                        .build()
-        );
+        sendSportUpdatedMetric(KafkaTopics.SPORT_UPDATED_TOPIC, updatedSport);
     }
 
     @Override

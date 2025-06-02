@@ -10,7 +10,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8081:8081"
+      - "8081"
     restart: on-failure
     volumes:
       - ./stride-config/identity:/app/resources
@@ -27,7 +27,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8082:8082"
+      - "8082"
     restart: on-failure
     volumes:
       - ./stride-config/bridge:/app/resources
@@ -40,8 +40,11 @@ services:
   profile-ms:
     image: nlnm/stride-profile-ms:latest
     container_name: profile-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
     ports:
-      - "8083:8083"
+      - "8083"
     restart: on-failure
     volumes:
       - ./stride-config/profile:/app/resources
@@ -58,7 +61,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8084:8084"
+      - "8084"
     restart: on-failure
     volumes:
       - ./stride-config/core:/app/resources
@@ -68,16 +71,21 @@ services:
       JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
-  route-ms:
-    image: nlnm/stride-route-ms:latest
-    container_name: route-ms
+  metric-ms:
+    image: nlnm/stride-metric-ms:latest
+    container_name: metric-ms
+    depends_on:
+      kafka:
+        condition: service_healthy
     ports:
-      - "8085:8085"
+      - "8085"
     restart: on-failure
     volumes:
-      - ./stride-config/route:/usr/backend/deploy
+      - ./stride-config/core:/app/resources
     environment:
-      APP_ENV: prod
+      SPRING_CONFIG_LOCATION: file:/app/resources/
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Dlogging.config=file:/app/resources/logback-spring.xml"
     networks:
       - stride-network
   gateway:
@@ -88,7 +96,7 @@ services:
       - bridge-ms
       - profile-ms
       - core-ms
-      - route-ms
+      - metric-ms
     ports:
       - "8080:8080"
     restart: on-failure

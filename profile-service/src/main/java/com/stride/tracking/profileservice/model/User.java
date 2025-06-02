@@ -1,7 +1,7 @@
 package com.stride.tracking.profileservice.model;
 
-import com.stride.tracking.profile.dto.user.Equipment;
-import com.stride.tracking.profile.dto.user.HeartRateZone;
+import com.stride.tracking.profile.dto.profile.Equipment;
+import com.stride.tracking.profile.dto.profile.HeartRateZone;
 import com.stride.tracking.profileservice.persistence.BaseEntity;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -18,6 +18,7 @@ public class User extends BaseEntity {
     private String name;
     private String ava;
     private String dob;
+    private String email;
     private Integer height;
     private Integer weight;
     private Boolean male;
@@ -25,5 +26,6 @@ public class User extends BaseEntity {
     private Integer maxHeartRate;
     private Map<Equipment, Integer> equipmentWeight;
     private Map<HeartRateZone, Integer> heartRateZones;
-    private boolean isBlock;
+    private boolean isAdmin;
+    private boolean isBlocked;
 }

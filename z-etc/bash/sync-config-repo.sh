@@ -29,9 +29,10 @@ declare -A services=(
     ["profile/application-prod.yml"]="profile-service/src/main/resources/application-prod.yml"
     ["profile/logback-spring.xml"]="profile-service/src/main/resources/logback-spring.xml"
 
-    ["route/.env.default"]="route-service/deploy/.env.default"
-    ["route/.env.dev"]="route-service/deploy/.env.dev"
-    ["route/.env.prod"]="route-service/deploy/.env.prod"
+    ["metric/application.yml"]="metric-service/src/main/resources/application.yml"
+    ["metric/application-dev.yml"]="metric-service/src/main/resources/application-dev.yml"
+    ["metric/application-prod.yml"]="metric-service/src/main/resources/application-prod.yml"
+    ["metric/logback-spring.xml"]="metric-service/src/main/resources/logback-spring.xml"
 
     ["grafana-agent/grafana-agent.yml"]="/z-etc/log/grafana-agent.yml"
 

@@ -3,8 +3,6 @@ package com.stride.tracking.identityservice.service.impl;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
-import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.identity.dto.auth.request.AuthenticateWithGoogleRequest;
 import com.stride.tracking.identity.dto.auth.request.AuthenticationRequest;
@@ -22,7 +20,7 @@ import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.service.AuthenticationService;
 import com.stride.tracking.identityservice.utils.GoogleIdTokenHelper;
 import com.stride.tracking.identityservice.utils.JwtTokenHelper;
-import com.stride.tracking.profile.dto.user.request.CreateUserRequest;
+import com.stride.tracking.profile.dto.profile.request.CreateProfileRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
@@ -210,10 +208,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     ) {
         String userId = userIdentityRepository.findByUsername(email)
                 .map(UserIdentity::getUserId)
-                .orElseGet(() -> profileService.createUser(
-                                CreateUserRequest.builder()
+                .orElseGet(() -> profileService.createProfile(
+                                CreateProfileRequest.builder()
                                         .ava(ava)
                                         .name(name)
+                                        .email(email)
                                         .build(),
                                 AuthProvider.GOOGLE
                         )
