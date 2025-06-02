@@ -1,9 +1,9 @@
 package com.stride.tracking.bridgeservice.controller;
 
+import com.stride.tracking.bridge.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.service.FCMService;
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.fcm.request.FCMTokenRequest;
-import com.stride.tracking.dto.fcm.request.PushFCMNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

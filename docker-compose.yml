@@ -85,19 +85,24 @@ services:
     networks:
       - stride-network
 
-  route-ms:
+  metric-ms:
     build:
-      context: ./route-service
-      dockerfile: deploy/Dockerfile
-    container_name: route-ms
+      context: ./metric-service
+      dockerfile: deploy/dev.dockerfile
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: metric-ms
     depends_on:
-      mongo-db:
+      postgres-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     ports:
       - "8085:8085"
     restart: on-failure
-    environment:
-      APP_ENV: default
+    env_file:
+      .env
     networks:
       - stride-network
 
@@ -114,7 +119,7 @@ services:
       - bridge-ms
       - profile-ms
       - core-ms
-      - route-ms
+      - metric-ms
     ports:
       - "8080:8080"
     restart: on-failure
@@ -149,7 +154,7 @@ services:
       retries: 3
 
   postgres-db:
-    image: postgres:16
+    image: timescale/timescaledb-postgis:latest-pg13
     container_name: postgres-db
     environment:
       POSTGRES_USER: root

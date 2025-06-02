@@ -1,11 +1,11 @@
 package com.stride.tracking.coreservice.mapper;
 
+import com.stride.tracking.commons.utils.DateUtils;
+import com.stride.tracking.core.dto.activity.response.*;
 import com.stride.tracking.coreservice.model.Activity;
 import com.stride.tracking.coreservice.model.HeartRateZoneValue;
 import com.stride.tracking.coreservice.model.Location;
-import com.stride.tracking.coreservice.utils.DateUtils;
-import com.stride.tracking.dto.activity.response.*;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.profile.response.ProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class ActivityMapper {
     private final SportMapper sportMapper;
 
-    public ActivityShortResponse mapToShortResponse(Activity activity, UserResponse user) {
+    public ActivityShortResponse mapToShortResponse(Activity activity, ProfileResponse user) {
         return ActivityShortResponse.builder()
                 .id(activity.getId())
                 .name(activity.getName())
@@ -37,7 +37,7 @@ public class ActivityMapper {
                 .build();
     }
 
-    public ActivityResponse mapToActivityResponse(Activity activity, UserResponse user) {
+    public ActivityResponse mapToActivityResponse(Activity activity, ProfileResponse user) {
         return ActivityResponse.builder()
                 .id(activity.getId())
                 .name(activity.getName())
@@ -83,7 +83,7 @@ public class ActivityMapper {
                 .build();
     }
 
-    private ActivityUserResponse mapToUserResponse(UserResponse user) {
+    private ActivityUserResponse mapToUserResponse(ProfileResponse user) {
         return ActivityUserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())

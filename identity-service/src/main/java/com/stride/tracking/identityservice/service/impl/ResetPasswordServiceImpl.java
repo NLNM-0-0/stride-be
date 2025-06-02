@@ -1,14 +1,14 @@
 package com.stride.tracking.identityservice.service.impl;
 
+import com.stride.tracking.bridge.dto.email.event.SendEmailEvent;
+import com.stride.tracking.bridge.dto.email.request.Recipient;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.dto.email.event.SendEmailEvent;
-import com.stride.tracking.dto.email.request.Recipient;
-import com.stride.tracking.dto.register.request.VerifyResetPasswordRequest;
-import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserRequest;
-import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
-import com.stride.tracking.dto.resetpassword.response.VerifyResetPasswordResponse;
+import com.stride.tracking.identity.dto.register.request.VerifyResetPasswordRequest;
+import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserRequest;
+import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.identity.dto.resetpassword.response.VerifyResetPasswordResponse;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.ResetPasswordToken;
 import com.stride.tracking.identityservice.model.UserIdentity;
@@ -17,6 +17,7 @@ import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.service.ResetPasswordService;
 import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
+import com.stride.tracking.identityservice.utils.mail.MailFormatGeneratorFactory;
 import com.stride.tracking.identityservice.utils.mail.MailType;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
@@ -113,7 +114,7 @@ public class ResetPasswordServiceImpl  implements ResetPasswordService {
     }
 
     private void sendResetPasswordEmail(UserIdentity userIdentity, String otp) {
-        MailFormatGenerator generator = MailType.RESET_PASSWORD_USER.generator;
+        MailFormatGenerator generator = MailFormatGeneratorFactory.getGenerator(MailType.RESET_PASSWORD_USER);
 
         SendEmailEvent notificationEvent = SendEmailEvent.builder()
                 .recipient(Recipient.builder()

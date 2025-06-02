@@ -1,16 +1,13 @@
 package com.stride.tracking.identityservice.service.impl;
 
+import com.stride.tracking.bridge.dto.email.event.SendEmailEvent;
+import com.stride.tracking.bridge.dto.email.request.Recipient;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
-import com.stride.tracking.dto.email.event.SendEmailEvent;
-import com.stride.tracking.dto.email.request.Recipient;
-import com.stride.tracking.dto.register.request.EmailRegisterRequest;
-import com.stride.tracking.dto.register.request.VerifyAccountRequest;
-import com.stride.tracking.dto.register.response.CreateUserResponse;
-import com.stride.tracking.dto.register.response.EmailRegisterResponse;
-import com.stride.tracking.dto.user.request.CreateUserRequest;
-import com.stride.tracking.identityservice.client.ProfileFeignClient;
+import com.stride.tracking.identity.dto.register.request.EmailRegisterRequest;
+import com.stride.tracking.identity.dto.register.request.VerifyAccountRequest;
+import com.stride.tracking.identity.dto.register.response.EmailRegisterResponse;
 import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.UserIdentity;
@@ -20,13 +17,14 @@ import com.stride.tracking.identityservice.repository.VerifiedTokenRepository;
 import com.stride.tracking.identityservice.service.UserIdentityService;
 import com.stride.tracking.identityservice.utils.OTPGenerator;
 import com.stride.tracking.identityservice.utils.mail.MailFormatGenerator;
+import com.stride.tracking.identityservice.utils.mail.MailFormatGeneratorFactory;
 import com.stride.tracking.identityservice.utils.mail.MailType;
+import com.stride.tracking.profile.dto.profile.request.CreateProfileRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +33,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -46,7 +43,7 @@ public class UserIdentityServiceImpl implements UserIdentityService {
     private final VerifiedTokenRepository verifiedTokenRepository;
     private final KafkaProducer kafkaProducer;
 
-    private final ProfileFeignClient profileClient;
+    private final ProfileService profileService;
 
     private final PasswordEncoder passwordEncoder;
     private final OTPGenerator otpGenerator;
@@ -83,13 +80,19 @@ public class UserIdentityServiceImpl implements UserIdentityService {
                     .map(UserIdentity::getUserId)
                     .orElseGet(() -> {
                         log.warn("[register] Can't find Google user in this system: {}", request.getEmail());
-                        return createUser(request);
+                        return profileService.createProfile(
+                                CreateProfileRequest.builder()
+                                        .name(request.getEmail())
+                                        .email(request.getEmail())
+                                        .build(),
+                                AuthProvider.STRIDE
+                        );
                     });
 
-            boolean isExistingUser = existingGoogleUser.isPresent();
-            UserIdentity userIdentity = createUserIdentity(request, userId, isExistingUser);
+            boolean isExistingGoogleUser = existingGoogleUser.isPresent();
+            UserIdentity userIdentity = createUserIdentity(request, userId, isExistingGoogleUser);
 
-            if (!isExistingUser) {
+            if (!isExistingGoogleUser) {
                 String otp = saveVerifiedToken(userIdentity);
                 sendVerifiedEmail(userIdentity, otp);
                 log.info("[register] Sent verification email to: {}", userIdentity.getEmail());
@@ -102,21 +105,6 @@ public class UserIdentityServiceImpl implements UserIdentityService {
         return EmailRegisterResponse.builder()
                 .userIdentityId(userIdentityId)
                 .build();
-    }
-
-    private String createUser(EmailRegisterRequest request) {
-        ResponseEntity<CreateUserResponse> response = profileClient.createUser(
-                CreateUserRequest.builder()
-                        .name(request.getEmail())
-                        .build()
-        );
-        if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
-            log.error("[createUser] Failed to create user profile for email: {}", request.getEmail());
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.PROFILE_CREATE_USER_ERROR);
-        }
-
-        log.debug("[createUser] Created user profile with userId: {}", response.getBody().getUserId());
-        return Objects.requireNonNull(response.getBody()).getUserId();
     }
 
     private UserIdentity createUserIdentity(EmailRegisterRequest request, String userId, boolean isVerified) {
@@ -162,7 +150,7 @@ public class UserIdentityServiceImpl implements UserIdentityService {
     private void sendVerifiedEmail(UserIdentity userIdentity, String otp) {
         log.info("[sendVerifiedEmail] Sending verification email to user: {}", userIdentity.getEmail());
 
-        MailFormatGenerator generator = MailType.VERIFY_ACCOUNT.generator;
+        MailFormatGenerator generator = MailFormatGeneratorFactory.getGenerator(MailType.VERIFY_ACCOUNT);
 
         SendEmailEvent notificationEvent = SendEmailEvent.builder()
                 .recipient(Recipient.builder()
@@ -270,7 +258,7 @@ public class UserIdentityServiceImpl implements UserIdentityService {
     private void sendOTPEmail(UserIdentity userIdentity, String otp) {
         log.debug("[sendOTPEmail] Sending OTP email to user: {}", userIdentity.getEmail());
 
-        MailFormatGenerator generator = MailType.SEND_OTP.generator;
+        MailFormatGenerator generator = MailFormatGeneratorFactory.getGenerator(MailType.SEND_OTP);
 
         SendEmailEvent notificationEvent = SendEmailEvent.builder()
                 .recipient(Recipient.builder()

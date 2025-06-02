@@ -1,13 +1,13 @@
 package com.stride.tracking.identityservice.controller;
 
 import com.stride.tracking.commons.dto.SimpleResponse;
-import com.stride.tracking.dto.register.request.EmailRegisterRequest;
-import com.stride.tracking.dto.register.request.VerifyAccountRequest;
-import com.stride.tracking.dto.register.request.VerifyResetPasswordRequest;
-import com.stride.tracking.dto.register.response.EmailRegisterResponse;
-import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserRequest;
-import com.stride.tracking.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
-import com.stride.tracking.dto.resetpassword.response.VerifyResetPasswordResponse;
+import com.stride.tracking.identity.dto.register.request.EmailRegisterRequest;
+import com.stride.tracking.identity.dto.register.request.VerifyAccountRequest;
+import com.stride.tracking.identity.dto.register.request.VerifyResetPasswordRequest;
+import com.stride.tracking.identity.dto.register.response.EmailRegisterResponse;
+import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserRequest;
+import com.stride.tracking.identity.dto.resetpassword.request.ResetPasswordUserSendOTPRequest;
+import com.stride.tracking.identity.dto.resetpassword.response.VerifyResetPasswordResponse;
 import com.stride.tracking.identityservice.service.ResetPasswordService;
 import com.stride.tracking.identityservice.service.UserIdentityService;
 import jakarta.annotation.security.PermitAll;

@@ -30,7 +30,7 @@ jobs:
     secrets: inherit
 
   build-route-ms:
-    uses: ./.github/workflows/route-service-build.yml
+    uses: ./.github/workflows/metric-service-build.yml
     secrets: inherit
 
   deploy-to-vps:

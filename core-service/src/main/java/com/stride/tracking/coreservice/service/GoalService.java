@@ -1,10 +1,10 @@
 package com.stride.tracking.coreservice.service;
 
 import com.stride.tracking.commons.dto.SimpleListResponse;
-import com.stride.tracking.dto.goal.request.CreateGoalRequest;
-import com.stride.tracking.dto.goal.request.UpdateGoalRequest;
-import com.stride.tracking.dto.goal.response.CreateGoalResponse;
-import com.stride.tracking.dto.goal.response.GoalResponse;
+import com.stride.tracking.core.dto.goal.request.CreateGoalRequest;
+import com.stride.tracking.core.dto.goal.request.UpdateGoalRequest;
+import com.stride.tracking.core.dto.goal.response.CreateGoalResponse;
+import com.stride.tracking.core.dto.goal.response.GoalResponse;
 
 import java.time.ZoneId;
 

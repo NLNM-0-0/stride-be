@@ -1,14 +1,14 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
+import com.stride.tracking.core.dto.goal.GoalTimeFrame;
 import com.stride.tracking.coreservice.model.Goal;
 import com.stride.tracking.coreservice.model.GoalHistory;
 import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
 import com.stride.tracking.coreservice.repository.GoalRepository;
 import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
-import com.stride.tracking.dto.fcm.request.PushFCMNotificationRequest;
-import com.stride.tracking.dto.goal.GoalTimeFrame;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

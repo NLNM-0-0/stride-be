@@ -1,8 +1,8 @@
 package com.stride.tracking.coreservice.model;
 
+import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.coreservice.persistence.BaseEntity;
 import com.stride.tracking.coreservice.utils.converter.list.concrete.RuleListConverter;
-import com.stride.tracking.dto.sport.SportMapType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Cache;

@@ -1,8 +1,8 @@
 package com.stride.tracking.bridgeservice.client;
 
+import com.stride.tracking.bridge.dto.email.request.EmailRequest;
+import com.stride.tracking.bridge.dto.email.request.Recipient;
 import com.stride.tracking.commons.configuration.task.AsyncConfig;
-import com.stride.tracking.dto.email.request.EmailRequest;
-import com.stride.tracking.dto.email.request.Recipient;
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;

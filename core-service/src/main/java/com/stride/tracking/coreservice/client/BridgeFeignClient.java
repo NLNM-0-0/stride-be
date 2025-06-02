@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.client;
 
+import com.stride.tracking.bridge.dto.response.FileLinkResponse;
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.file.response.FileLinkResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

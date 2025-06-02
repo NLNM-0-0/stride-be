@@ -10,7 +10,7 @@ import java.util.List;
 
 @Component
 public class SpeedCalculator {
-    public SpeedCalculatorResult calculate(List<double[]> coordinates, List<Long> timestamps) {
+    public SpeedCalculatorResult calculate(List<List<Double>> coordinates, List<Long> timestamps) {
         List<Double> distances = new ArrayList<>(List.of(0.0));
         List<Double> speeds = new ArrayList<>(List.of(0.0));
         double maxSpeed = 0.0;
@@ -21,13 +21,13 @@ public class SpeedCalculator {
         }
 
         for (int i = 1; i < coordinates.size(); i++) {
-            double[] prev = coordinates.get(i - 1);
-            double[] curr = coordinates.get(i);
+            List<Double> prev = coordinates.get(i - 1);
+            List<Double> curr = coordinates.get(i);
 
-            double lat1 = prev[0];
-            double lon1 = prev[1];
-            double lat2 = curr[0];
-            double lon2 = curr[1];
+            double lat1 = prev.get(0);
+            double lon1 = prev.get(1);
+            double lat2 = curr.get(0);
+            double lon2 = curr.get(1);
 
             double distance = GeometryUtils.distanceToPoint(lat1, lon1, lat2, lon2);
             double secondDiff = (timestamps.get(i) - timestamps.get(i - 1)) / 1000.0;

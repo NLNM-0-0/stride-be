@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.client;
 
 import com.stride.tracking.commons.configuration.feign.FeignConfig;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.profile.dto.profile.response.ProfileResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,5 +16,5 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Component
 public interface ProfileFeignClient {
     @GetMapping(value = "/users/profile", produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<UserResponse> viewUser();
+    ResponseEntity<ProfileResponse> viewUser();
 }

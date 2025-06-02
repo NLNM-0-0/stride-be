@@ -1,15 +1,9 @@
 package com.stride.tracking.identityservice.utils.mail;
 
 public enum MailType {
-    VERIFY_ACCOUNT(new VerifyAccountMail()),
-    SEND_OTP(new SendOTPMail()),
-    RESET_PASSWORD_USER(new ResetPasswordUserMail()),
-    RESET_PASSWORD_ADMIN(new ResetPasswordAdminMail())
+    VERIFY_ACCOUNT,
+    SEND_OTP,
+    RESET_PASSWORD_USER,
+    RESET_PASSWORD_ADMIN,
     ;
-
-    public final MailFormatGenerator generator;
-
-    MailType(MailFormatGenerator generator) {
-        this.generator = generator;
-    }
 }

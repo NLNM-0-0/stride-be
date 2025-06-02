@@ -1,5 +1,10 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.bridge.dto.supabase.request.GeometryRequest;
+import com.stride.tracking.bridge.dto.supabase.request.GetLocationByGeometryRequest;
+import com.stride.tracking.bridge.dto.supabase.response.GetLocationByGeometryResponse;
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
@@ -7,24 +12,29 @@ import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.TaskHelper;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.core.dto.activity.request.ActivityFilter;
+import com.stride.tracking.core.dto.activity.request.CoordinateRequest;
+import com.stride.tracking.core.dto.activity.request.CreateActivityRequest;
+import com.stride.tracking.core.dto.activity.request.UpdateActivityRequest;
+import com.stride.tracking.core.dto.activity.response.ActivityResponse;
+import com.stride.tracking.core.dto.activity.response.ActivityShortResponse;
+import com.stride.tracking.core.dto.goal.GoalType;
+import com.stride.tracking.core.dto.route.request.CreateRouteRequest;
+import com.stride.tracking.core.dto.route.request.UpdateRouteRequest;
+import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
 import com.stride.tracking.coreservice.constant.GeometryType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.constant.RuleCaloriesType;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.model.*;
-import com.stride.tracking.coreservice.repository.*;
-import com.stride.tracking.coreservice.utils.GoalTimeFrameHelper;
-import com.stride.tracking.coreservice.utils.NumberUtils;
-import com.stride.tracking.coreservice.model.Activity;
-import com.stride.tracking.coreservice.model.Location;
-import com.stride.tracking.coreservice.model.Sport;
-import com.stride.tracking.coreservice.utils.*;
-import com.stride.tracking.dto.activity.request.*;
-import com.stride.tracking.dto.activity.response.ActivityResponse;
-import com.stride.tracking.dto.activity.response.ActivityShortResponse;
+import com.stride.tracking.coreservice.repository.ActivityRepository;
+import com.stride.tracking.coreservice.repository.GoalHistoryRepository;
+import com.stride.tracking.coreservice.repository.GoalRepository;
+import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.ActivitySpecs;
 import com.stride.tracking.coreservice.service.ActivityService;
+import com.stride.tracking.coreservice.utils.*;
 import com.stride.tracking.coreservice.utils.calculator.CaloriesCalculator;
 import com.stride.tracking.coreservice.utils.calculator.CarbonSavedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.RamerDouglasPeucker;
@@ -34,16 +44,14 @@ import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalcu
 import com.stride.tracking.coreservice.utils.calculator.heartrate.HeartRateCalculatorResult;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculator;
 import com.stride.tracking.coreservice.utils.calculator.speed.SpeedCalculatorResult;
-import com.stride.tracking.dto.goal.GoalType;
-import com.stride.tracking.dto.route.request.CreateRouteRequest;
-import com.stride.tracking.dto.route.request.UpdateRouteRequest;
-import com.stride.tracking.dto.route.response.CreateRouteResponse;
-import com.stride.tracking.dto.supabase.request.GeometryRequest;
-import com.stride.tracking.dto.supabase.request.GetLocationByGeometryRequest;
-import com.stride.tracking.dto.supabase.response.GetLocationByGeometryResponse;
-import com.stride.tracking.dto.user.response.UserResponse;
+import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
+import com.stride.tracking.metric.dto.activity.event.ActivityDeletedEvent;
+import com.stride.tracking.metric.dto.activity.event.ActivityUpdatedEvent;
+import com.stride.tracking.profile.dto.profile.response.ProfileResponse;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -67,13 +75,12 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final GoalRepository goalRepository;
     private final GoalHistoryRepository goalHistoryRepository;
-    private final ProgressRepository progressRepository;
 
     private final SportRepository sportRepository;
 
     private final MapboxService mapboxService;
     private final SupabaseService supabaseService;
-    private final RouteService routeService;
+    private final RouteServiceImpl routeServiceImpl;
     private final ProfileService profileService;
     private final ElevationService elevationService;
 
@@ -85,8 +92,13 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityMapper activityMapper;
 
+    private final KafkaProducer kafkaProducer;
+
     private final Executor asyncExecutor;
     private final Tracer tracer;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final double RDP_EPSILON = 0.00005;
     private static final int NUMBER_CHART_POINTS = 100;
@@ -96,7 +108,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional(readOnly = true)
     public ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
             AppPageRequest page) {
-        UserResponse userResponse = profileService.viewProfile();
+        ProfileResponse userResponse = profileService.viewProfile();
         ActivityFilter filter = ActivityFilter.builder()
                 .userId(userResponse.getId())
                 .build();
@@ -140,7 +152,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityResponse getActivity(String activityId) {
-        UserResponse user = profileService.viewProfile();
+        ProfileResponse user = profileService.viewProfile();
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
         return activityMapper.mapToActivityResponse(
@@ -152,8 +164,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
-        UserResponse user = profileService.viewProfile();
+        Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
+        ProfileResponse user = profileService.viewProfile();
 
         mergeStartEndPoint(request);
 
@@ -163,6 +175,7 @@ public class ActivityServiceImpl implements ActivityService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
+                .sportId(sport.getId())
                 .movingTimeSeconds(request.getMovingTimeSeconds())
                 .elapsedTimeSeconds(request.getElapsedTimeSeconds())
                 .rpe(request.getRpe())
@@ -217,26 +230,26 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void mergeStartEndPoint(CreateActivityRequest request) {
-        double[] start = request.getCoordinates()
+        List<Double> start = request.getCoordinates()
                 .get(0)
                 .getCoordinate();
-        double[] end = request.getCoordinates()
+        List<Double> end = request.getCoordinates()
                 .get(request.getCoordinates().size() - 1)
                 .getCoordinate();
 
-        double distance = GeometryUtils.distanceToPoint(start[1], start[0], end[1], end[0]);
+        double distance = GeometryUtils.distanceToPoint(start.get(1), start.get(0), end.get(1), end.get(0));
 
         if (distance <= THRESHOLD_METERS) {
             request.getCoordinates()
                     .get(request.getCoordinates().size() - 1)
-                    .setCoordinate(new double[]{start[0], start[1]});
+                    .setCoordinate(List.of(start.get(0), start.get(1)));
         }
     }
 
     private void processCoordinatesData(
             Activity activity,
             CreateActivityRequest request,
-            UserResponse user
+            ProfileResponse user
     ) {
         if (activity.getSport().getSportMapType() != null) {
             List<CoordinateRequest> rawCoordinates = request.getCoordinates();
@@ -268,7 +281,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addGeometryAndMap(Activity activity, List<CoordinateRequest> rawCoordinates) {
-        List<double[]> coordinates = rawCoordinates.stream()
+        List<List<Double>> coordinates = rawCoordinates.stream()
                 .map(CoordinateRequest::getCoordinate)
                 .toList();
 
@@ -276,13 +289,13 @@ public class ActivityServiceImpl implements ActivityService {
         addMapImage(activity, coordinates);
     }
 
-    private void addGeometry(Activity activity, List<double[]> coordinates) {
+    private void addGeometry(Activity activity, List<List<Double>> coordinates) {
         String encodedCoordinate = StridePolylineUtils.encode(coordinates);
         activity.setGeometry(encodedCoordinate);
     }
 
-    private void addMapImage(Activity activity, List<double[]> coordinates) {
-        List<double[]> smoothCoordinates = RamerDouglasPeucker.handle(
+    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
+        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.handle(
                 coordinates,
                 RDP_EPSILON
         );
@@ -298,11 +311,11 @@ public class ActivityServiceImpl implements ActivityService {
             Activity activity,
             List<CoordinateRequest> rawCoordinates,
             Long movingTimeSeconds,
-            UserResponse user
+            ProfileResponse user
     ) {
         List<CoordinateRequest> sampled = ListUtils.minimized(rawCoordinates, NUMBER_CHART_POINTS);
 
-        List<double[]> minimizedCoordinates = sampled.stream()
+        List<List<Double>> minimizedCoordinates = sampled.stream()
                 .map(CoordinateRequest::getCoordinate)
                 .toList();
 
@@ -352,10 +365,10 @@ public class ActivityServiceImpl implements ActivityService {
 
     private void addSpeedInfo(
             Activity activity,
-            List<double[]> coordinates,
+            List<List<Double>> coordinates,
             List<Long> timestamps,
             Long movingTimeSeconds,
-            UserResponse user
+            ProfileResponse user
     ) {
         SpeedCalculatorResult speedResult = speedCalculator.calculate(coordinates, timestamps);
 
@@ -391,7 +404,7 @@ public class ActivityServiceImpl implements ActivityService {
             long movingTimeSeconds,
             double avgSpeed,
             Sport sport,
-            UserResponse user
+            ProfileResponse user
     ) {
         int calories = calculateCalories(movingTimeSeconds, avgSpeed, sport, user);
         activity.setCalories(calories);
@@ -401,7 +414,7 @@ public class ActivityServiceImpl implements ActivityService {
             long movingTimeSeconds,
             double avgSpeed,
             Sport sport,
-            UserResponse user
+            ProfileResponse user
     ) {
         double equipmentWeight = Optional.ofNullable(user.getEquipmentsWeight())
                 .map(m ->
@@ -423,7 +436,7 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
-    private void addElevationInfo(Activity activity, List<double[]> coordinates) {
+    private void addElevationInfo(Activity activity, List<List<Double>> coordinates) {
         List<Integer> elevations = elevationService.calculateElevations(coordinates);
 
         ElevationCalculatorResult elevationResult = elevationCalculator.calculate(elevations);
@@ -432,7 +445,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxElevation(elevationResult.maxElevation());
     }
 
-    private void addLocation(Activity activity, List<double[]> coordinates) {
+    private void addLocation(Activity activity, List<List<Double>> coordinates) {
         GetLocationByGeometryResponse locationResponse = supabaseService.getLocationByGeometry(
                 GetLocationByGeometryRequest.builder()
                         .geometry(GeometryRequest.builder()
@@ -457,7 +470,7 @@ public class ActivityServiceImpl implements ActivityService {
     private void addHeartRateInfo(
             Activity activity,
             CreateActivityRequest request,
-            UserResponse user) {
+            ProfileResponse user) {
         List<Integer> sampledHeartRate = ListUtils.minimized(
                 request.getHeartRates(),
                 NUMBER_CHART_POINTS
@@ -525,36 +538,40 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addProgress(Activity activity) {
-        Progress progress = Progress.builder()
-                .userId(activity.getUserId())
-                .activity(activity)
-                .sport(activity.getSport())
-                .activity(activity)
-                .distance((long) (activity.getTotalDistance() * 1000))
-                .time(activity.getMovingTimeSeconds())
-                .elevation(activity.getElevationGain())
-                .build();
-
-        progressRepository.save(progress);
+        kafkaProducer.send(
+                KafkaTopics.ACTIVITY_CREATED_TOPIC,
+                ActivityCreatedEvent.builder()
+                        .activityId(activity.getId())
+                        .name(activity.getName())
+                        .userId(activity.getUserId())
+                        .sportId(activity.getSport().getId())
+                        .mapImage(activity.getMapImage())
+                        .distance((long) (activity.getTotalDistance() * 1000))
+                        .movingTimeSeconds(activity.getMovingTimeSeconds())
+                        .elevationGain(activity.getElevationGain())
+                        .time(activity.getCreatedAt())
+                        .location(activity.getLocation().getDistrict())
+                        .build()
+        );
     }
 
     private void processRoute(Activity activity) {
         if (activity.getRouteId() != null) {
-            routeService.updateRoute(
+            routeServiceImpl.updateRoute(
                     activity.getRouteId(),
                     UpdateRouteRequest.builder()
                             .activityId(activity.getId())
                             .images(activity.getImages())
-                            .avgTime(activity.getMovingTimeSeconds())
+                            .avgTime(Double.valueOf(activity.getMovingTimeSeconds()))
                             .avgDistance(activity.getTotalDistance())
                             .build()
             );
         } else {
-            CreateRouteResponse routeResponse = routeService.createRoute(
+            CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
                     CreateRouteRequest.builder()
                             .sportId(activity.getSport().getId())
                             .activityId(activity.getId())
-                            .sportMapType(activity.getSport().getSportMapType().name())
+                            .sportMapType(activity.getSport().getSportMapType())
                             .images(activity.getImages())
                             .avgTime(activity.getMovingTimeSeconds().doubleValue())
                             .avgDistance(activity.getTotalDistance())
@@ -574,9 +591,9 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = Common.findActivityById(activityId, activityRepository);
 
         if (request.getSportId() != null) {
-            UserResponse user = profileService.viewProfile();
+            ProfileResponse user = profileService.viewProfile();
 
-            Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+            Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
 
             addCaloriesInfo(
                     activity,
@@ -587,6 +604,10 @@ public class ActivityServiceImpl implements ActivityService {
             );
         }
 
+        if (request.getName() != null) {
+            activity.setName(request.getName());
+            sendActivityUpdatedMetric(activity);
+        }
         UpdateHelper.updateIfNotNull(request.getName(), activity::setName);
         UpdateHelper.updateIfNotNull(request.getDescription(), activity::setDescription);
 
@@ -595,7 +616,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (request.getImages() != null) {
             UpdateHelper.updateIfNotNull(request.getImages(), activity::setImages);
             if (activity.getRouteId() != null) {
-                routeService.updateRoute(
+                routeServiceImpl.updateRoute(
                         activity.getRouteId(),
                         UpdateRouteRequest.builder()
                                 .activityId(activity.getId())
@@ -606,6 +627,16 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         activityRepository.save(activity);
+    }
+
+    private void sendActivityUpdatedMetric(Activity activity) {
+        kafkaProducer.send(
+                KafkaTopics.ACTIVITY_UPDATED_TOPIC,
+                ActivityUpdatedEvent.builder()
+                        .activityId(activity.getId())
+                        .name(activity.getName())
+                        .build()
+        );
     }
 
     @Override
@@ -635,6 +666,11 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void deleteProgress(Activity activity) {
-        progressRepository.deleteByActivity_Id(activity.getId());
+        kafkaProducer.send(
+                KafkaTopics.ACTIVITY_DELETED_TOPIC,
+                ActivityDeletedEvent.builder()
+                        .activityId(activity.getId())
+                        .build()
+        );
     }
 }

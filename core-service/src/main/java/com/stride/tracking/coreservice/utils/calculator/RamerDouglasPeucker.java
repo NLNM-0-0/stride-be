@@ -39,7 +39,7 @@ public class RamerDouglasPeucker {
         return Math.sqrt(distanceToSegmentSquared(px, py, vx, vy, wx, wy));
     }
 
-    private static void handle(List<double[]> list, int s, int e, double epsilon, List<double[]> resultList) {
+    private static void handle(List<List<Double>> list, int s, int e, double epsilon, List<List<Double>> resultList) {
         // Find the point with the maximum distances
         double dmax = 0;
         int index = 0;
@@ -48,14 +48,14 @@ public class RamerDouglasPeucker {
         final int end = e-1;
         for (int i=start+1; i<end; i++) {
             // Point
-            final double px = list.get(i)[0];
-            final double py = list.get(i)[1];
+            final double px = list.get(i).get(0);
+            final double py = list.get(i).get(1);
             // Start
-            final double vx = list.get(start)[0];
-            final double vy = list.get(start)[1];
+            final double vx = list.get(start).get(0);
+            final double vy = list.get(start).get(1);
             // End
-            final double wx = list.get(end)[0];
-            final double wy = list.get(end)[1];
+            final double wx = list.get(end).get(0);
+            final double wy = list.get(end).get(1);
             final double d = perpendicularDistance(px, py, vx, vy, wx, wy); 
             if (d > dmax) {
                 index = i;
@@ -84,8 +84,8 @@ public class RamerDouglasPeucker {
      * @param epsilon Distance dimension
      * @return Similar curve with fewer points
      */
-    public static List<double[]> handle(List<double[]> list, double epsilon) {
-        final List<double[]> resultList = new ArrayList<>();
+    public static List<List<Double>> handle(List<List<Double>> list, double epsilon) {
+        final List<List<Double>> resultList = new ArrayList<>();
         handle(list, 0, list.size(), epsilon, resultList);
         return resultList;
     }

@@ -1,27 +1,30 @@
 package com.stride.tracking.coreservice.service.impl;
 
+import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
+import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.core.dto.sport.event.SportUpdatedEvent;
+import com.stride.tracking.core.dto.sport.request.CreateSportRequest;
+import com.stride.tracking.core.dto.sport.request.RuleRequest;
+import com.stride.tracking.core.dto.sport.request.SportFilter;
+import com.stride.tracking.core.dto.sport.request.UpdateSportRequest;
+import com.stride.tracking.core.dto.sport.response.SportResponse;
+import com.stride.tracking.core.dto.sport.response.SportShortResponse;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.SportMapper;
 import com.stride.tracking.coreservice.model.Category;
 import com.stride.tracking.coreservice.model.Rule;
 import com.stride.tracking.coreservice.model.Sport;
 import com.stride.tracking.coreservice.repository.CategoryRepository;
-import com.stride.tracking.dto.sport.request.CreateSportRequest;
-import com.stride.tracking.dto.sport.request.RuleRequest;
-import com.stride.tracking.dto.sport.request.SportFilter;
-import com.stride.tracking.dto.sport.request.UpdateSportRequest;
-import com.stride.tracking.dto.sport.response.SportResponse;
 import com.stride.tracking.coreservice.repository.SportRepository;
 import com.stride.tracking.coreservice.repository.specs.SportSpecs;
 import com.stride.tracking.coreservice.service.SportService;
 import com.stride.tracking.coreservice.utils.validator.CaloriesExpressionValidator;
-import com.stride.tracking.dto.sport.response.SportShortResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +45,8 @@ public class SportServiceImpl implements SportService {
     private final CategoryRepository categoryRepository;
 
     private final SportMapper sportMapper;
+
+    private final KafkaProducer kafkaProducer;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,12 +114,28 @@ public class SportServiceImpl implements SportService {
 
         sport = sportRepository.save(sport);
 
+        sendSportUpdatedMetric(KafkaTopics.SPORT_CREATED_TOPIC, sport);
+
         return sportMapper.mapToResponse(sport);
+    }
+
+    private void sendSportUpdatedMetric(String topic, Sport sport) {
+        kafkaProducer.send(
+                topic,
+                SportUpdatedEvent.builder()
+                        .id(sport.getId())
+                        .name(sport.getName())
+                        .image(sport.getImage())
+                        .color(sport.getColor())
+                        .categoryId(sport.getCategory().getId())
+                        .sportMapType(sport.getSportMapType())
+                        .build()
+        );
     }
 
     private void validateRules(List<RuleRequest> requests) {
         for (RuleRequest request : requests) {
-            if (!CaloriesExpressionValidator.isValid(request.getExpression())){
+            if (!CaloriesExpressionValidator.isValid(request.getExpression())) {
                 throw new StrideException(HttpStatus.BAD_REQUEST, Message.RULE_INVALID);
             }
         }
@@ -139,9 +160,12 @@ public class SportServiceImpl implements SportService {
 
         UpdateHelper.updateIfNotNull(request.getName(), sport::setName);
         UpdateHelper.updateIfNotNull(request.getImage(), sport::setImage);
+        UpdateHelper.updateIfNotNull(request.getColor(), sport::setColor);
         UpdateHelper.updateIfNotNull(request.getSportMapType(), sport::setSportMapType);
 
-        sportRepository.save(sport);
+        Sport updatedSport = sportRepository.save(sport);
+
+        sendSportUpdatedMetric(KafkaTopics.SPORT_UPDATED_TOPIC, updatedSport);
     }
 
     @Override
