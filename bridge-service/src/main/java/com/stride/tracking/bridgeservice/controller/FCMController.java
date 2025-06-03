@@ -29,7 +29,7 @@ public class FCMController {
 
     @DeleteMapping("/tokens/{token}")
     @PreAuthorizeUser
-    ResponseEntity<SimpleResponse> deleteFCMTokenById(
+    ResponseEntity<SimpleResponse> deleteFCMTokenByToken(
             @PathVariable String token
     ) {
         fcmService.deleteFCMTokenByToken(token);
@@ -37,7 +37,7 @@ public class FCMController {
     }
 
     @DeleteMapping("/users/{userId}")
-    @PreAuthorizeUser
+    @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> deleteFCMTokenByUserId(
             @PathVariable String userId
     ) {
