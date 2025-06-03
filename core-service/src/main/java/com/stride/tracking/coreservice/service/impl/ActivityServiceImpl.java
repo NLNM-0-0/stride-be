@@ -6,6 +6,7 @@ import com.stride.tracking.commons.dto.ListResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.commons.dto.page.AppPageResponse;
 import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.DateUtils;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.TaskHelper;
 import com.stride.tracking.commons.utils.UpdateHelper;
@@ -63,6 +64,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -107,18 +109,20 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional(readOnly = true)
     public ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
-            AppPageRequest page) {
+            ZoneId zoneId,
+            AppPageRequest page,
+            ActivityFilter filter
+    ) {
         ProfileResponse userResponse = profileService.viewProfile();
-        ActivityFilter filter = ActivityFilter.builder()
-                .userId(userResponse.getId())
-                .build();
+
+        filter.setUserId(userResponse.getId());
 
         Pageable pageable = PageRequest.of(
                 page.getPage() - 1,
                 page.getLimit(),
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
-        Specification<Activity> spec = filterActivities(filter);
+        Specification<Activity> spec = filterActivities(zoneId, filter);
 
         Page<Activity> activityPage = activityRepository.findAll(spec, pageable);
 
@@ -141,10 +145,43 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private Specification<Activity> filterActivities(ActivityFilter filter) {
-        Specification<Activity> spec = Specification.where(null);
-        if (filter.getUserId() != null) {
-            spec = spec.and(ActivitySpecs.hasUser(filter.getUserId()));
+    private Specification<Activity> filterActivities(ZoneId zoneId, ActivityFilter filter) {
+        Specification<Activity> spec = Specification.where(ActivitySpecs.hasUser(filter.getUserId()));
+        if (filter.getSearch() != null) {
+            spec = spec.and(ActivitySpecs.hasName(filter.getSearch()));
+        }
+        if (filter.getSportIds() != null) {
+            spec = spec.and(ActivitySpecs.hasSportIds(filter.getSportIds()));
+        }
+        if (filter.getDistance() != null) {
+            spec = spec.and(ActivitySpecs.hasDistanceBetween(
+                    filter.getDistance().getMin(),
+                    filter.getDistance().getMax())
+            );
+        }
+        if (filter.getElevation() != null) {
+            spec = spec.and(ActivitySpecs.hasElevationBetween(
+                    filter.getElevation().getMin(),
+                    filter.getElevation().getMax())
+            );
+        }
+        if (filter.getTime() != null) {
+            spec = spec.and(ActivitySpecs.hasMovingTimeBetween(
+                    filter.getTime().getMin(),
+                    filter.getTime().getMax())
+            );
+        }
+        if (filter.getDate() != null) {
+            Instant min = DateUtils.toStartOfDayInstant(
+                    DateUtils.toInstant(filter.getDate().getMin()),
+                    zoneId
+            );
+            Instant max = DateUtils.toEndOfDayInstant(
+                    DateUtils.toInstant(filter.getDate().getMax()),
+                    zoneId
+            );
+
+            spec = spec.and(ActivitySpecs.hasDateBetween(min, max));
         }
         return spec;
     }
@@ -548,9 +585,10 @@ public class ActivityServiceImpl implements ActivityService {
                         .mapImage(activity.getMapImage())
                         .distance((long) (activity.getTotalDistance() * 1000))
                         .movingTimeSeconds(activity.getMovingTimeSeconds())
-                        .elevationGain(activity.getElevationGain())
+                        .elevationGain(Long.valueOf(activity.getElevationGain()))
+                        .avgHearRate(activity.getAvgHearRate())
+                        .calories(activity.getCalories())
                         .time(activity.getCreatedAt())
-                        .location(activity.getLocation().getDistrict())
                         .build()
         );
     }

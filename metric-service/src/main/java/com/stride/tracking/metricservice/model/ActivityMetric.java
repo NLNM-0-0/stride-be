@@ -47,5 +47,6 @@ public class ActivityMetric {
     private long movingTimeSeconds;
     private long elevationGain;
     private long distance;
-    private String location;
+    private Integer calories;
+    private Double avgHeartRate;
 }

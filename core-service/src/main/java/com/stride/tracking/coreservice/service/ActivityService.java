@@ -12,7 +12,9 @@ import java.time.ZoneId;
 
 public interface ActivityService {
     ListResponse<ActivityShortResponse, ActivityFilter> getActivitiesOfUser(
-            AppPageRequest page
+            ZoneId zoneId,
+            AppPageRequest page,
+            ActivityFilter filter
     );
 
     ActivityResponse getActivity(String activityId);

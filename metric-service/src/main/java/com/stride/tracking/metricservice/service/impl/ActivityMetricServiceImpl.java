@@ -4,10 +4,12 @@ import com.stride.tracking.commons.utils.UpdateHelper;
 import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
 import com.stride.tracking.metric.dto.activity.event.ActivityDeletedEvent;
 import com.stride.tracking.metric.dto.activity.event.ActivityUpdatedEvent;
-import com.stride.tracking.metric.dto.report.response.ActivityDetailReport;
-import com.stride.tracking.metric.dto.report.response.ActivityReport;
-import com.stride.tracking.metric.dto.report.response.SportDetailReport;
-import com.stride.tracking.metric.dto.report.response.SportReport;
+import com.stride.tracking.metric.dto.report.response.activity.ActivityDetailReport;
+import com.stride.tracking.metric.dto.report.response.activity.ActivityReport;
+import com.stride.tracking.metric.dto.report.response.sport.SportDetailReport;
+import com.stride.tracking.metric.dto.report.response.sport.SportMapTypeDetailReport;
+import com.stride.tracking.metric.dto.report.response.sport.SportReport;
+import com.stride.tracking.metric.dto.sport.SportMapType;
 import com.stride.tracking.metricservice.mapper.ActivityMetricMapper;
 import com.stride.tracking.metricservice.model.ActivityMetric;
 import com.stride.tracking.metricservice.model.SportCache;
@@ -18,7 +20,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -33,9 +34,7 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
 
     @Override
     @Transactional(readOnly = true)
-    public ActivityReport getActivityReport(Instant from, Instant to) {
-        List<ActivityMetric> activities = activityMetricRepository.findAllByTimeBetween(from, to);
-
+    public ActivityReport getActivityReport(List<ActivityMetric> activities) {
         double totalDistance = 0.0;
         double totalTime = 0.0;
         double totalElevationGain = 0.0;
@@ -66,16 +65,13 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
 
     @Override
     @Transactional(readOnly = true)
-    public SportReport getSportReport(Instant from, Instant to) {
-        List<ActivityMetric> activities = activityMetricRepository.findAllByTimeBetween(from, to);
-
+    public SportReport getSportReport(List<ActivityMetric> activities) {
         Map<String, Integer> activityBySport = new HashMap<>();
         for (ActivityMetric activity : activities) {
             activityBySport.compute(activity.getSportId(), (k, v) -> v == null ? 1 : v + 1);
         }
 
-        int numberHasMap = 0;
-        int numberDoNotHaveMap = 0;
+        int[] sportMapTypesCounts = new int[SportMapType.values().length];
         List<SportDetailReport> sports = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : activityBySport.entrySet()) {
             Optional<SportCache> sportCache = sportCacheService.getOptionalSport(entry.getKey());
@@ -84,17 +80,13 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
             }
 
             SportCache sport = sportCache.get();
-
-            if (sport.getSportMapType() != null) {
-                numberHasMap++;
-            } else {
-                numberDoNotHaveMap++;
-            }
+            sportMapTypesCounts[sport.getSportMapType().ordinal()]++;
 
             sports.add(SportDetailReport.builder()
                     .id(sport.getId())
                     .name(sport.getName())
                     .color(sport.getColor())
+                    .image(sport.getImage())
                     .sportMapType(sport.getSportMapType())
                     .numberActivities(entry.getValue())
                     .build());
@@ -102,8 +94,15 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
 
         return SportReport.builder()
                 .numberSports(activityBySport.size())
-                .numberDoNotHaveMap(numberDoNotHaveMap)
-                .numberHasMap(numberHasMap)
+                .sportMapTypes(
+                        Arrays.stream(SportMapType.values())
+                                .map(type-> SportMapTypeDetailReport
+                                        .builder()
+                                        .type(type)
+                                        .numberActivities(sportMapTypesCounts[type.ordinal()])
+                                        .build()
+                                )
+                                .toList())
                 .sports(sports)
                 .build();
     }

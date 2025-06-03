@@ -6,7 +6,6 @@ import com.stride.tracking.commons.dto.SimpleListResponse;
 import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.commons.dto.page.AppPageRequest;
 import com.stride.tracking.core.dto.route.request.*;
-import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
 import com.stride.tracking.core.dto.route.response.RouteResponse;
 import com.stride.tracking.core.dto.route.response.SaveRouteResponse;
 import com.stride.tracking.coreservice.service.RouteService;
@@ -38,15 +37,6 @@ public class RouteController {
             @Valid RouteFilter filter
     ) {
         return ResponseEntity.ok(routeService.getRoutes(page, filter));
-    }
-
-    @PostMapping("")
-    @PreAuthorizeUser
-    public ResponseEntity<CreateRouteResponse> createRoute(
-            @RequestBody CreateRouteRequest request
-    ) {
-        CreateRouteResponse response = routeService.createRoute(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/{routeId}/save")

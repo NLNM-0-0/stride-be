@@ -28,8 +28,27 @@ public class ActivityController {
     @GetMapping("/users/profile")
     @PreAuthorizeUser
     ResponseEntity<ListResponse<ActivityShortResponse, ActivityFilter>> getActivitiesOfUser(
+            @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid AppPageRequest page) {
-        return ResponseEntity.ok(activityService.getActivitiesOfUser(page));
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        return ResponseEntity.ok(activityService.getActivitiesOfUser(
+                zoneId,
+                page,
+                new ActivityFilter()
+        ));
+    }
+
+    @GetMapping("/users/profile/filter")
+    @PreAuthorizeUser
+    ResponseEntity<ListResponse<ActivityShortResponse, ActivityFilter>> getActivitiesOfUser(
+            @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
+            @Valid AppPageRequest page,
+            @Valid ActivityFilter filter
+    ) {
+        ZoneId zoneId = ZoneId.of(timezone);
+
+        return ResponseEntity.ok(activityService.getActivitiesOfUser(zoneId, page, filter));
     }
 
     @GetMapping("/{id}")

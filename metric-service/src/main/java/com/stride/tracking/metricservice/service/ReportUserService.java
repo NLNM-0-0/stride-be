@@ -1,6 +1,6 @@
 package com.stride.tracking.metricservice.service;
 
-import com.stride.tracking.metric.dto.report.response.UserReport;
+import com.stride.tracking.metric.dto.report.response.user.UserReport;
 
 import java.time.Instant;
 

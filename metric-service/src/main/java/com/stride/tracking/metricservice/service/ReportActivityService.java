@@ -1,9 +1,10 @@
 package com.stride.tracking.metricservice.service;
 
-import com.stride.tracking.metric.dto.report.response.ActivityReport;
+import com.stride.tracking.metric.dto.report.response.activity.ActivityReport;
+import com.stride.tracking.metricservice.model.ActivityMetric;
 
-import java.time.Instant;
+import java.util.List;
 
 public interface ReportActivityService {
-    ActivityReport getActivityReport(Instant from, Instant to);
+    ActivityReport getActivityReport(List<ActivityMetric> activityMetrics);
 }
