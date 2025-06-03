@@ -39,8 +39,8 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isBlocked(false)
-                .isVerified(request.getIsAdmin())
-                .isAdmin(request.getIsAdmin())
+                .isVerified(request.isAdmin())
+                .isAdmin(request.isAdmin())
                 .build();
 
         userIdentityRepository.save(userIdentity);
@@ -117,7 +117,7 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
     private void validateNotCurrentUser(UserIdentity userIdentity) {
         String currentUserId = SecurityUtils.getCurrentUserId();
 
-        if (!userIdentity.getUserId().equals(currentUserId)) {
+        if (userIdentity.getUserId().equals(currentUserId)) {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.CAN_NOT_RESET_YOUR_PASSWORD);
         }
     }
