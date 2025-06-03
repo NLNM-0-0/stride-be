@@ -24,7 +24,9 @@ public class ReportSportMapTypeServiceImpl implements ReportSportMapTypeService 
             ZoneId zoneId,
             List<ActivityMetric> activities
     ) {
-        Map<Instant, int[]> grouped = new HashMap<>();
+        // 0 for numberActivities
+        // 1 for time
+        Map<Instant, long[][]> grouped = new HashMap<>();
 
         for (ActivityMetric activity : activities) {
             Instant time = DateUtils.toStartOfDayInstant(activity.getTime(), zoneId);
@@ -32,20 +34,22 @@ public class ReportSportMapTypeServiceImpl implements ReportSportMapTypeService 
             SportCache sportCache = sportCacheService.getSport(activity.getSportId());
             SportMapType type = sportCache.getSportMapType();
 
-            int[] counts = grouped.computeIfAbsent(time, d -> new int[SportMapType.values().length]);
-            counts[type.ordinal()]++;
+            long[][] counts = grouped.computeIfAbsent(time, d -> new long[SportMapType.values().length][2]);
+            counts[type.ordinal()][0]++;
+            counts[type.ordinal()][1] += activity.getMovingTimeSeconds();
         }
 
         List<SportMapTypeByDateEntryReport> result = new ArrayList<>();
-        for (Map.Entry<Instant, int[]> entry : grouped.entrySet()) {
-            int[] counts = entry.getValue();
+        for (Map.Entry<Instant, long[][]> entry : grouped.entrySet()) {
+            long[][] counts = entry.getValue();
 
             List<SportMapTypeByDateDetailReport> details = new ArrayList<>();
             for (int i = 0; i < SportMapType.values().length; i++) {
                 details.add(
                         SportMapTypeByDateDetailReport.builder()
                                 .type(SportMapType.values()[i])
-                                .value(counts[i])
+                                .numberActivities((int) counts[i][0])
+                                .time(counts[i][1])
                                 .build()
                 );
             }
