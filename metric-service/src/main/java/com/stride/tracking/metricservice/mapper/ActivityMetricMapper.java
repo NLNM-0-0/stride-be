@@ -16,7 +16,8 @@ public class ActivityMetricMapper {
                 .sportId(event.getSportId())
                 .movingTimeSeconds(event.getMovingTimeSeconds())
                 .elevationGain(event.getElevationGain())
-                .location(event.getLocation())
+                .calories(event.getCalories())
+                .avgHeartRate(event.getAvgHearRate())
                 .build();
     }
 
@@ -27,6 +28,8 @@ public class ActivityMetricMapper {
                 .time(model.getMovingTimeSeconds())
                 .elevationGain(model.getElevationGain())
                 .distance(model.getDistance())
+                .avgHeartRate(model.getAvgHeartRate())
+                .calories(model.getCalories())
                 .build();
     }
 }

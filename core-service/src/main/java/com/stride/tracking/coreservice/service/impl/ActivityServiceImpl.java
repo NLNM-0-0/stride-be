@@ -548,9 +548,10 @@ public class ActivityServiceImpl implements ActivityService {
                         .mapImage(activity.getMapImage())
                         .distance((long) (activity.getTotalDistance() * 1000))
                         .movingTimeSeconds(activity.getMovingTimeSeconds())
-                        .elevationGain(activity.getElevationGain())
+                        .elevationGain(Long.valueOf(activity.getElevationGain()))
+                        .avgHearRate(activity.getAvgHearRate())
+                        .calories(activity.getCalories())
                         .time(activity.getCreatedAt())
-                        .location(activity.getLocation().getDistrict())
                         .build()
         );
     }

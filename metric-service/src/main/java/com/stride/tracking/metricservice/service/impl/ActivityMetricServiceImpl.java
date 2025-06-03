@@ -95,6 +95,7 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
                     .id(sport.getId())
                     .name(sport.getName())
                     .color(sport.getColor())
+                    .image(sport.getImage())
                     .sportMapType(sport.getSportMapType())
                     .numberActivities(entry.getValue())
                     .build());
