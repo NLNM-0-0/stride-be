@@ -4,6 +4,7 @@ import com.stride.tracking.core.dto.sport.event.SportUpdatedEvent;
 import com.stride.tracking.metric.dto.category.response.CategoryResponse;
 import com.stride.tracking.metric.dto.sport.SportMapType;
 import com.stride.tracking.metric.dto.sport.response.SportShortResponse;
+import com.stride.tracking.metric.dto.sport.response.SportWithoutCategoryResponse;
 import com.stride.tracking.metricservice.model.SportCache;
 import com.stride.tracking.metricservice.service.impl.CategoryCacheService;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +54,16 @@ public class SportCacheMapper {
                                 .id(sport.getCategoryId())
                                 .name(categoryName).build()
                 )
+                .sportMapType(sport.getSportMapType())
+                .build();
+    }
+
+    public SportWithoutCategoryResponse mapToDetailReportResponse(SportCache sport) {
+        return SportWithoutCategoryResponse.builder()
+                .id(sport.getId())
+                .name(sport.getName())
+                .image(sport.getImage())
+                .color(sport.getColor())
                 .sportMapType(sport.getSportMapType())
                 .build();
     }

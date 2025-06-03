@@ -7,7 +7,9 @@ import com.stride.tracking.metric.dto.activity.event.ActivityUpdatedEvent;
 import com.stride.tracking.metric.dto.report.response.activity.ActivityDetailReport;
 import com.stride.tracking.metric.dto.report.response.activity.ActivityReport;
 import com.stride.tracking.metric.dto.report.response.sport.SportDetailReport;
+import com.stride.tracking.metric.dto.report.response.sport.SportMapTypeDetailReport;
 import com.stride.tracking.metric.dto.report.response.sport.SportReport;
+import com.stride.tracking.metric.dto.sport.SportMapType;
 import com.stride.tracking.metricservice.mapper.ActivityMetricMapper;
 import com.stride.tracking.metricservice.model.ActivityMetric;
 import com.stride.tracking.metricservice.model.SportCache;
@@ -69,8 +71,7 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
             activityBySport.compute(activity.getSportId(), (k, v) -> v == null ? 1 : v + 1);
         }
 
-        int numberHasMap = 0;
-        int numberDoNotHaveMap = 0;
+        int[] sportMapTypesCounts = new int[SportMapType.values().length];
         List<SportDetailReport> sports = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : activityBySport.entrySet()) {
             Optional<SportCache> sportCache = sportCacheService.getOptionalSport(entry.getKey());
@@ -79,12 +80,7 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
             }
 
             SportCache sport = sportCache.get();
-
-            if (sport.getSportMapType() != null) {
-                numberHasMap++;
-            } else {
-                numberDoNotHaveMap++;
-            }
+            sportMapTypesCounts[sport.getSportMapType().ordinal()]++;
 
             sports.add(SportDetailReport.builder()
                     .id(sport.getId())
@@ -98,8 +94,15 @@ public class ActivityMetricServiceImpl implements ActivityMetricService {
 
         return SportReport.builder()
                 .numberSports(activityBySport.size())
-                .numberDoNotHaveMap(numberDoNotHaveMap)
-                .numberHasMap(numberHasMap)
+                .sportMapTypes(
+                        Arrays.stream(SportMapType.values())
+                                .map(type-> SportMapTypeDetailReport
+                                        .builder()
+                                        .type(type)
+                                        .numberActivities(sportMapTypesCounts[type.ordinal()])
+                                        .build()
+                                )
+                                .toList())
                 .sports(sports)
                 .build();
     }

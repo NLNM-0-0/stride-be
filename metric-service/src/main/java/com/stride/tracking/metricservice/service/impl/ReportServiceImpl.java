@@ -5,7 +5,7 @@ import com.stride.tracking.metric.dto.report.request.ReportFilter;
 import com.stride.tracking.metric.dto.report.response.GetReportResponse;
 import com.stride.tracking.metric.dto.report.response.activity.ActivityReport;
 import com.stride.tracking.metric.dto.report.response.sport.SportReport;
-import com.stride.tracking.metric.dto.report.response.sportmaptype.SportMapTypeDetailReport;
+import com.stride.tracking.metric.dto.report.response.sportmaptype.SportMapTypeByDateEntryReport;
 import com.stride.tracking.metric.dto.report.response.user.UserReport;
 import com.stride.tracking.metricservice.model.ActivityMetric;
 import com.stride.tracking.metricservice.repository.ActivityMetricRepository;
@@ -43,7 +43,7 @@ public class ReportServiceImpl implements ReportService {
         UserReport userReport = reportUserService.getUserReport(from, to);
         ActivityReport activityReport = reportActivityService.getActivityReport(activities);
         SportReport sportReport = reportSportService.getSportReport(activities);
-        List<SportMapTypeDetailReport> sportMapTypeDetailReports = reportSportMapTypeService.getSportMapTypesReport(
+        List<SportMapTypeByDateEntryReport> sportMapTypeDetailReports = reportSportMapTypeService.getSportMapTypesReport(
                 zoneId,
                 activities
         );
