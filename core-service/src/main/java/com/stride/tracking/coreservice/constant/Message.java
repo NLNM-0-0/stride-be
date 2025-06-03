@@ -22,10 +22,9 @@ public class Message {
     public static final String CAN_NOT_FIND_DISTRICTS_CONTAIN_GEOMETRY = "Can not find districts contain geometry";
     public static final String GOAL_IS_ALREADY_EXISTED = "Goal is already existed";
     public static final String CAN_NOTE_DELETE_OTHER_USER_GOAL = "Can not delete other user's goals";
-    public static final String TRAINING_LOG_FILTER_VALIDATE = "Both fromDate and toDate must be provided together or left blank to use defaults";
-    public static final String CAN_NOT_FIND_USER_ID = "Can not find user id";
     public static final String CAN_NOTE_DELETE_PUBLIC_ROUTE = "Can not delete other user route";
     public static final String CAN_NOT_DELETE_OTHER_USER_ROUTE = "Can not delete other user route";
     public static final String CAN_NOT_UPDATE_OTHER_USER_ROUTE = "Can not update other user route";
     public static final String CAN_NOT_SAVE_A_NON_PUBLIC_ROUTE = "Can not save a non public route";
+    public static final String USER_HAVE_NOT_HEART_RATE_ZONES_YET = "User haven't had heart rates zone yet";
 }

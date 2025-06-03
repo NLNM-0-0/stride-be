@@ -8,9 +8,6 @@ public class AppConstant {
     @NonFinal
     public static String[] publicEndpoints = {
             "/bridge/ping",
-            "/bridge/emails/send",
-            "/bridge/fcm/users/*",
-            "/bridge/fcm/tokens/*",
 
             "/core/ping",
             "/core/sports/all", //For sync sports between microservices
