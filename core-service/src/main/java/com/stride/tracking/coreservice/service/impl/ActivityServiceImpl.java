@@ -198,36 +198,50 @@ public class ActivityServiceImpl implements ActivityService {
         );
     }
 
+    private CompletableFuture<Void> runAsyncSecurityContextWithSpan(String spanName, Span parent, Runnable task) {
+        return TaskHelper.runAsyncSecurityContextWithSpan(
+                spanName,
+                parent,
+                task,
+                asyncExecutor,
+                tracer
+        );
+    }
+
+    private void trace(String name, Runnable runnable) {
+        Span span = tracer.nextSpan().name(name).start();
+        try (Tracer.SpanInScope ws = tracer.withSpan(span)) {
+            runnable.run();
+        } finally {
+            span.end();
+        }
+    }
+
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
-        ProfileResponse user = profileService.viewProfile();
-
         mergeStartEndPoint(request);
 
-        Activity activity = Activity.builder()
-                .userId(user.getId())
-                .routeId(request.getRouteId())
-                .name(request.getName())
-                .description(request.getDescription())
-                .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
-                .sportId(sport.getId())
-                .movingTimeSeconds(request.getMovingTimeSeconds())
-                .elapsedTimeSeconds(request.getElapsedTimeSeconds())
-                .rpe(request.getRpe())
-                .images(request.getImages())
-                .build();
+        ProfileResponse user = profileService.viewProfile();
+        Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
 
-        processCoordinatesData(
-                activity,
-                request,
-                user
-        );
-
-        addHeartRateInfo(activity, request, user);
-
+        Activity activity = prepareActivity(request, user, sport);
         Activity savedActivity = activityRepository.save(activity);
+
+        List<CoordinateRequest> sampled = ListUtils.minimized(request.getCoordinates(), NUMBER_CHART_POINTS);
+        List<List<Double>> minimizedCoordinates = sampled.stream()
+                .map(CoordinateRequest::getCoordinate)
+                .toList();
+        List<Long> minimizedTimestamps = new ArrayList<>(sampled.stream()
+                .map(CoordinateRequest::getTimestamp)
+                .toList());
+
+        addSpeedAndDistanceInfo(activity, minimizedCoordinates, minimizedTimestamps);
+        addLocation(
+                activity,
+                minimizedCoordinates
+        );
+        addGeometry(activity, request.getCoordinates());
 
         Span parent = tracer.currentSpan();
 
@@ -237,32 +251,36 @@ public class ActivityServiceImpl implements ActivityService {
                 () -> processRoute(savedActivity)
         );
 
-        CompletableFuture<Void> addGoalHistoriesFuture = runAsyncSecurityContextWithSpan(
-                "add-goal-histories",
+        CompletableFuture<Void> processCaloriesElevationHeartRateGoalHistoriesFuture = runAsyncSecurityContextWithSpan(
+                "process-calories-elevation-heart-rate-goal-histories",
                 parent,
-                () -> addGoalHistories(savedActivity, zoneId)
+                () -> processCaloriesElevationHeartRateGoalHistories(
+                        savedActivity,
+                        request,
+                        user,
+                        minimizedCoordinates,
+                        zoneId
+                )
         );
-
-        addProgress(savedActivity);
+        CompletableFuture<Void> processCarbonSavedMapImageFuture = runAsyncSecurityContextWithSpan(
+                "process-carbon-saved-map-image",
+                parent,
+                () -> processCarbonSavedMapImage(savedActivity, request.getCoordinates())
+        );
 
         CompletableFuture.allOf(
                 processRouteFuture,
-                addGoalHistoriesFuture
+                processCaloriesElevationHeartRateGoalHistoriesFuture,
+                processCarbonSavedMapImageFuture
         ).join();
 
-        return activityMapper.mapToShortResponse(
-                activity,
-                user
-        );
-    }
+        addProgress(activity);
 
-    private CompletableFuture<Void> runAsyncSecurityContextWithSpan(String spanName, Span parent, Runnable task) {
-        return TaskHelper.runAsyncSecurityContextWithSpan(
-                spanName,
-                parent,
-                task,
-                asyncExecutor,
-                tracer
+        Activity finalActivity = activityRepository.save(activity);
+
+        return activityMapper.mapToShortResponse(
+                finalActivity,
+                user
         );
     }
 
@@ -283,131 +301,33 @@ public class ActivityServiceImpl implements ActivityService {
         }
     }
 
-    private void processCoordinatesData(
-            Activity activity,
+    private Activity prepareActivity(
             CreateActivityRequest request,
-            ProfileResponse user
+            ProfileResponse user,
+            Sport sport
     ) {
-        if (activity.getSport().getSportMapType() != null) {
-            List<CoordinateRequest> rawCoordinates = request.getCoordinates();
+        Activity activity = Activity.builder()
+                .userId(user.getId())
+                .routeId(request.getRouteId())
+                .name(request.getName())
+                .description(request.getDescription())
+                .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
+                .sportId(sport.getId())
+                .movingTimeSeconds(request.getMovingTimeSeconds())
+                .elapsedTimeSeconds(request.getElapsedTimeSeconds())
+                .rpe(request.getRpe())
+                .images(request.getImages())
+                .build();
 
-            Span parent = tracer.currentSpan();
-
-            CompletableFuture<Void> addGeometryMapFuture = runAsyncSecurityContextWithSpan(
-                    "add-geometry_map",
-                    parent,
-                    () -> addGeometryAndMap(activity, rawCoordinates)
-            );
-
-            CompletableFuture<Void> processChartInfoFuture = runAsyncSecurityContextWithSpan(
-                    "process-chart-info",
-                    parent,
-                    () -> processChartInfo(
-                            activity,
-                            rawCoordinates,
-                            request.getMovingTimeSeconds(),
-                            user
-                    )
-            );
-
-            CompletableFuture.allOf(
-                    addGeometryMapFuture,
-                    processChartInfoFuture
-            ).join();
-        }
+        return activity;
     }
 
-    private void addGeometryAndMap(Activity activity, List<CoordinateRequest> rawCoordinates) {
-        List<List<Double>> coordinates = rawCoordinates.stream()
-                .map(CoordinateRequest::getCoordinate)
-                .toList();
-
-        addGeometry(activity, coordinates);
-        addMapImage(activity, coordinates);
-    }
-
-    private void addGeometry(Activity activity, List<List<Double>> coordinates) {
-        String encodedCoordinate = StridePolylineUtils.encode(coordinates);
-        activity.setGeometry(encodedCoordinate);
-    }
-
-    private void addMapImage(Activity activity, List<List<Double>> coordinates) {
-        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.handle(
-                coordinates,
-                RDP_EPSILON
-        );
-
-        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
-
-        String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
-
-        activity.setMapImage(mapImage);
-    }
-
-    private void processChartInfo(
+    private void addSpeedAndDistanceInfo(
             Activity activity,
-            List<CoordinateRequest> rawCoordinates,
-            Long movingTimeSeconds,
-            ProfileResponse user
+            List<List<Double>> minimizedCoordinates,
+            List<Long> minimizedTimestamps
     ) {
-        List<CoordinateRequest> sampled = ListUtils.minimized(rawCoordinates, NUMBER_CHART_POINTS);
-
-        List<List<Double>> minimizedCoordinates = sampled.stream()
-                .map(CoordinateRequest::getCoordinate)
-                .toList();
-
-        List<Long> minimizedTimestamps = new ArrayList<>(sampled.stream()
-                .map(CoordinateRequest::getTimestamp)
-                .toList());
-
-        Span parent = tracer.currentSpan();
-
-        //Run add speed info, elevation, location in multiple task
-        CompletableFuture<Void> addSpeedInfoFuture = runAsyncSecurityContextWithSpan(
-                "add-speed-info",
-                parent,
-                () -> addSpeedInfo(
-                        activity,
-                        minimizedCoordinates,
-                        minimizedTimestamps,
-                        movingTimeSeconds,
-                        user
-                )
-        );
-
-        CompletableFuture<Void> addElevationInfoFuture = runAsyncSecurityContextWithSpan(
-                "add-elevation-info",
-                parent,
-                () -> addElevationInfo(
-                        activity,
-                        minimizedCoordinates
-                )
-        );
-
-        CompletableFuture<Void> addLocationFuture = runAsyncSecurityContextWithSpan(
-                "add-location-info",
-                parent,
-                () -> addLocation(
-                        activity,
-                        minimizedCoordinates
-                )
-        );
-
-        CompletableFuture.allOf(
-                addSpeedInfoFuture,
-                addElevationInfoFuture,
-                addLocationFuture
-        ).join();
-    }
-
-    private void addSpeedInfo(
-            Activity activity,
-            List<List<Double>> coordinates,
-            List<Long> timestamps,
-            Long movingTimeSeconds,
-            ProfileResponse user
-    ) {
-        SpeedCalculatorResult speedResult = speedCalculator.calculate(coordinates, timestamps);
+        SpeedCalculatorResult speedResult = speedCalculator.calculate(minimizedCoordinates, minimizedTimestamps);
 
         double totalDistance = speedResult.distances().get(speedResult.distances().size() - 1);
         activity.setDistances(speedResult.distances());
@@ -418,68 +338,11 @@ public class ActivityServiceImpl implements ActivityService {
                 )
         );
 
-        //Ensure to add totalDistance before calling addCarbonSavedInfo
-        addCarbonSavedInfo(activity, activity.getTotalDistance());
-
         activity.setSpeeds(speedResult.speeds());
         activity.setMaxSpeed(speedResult.maxSpeed());
         activity.setAvgSpeed(speedResult.avgSpeed());
 
-        activity.setCoordinatesTimestamps(timestamps);
-
-        addCaloriesInfo(
-                activity,
-                movingTimeSeconds,
-                activity.getAvgSpeed(),
-                activity.getSport(),
-                user
-        );
-    }
-
-    private void addCaloriesInfo(
-            Activity activity,
-            long movingTimeSeconds,
-            double avgSpeed,
-            Sport sport,
-            ProfileResponse user
-    ) {
-        int calories = calculateCalories(movingTimeSeconds, avgSpeed, sport, user);
-        activity.setCalories(calories);
-    }
-
-    private int calculateCalories(
-            long movingTimeSeconds,
-            double avgSpeed,
-            Sport sport,
-            ProfileResponse user
-    ) {
-        double equipmentWeight = Optional.ofNullable(user.getEquipmentsWeight())
-                .map(m ->
-                        m.values().stream()
-                                .mapToInt(Integer::intValue)
-                                .sum()
-                )
-                .orElse(0);
-        int weight = Optional.ofNullable(user.getWeight()).orElse(0);
-
-        return caloriesCalculator.calculateCalories(
-                sport,
-                weight,
-                movingTimeSeconds,
-                Map.of(
-                        RuleCaloriesType.SPEED, avgSpeed,
-                        RuleCaloriesType.EQUIPMENT_WEIGHT, equipmentWeight
-                )
-        );
-    }
-
-    private void addElevationInfo(Activity activity, List<List<Double>> coordinates) {
-        List<Integer> elevations = elevationService.calculateElevations(coordinates);
-
-        ElevationCalculatorResult elevationResult = elevationCalculator.calculate(elevations);
-        activity.setElevations(elevationResult.elevations());
-        activity.setElevationGain(elevationResult.elevationGain());
-        activity.setMaxElevation(elevationResult.maxElevation());
+        activity.setCoordinatesTimestamps(minimizedTimestamps);
     }
 
     private void addLocation(Activity activity, List<List<Double>> coordinates) {
@@ -499,9 +362,69 @@ public class ActivityServiceImpl implements ActivityService {
                 .build());
     }
 
-    private void addCarbonSavedInfo(Activity activity, double distance) {
-        double carbonSaved = carbonSavedCalculator.calculate(distance);
-        activity.setCarbonSaved(carbonSaved);
+    private void addGeometry(Activity activity, List<CoordinateRequest> rawCoordinates) {
+        List<List<Double>> coordinates = extractCoordinates(rawCoordinates);
+
+        String encodedCoordinate = StridePolylineUtils.encode(coordinates);
+        activity.setGeometry(encodedCoordinate);
+    }
+
+    private List<List<Double>> extractCoordinates(List<CoordinateRequest> rawCoordinates) {
+        return rawCoordinates.stream()
+                .map(CoordinateRequest::getCoordinate)
+                .toList();
+    }
+
+    private void processRoute(Activity activity) {
+        if (activity.getRouteId() != null) {
+            routeServiceImpl.updateRoute(
+                    activity.getRouteId(),
+                    UpdateRouteRequest.builder()
+                            .activityId(activity.getId())
+                            .images(activity.getImages())
+                            .avgTime(Double.valueOf(activity.getMovingTimeSeconds()))
+                            .avgDistance(activity.getTotalDistance())
+                            .build()
+            );
+        } else {
+            CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
+                    CreateRouteRequest.builder()
+                            .sportId(activity.getSport().getId())
+                            .activityId(activity.getId())
+                            .sportMapType(activity.getSport().getSportMapType())
+                            .images(activity.getImages())
+                            .avgTime(activity.getMovingTimeSeconds().doubleValue())
+                            .avgDistance(activity.getTotalDistance())
+                            .geometry(activity.getGeometry())
+                            .ward(activity.getLocation().getWard())
+                            .district(activity.getLocation().getDistrict())
+                            .city(activity.getLocation().getCity())
+                            .build()
+            );
+            activity.setRouteId(routeResponse.getRouteId());
+        }
+    }
+
+    private void processCaloriesElevationHeartRateGoalHistories(
+            Activity activity,
+            CreateActivityRequest request,
+            ProfileResponse user,
+            List<List<Double>> minimizedCoordinates,
+            ZoneId zoneId
+    ) {
+        trace("add-calories-info", () -> addCaloriesInfo(
+                activity,
+                request.getMovingTimeSeconds(),
+                activity.getAvgSpeed(),
+                activity.getSport(),
+                user
+        ));
+
+        trace("add-elevation-info", () -> addElevationInfo(activity, minimizedCoordinates));
+
+        trace("add-heart-rate-info", () -> addHeartRateInfo(activity, request, user));
+
+        trace("add-goal-histories", () -> addGoalHistories(activity, zoneId));
     }
 
     private void addHeartRateInfo(
@@ -513,6 +436,10 @@ public class ActivityServiceImpl implements ActivityService {
                 NUMBER_CHART_POINTS
         );
 
+        if (user.getHeartRateZones() == null) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_HAVE_NOT_HEART_RATE_ZONES_YET);
+        }
+
         HeartRateCalculatorResult result = heartRateCalculator.calculate(
                 sampledHeartRate,
                 user.getHeartRateZones()
@@ -521,6 +448,15 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setAvgHearRate(result.avgHeartRate());
         activity.setMaxHearRate(result.maxHeartRate());
         activity.setHeartRates(request.getHeartRates());
+    }
+
+    private void addElevationInfo(Activity activity, List<List<Double>> coordinates) {
+        List<Integer> elevations = elevationService.calculateElevations(coordinates);
+
+        ElevationCalculatorResult elevationResult = elevationCalculator.calculate(elevations);
+        activity.setElevations(elevationResult.elevations());
+        activity.setElevationGain(elevationResult.elevationGain());
+        activity.setMaxElevation(elevationResult.maxElevation());
     }
 
     private void addGoalHistories(Activity activity, ZoneId zoneId) {
@@ -574,6 +510,76 @@ public class ActivityServiceImpl implements ActivityService {
         return amount;
     }
 
+    private void processCarbonSavedMapImage(
+            Activity activity,
+            List<CoordinateRequest> coordinates
+    ) {
+        trace("add-carbon-saved-info", () ->
+                addCarbonSavedInfo(activity, activity.getTotalDistance())
+        );
+
+        trace("add-map-image", () ->
+                addMapImage(activity, coordinates)
+        );
+    }
+
+    private void addCarbonSavedInfo(Activity activity, double distance) {
+        double carbonSaved = carbonSavedCalculator.calculate(distance);
+        activity.setCarbonSaved(carbonSaved);
+    }
+
+    private void addMapImage(Activity activity, List<CoordinateRequest> rawCoordinates) {
+        List<List<Double>> coordinates = extractCoordinates(rawCoordinates);
+
+        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.handle(
+                coordinates,
+                RDP_EPSILON
+        );
+
+        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
+
+        String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
+
+        activity.setMapImage(mapImage);
+    }
+
+    private void addCaloriesInfo(
+            Activity activity,
+            long movingTimeSeconds,
+            double avgSpeed,
+            Sport sport,
+            ProfileResponse user
+    ) {
+        int calories = calculateCalories(movingTimeSeconds, avgSpeed, sport, user);
+        activity.setCalories(calories);
+    }
+
+    private int calculateCalories(
+            long movingTimeSeconds,
+            double avgSpeed,
+            Sport sport,
+            ProfileResponse user
+    ) {
+        double equipmentWeight = Optional.ofNullable(user.getEquipmentsWeight())
+                .map(m ->
+                        m.values().stream()
+                                .mapToInt(Integer::intValue)
+                                .sum()
+                )
+                .orElse(0);
+        int weight = Optional.ofNullable(user.getWeight()).orElse(0);
+
+        return caloriesCalculator.calculateCalories(
+                sport,
+                weight,
+                movingTimeSeconds,
+                Map.of(
+                        RuleCaloriesType.SPEED, avgSpeed,
+                        RuleCaloriesType.EQUIPMENT_WEIGHT, equipmentWeight
+                )
+        );
+    }
+
     private void addProgress(Activity activity) {
         kafkaProducer.send(
                 KafkaTopics.ACTIVITY_CREATED_TOPIC,
@@ -591,36 +597,6 @@ public class ActivityServiceImpl implements ActivityService {
                         .time(activity.getCreatedAt())
                         .build()
         );
-    }
-
-    private void processRoute(Activity activity) {
-        if (activity.getRouteId() != null) {
-            routeServiceImpl.updateRoute(
-                    activity.getRouteId(),
-                    UpdateRouteRequest.builder()
-                            .activityId(activity.getId())
-                            .images(activity.getImages())
-                            .avgTime(Double.valueOf(activity.getMovingTimeSeconds()))
-                            .avgDistance(activity.getTotalDistance())
-                            .build()
-            );
-        } else {
-            CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
-                    CreateRouteRequest.builder()
-                            .sportId(activity.getSport().getId())
-                            .activityId(activity.getId())
-                            .sportMapType(activity.getSport().getSportMapType())
-                            .images(activity.getImages())
-                            .avgTime(activity.getMovingTimeSeconds().doubleValue())
-                            .avgDistance(activity.getTotalDistance())
-                            .geometry(activity.getGeometry())
-                            .ward(activity.getLocation().getWard())
-                            .district(activity.getLocation().getDistrict())
-                            .city(activity.getLocation().getCity())
-                            .build()
-            );
-            activity.setRouteId(routeResponse.getRouteId());
-        }
     }
 
     @Override
