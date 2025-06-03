@@ -4,6 +4,7 @@ import com.stride.tracking.commons.dto.SimpleResponse;
 import com.stride.tracking.identity.dto.password.request.ChangePasswordRequest;
 import com.stride.tracking.identityservice.service.PasswordService;
 import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class ProfileController {
     @PostMapping("/change-password")
     @PermitAll
     ResponseEntity<SimpleResponse> changePassword(
-            @RequestBody ChangePasswordRequest request
+            @Valid @RequestBody ChangePasswordRequest request
     ) {
         passwordService.changePassword(request);
         return ResponseEntity.ok(new SimpleResponse());

@@ -39,12 +39,12 @@ public class ActivityController {
         ));
     }
 
-    @GetMapping("/users/profile/filter")
+    @PostMapping("/users/profile/filter")
     @PreAuthorizeUser
     ResponseEntity<ListResponse<ActivityShortResponse, ActivityFilter>> getActivitiesOfUser(
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
             @Valid AppPageRequest page,
-            @Valid ActivityFilter filter
+            @Valid @RequestBody ActivityFilter filter
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
 
@@ -54,14 +54,15 @@ public class ActivityController {
     @GetMapping("/{id}")
     @PreAuthorizeUser
     ResponseEntity<ActivityResponse> getActivity(
-            @PathVariable String id) {
+            @PathVariable String id
+    ) {
         return ResponseEntity.ok(activityService.getActivity(id));
     }
 
     @PostMapping
     @PreAuthorizeUser
     ResponseEntity<ActivityShortResponse> createActivity(
-            @RequestBody CreateActivityRequest request,
+            @Valid @RequestBody CreateActivityRequest request,
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone
     ) {
         ZoneId zoneId = ZoneId.of(timezone);
@@ -74,7 +75,8 @@ public class ActivityController {
     @PreAuthorizeUser
     ResponseEntity<SimpleResponse> updateActivity(
             @PathVariable String id,
-            @RequestBody UpdateActivityRequest request) {
+            @Valid @RequestBody UpdateActivityRequest request
+    ) {
         activityService.updateActivity(id, request);
         return ResponseEntity.ok(new SimpleResponse());
     }
@@ -82,7 +84,8 @@ public class ActivityController {
     @DeleteMapping("/{id}")
     @PreAuthorizeUser
     ResponseEntity<SimpleResponse> deleteActivity(
-            @PathVariable String id) {
+            @PathVariable String id
+    ) {
         activityService.deleteActivity(id);
         return ResponseEntity.ok(new SimpleResponse());
     }

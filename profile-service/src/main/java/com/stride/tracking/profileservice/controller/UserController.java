@@ -7,6 +7,7 @@ import com.stride.tracking.profile.dto.profile.response.CreateProfileResponse;
 import com.stride.tracking.profile.dto.profile.response.ProfileResponse;
 import com.stride.tracking.profileservice.service.impl.UserServiceImpl;
 import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,9 @@ public class UserController {
 
     @PostMapping
     @PermitAll
-    ResponseEntity<CreateProfileResponse> createUser(@RequestBody CreateProfileRequest request) {
+    ResponseEntity<CreateProfileResponse> createUser(
+            @Valid @RequestBody CreateProfileRequest request
+    ) {
         return new ResponseEntity<>(userService.createNewUser(request), HttpStatus.CREATED);
     }
 
@@ -33,7 +36,8 @@ public class UserController {
     @PutMapping("/profile")
     @PermitAll
     ResponseEntity<SimpleResponse> updateUser(
-            @RequestBody UpdateProfileRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
         userService.updateUserProfile(request);
         return ResponseEntity.ok(new SimpleResponse());
     }

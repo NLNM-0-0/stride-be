@@ -154,19 +154,19 @@ public class ActivityServiceImpl implements ActivityService {
             spec = spec.and(ActivitySpecs.hasSportIds(filter.getSportIds()));
         }
         if (filter.getDistance() != null) {
-            spec = spec.and(ActivitySpecs.hasDistanceBetween(
+            spec = spec.and(ActivitySpecs.hasTotalDistanceBetween(
                     filter.getDistance().getMin(),
                     filter.getDistance().getMax())
             );
         }
         if (filter.getElevation() != null) {
-            spec = spec.and(ActivitySpecs.hasElevationBetween(
+            spec = spec.and(ActivitySpecs.hasElevationGainBetween(
                     filter.getElevation().getMin(),
                     filter.getElevation().getMax())
             );
         }
         if (filter.getTime() != null) {
-            spec = spec.and(ActivitySpecs.hasMovingTimeBetween(
+            spec = spec.and(ActivitySpecs.hasMovingTimeSecondsBetween(
                     filter.getTime().getMin(),
                     filter.getTime().getMax())
             );
@@ -181,7 +181,7 @@ public class ActivityServiceImpl implements ActivityService {
                     zoneId
             );
 
-            spec = spec.and(ActivitySpecs.hasDateBetween(min, max));
+            spec = spec.and(ActivitySpecs.hasCreatedAtBetween(min, max));
         }
         return spec;
     }

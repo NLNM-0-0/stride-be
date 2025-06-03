@@ -27,7 +27,8 @@ public class CategoryController {
     @PreAuthorizeAdmin
     ResponseEntity<ListResponse<CategoryResponse, CategoryFilter>> getCategories(
             @Valid AppPageRequest page,
-            @Valid CategoryFilter filter) {
+            @Valid CategoryFilter filter
+    ) {
         return ResponseEntity.ok(categoryService.getCategories(page, filter));
     }
 
@@ -39,7 +40,9 @@ public class CategoryController {
 
     @PostMapping("/manage")
     @PreAuthorizeAdmin
-    ResponseEntity<CategoryResponse> createCategory(@RequestBody CreateCategoryRequest request) {
+    ResponseEntity<CategoryResponse> createCategory(
+            @Valid @RequestBody CreateCategoryRequest request
+    ) {
         CategoryResponse response = categoryService.createCategory(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -48,7 +51,8 @@ public class CategoryController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateCategory(
             @PathVariable String id,
-            @RequestBody UpdateCategoryRequest request) {
+            @Valid @RequestBody UpdateCategoryRequest request
+    ) {
         categoryService.updateCategory(id, request);
         return ResponseEntity.ok(new SimpleResponse());
     }
@@ -56,7 +60,8 @@ public class CategoryController {
     @DeleteMapping("/manage/{id}")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> deleteCategory(
-            @PathVariable String id) {
+            @PathVariable String id
+    ) {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok(new SimpleResponse());
     }

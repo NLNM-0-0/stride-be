@@ -9,6 +9,7 @@ import com.stride.tracking.identity.dto.auth.response.AuthenticationResponse;
 import com.stride.tracking.identity.dto.auth.response.IntrospectResponse;
 import com.stride.tracking.identityservice.service.AuthenticationService;
 import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +25,9 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     @PermitAll
-    ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+    ResponseEntity<AuthenticationResponse> authenticate(
+            @Valid @RequestBody AuthenticationRequest request
+    ) {
         AuthenticationResponse result = authenticationService.authenticate(request);
         return ResponseEntity.ok(result);
     }

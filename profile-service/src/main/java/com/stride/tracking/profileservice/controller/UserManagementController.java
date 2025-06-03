@@ -31,7 +31,7 @@ public class UserManagementController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateAdmin(
             @PathVariable String id,
-            @RequestBody UpdateAdminRequest request
+            @Valid @RequestBody UpdateAdminRequest request
     ) {
         userManagementService.updateAdmin(id, request);
         return ResponseEntity.ok(new SimpleResponse());
@@ -50,7 +50,7 @@ public class UserManagementController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateUser(
             @PathVariable String id,
-            @RequestBody UpdateUserRequest request
+            @Valid @RequestBody UpdateUserRequest request
     ) {
         userManagementService.updateUser(id, request);
         return ResponseEntity.ok(new SimpleResponse());
@@ -59,7 +59,7 @@ public class UserManagementController {
     @PostMapping("/user")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> createUser(
-            @RequestBody CreateUserRequest request
+            @Valid @RequestBody CreateUserRequest request
     ) {
         userManagementService.createUser(request);
         return ResponseEntity.ok(new SimpleResponse());

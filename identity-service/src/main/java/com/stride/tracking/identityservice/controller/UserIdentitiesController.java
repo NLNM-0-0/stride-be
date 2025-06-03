@@ -11,6 +11,7 @@ import com.stride.tracking.identity.dto.password.response.VerifyResetPasswordRes
 import com.stride.tracking.identityservice.service.PasswordService;
 import com.stride.tracking.identityservice.service.UserIdentityService;
 import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,9 @@ public class UserIdentitiesController {
 
     @PostMapping("/register")
     @PermitAll
-    ResponseEntity<EmailRegisterResponse> createUser(@RequestBody EmailRegisterRequest request) {
+    ResponseEntity<EmailRegisterResponse> createUser(
+            @Valid @RequestBody EmailRegisterRequest request
+    ) {
         EmailRegisterResponse response = identityService.register(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

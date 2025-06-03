@@ -25,7 +25,7 @@ public class RouteController {
     @PostMapping("/recommend")
     @PreAuthorizeUser
     public ResponseEntity<SimpleListResponse<RouteResponse>> getRecommendedRoutes(
-            @RequestBody GetRecommendRouteRequest request
+            @Valid @RequestBody GetRecommendRouteRequest request
     ) {
         return ResponseEntity.ok(routeService.getRecommendedRoutes(request));
     }
@@ -43,7 +43,7 @@ public class RouteController {
     @PreAuthorizeUser
     public ResponseEntity<SaveRouteResponse> saveRoute(
             @PathVariable String routeId,
-            @RequestBody SaveRouteRequest request
+            @Valid @RequestBody SaveRouteRequest request
     ) {
         SaveRouteResponse response = routeService.saveRoute(routeId, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -53,7 +53,7 @@ public class RouteController {
     @PreAuthorizeUser
     public ResponseEntity<SimpleResponse> updateRoute(
             @PathVariable String routeId,
-            @RequestBody UpdateRouteRequest request
+            @Valid @RequestBody UpdateRouteRequest request
     ) {
         routeService.updateRoute(routeId, request);
         return ResponseEntity.ok(new SimpleResponse());
