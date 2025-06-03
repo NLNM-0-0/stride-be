@@ -1,7 +1,7 @@
 package com.stride.tracking.metricservice.mapper;
 
 import com.stride.tracking.metric.dto.activity.event.ActivityCreatedEvent;
-import com.stride.tracking.metric.dto.report.response.ActivityDetailReport;
+import com.stride.tracking.metric.dto.report.response.activity.ActivityDetailReport;
 import com.stride.tracking.metricservice.model.ActivityMetric;
 import org.springframework.stereotype.Component;
 

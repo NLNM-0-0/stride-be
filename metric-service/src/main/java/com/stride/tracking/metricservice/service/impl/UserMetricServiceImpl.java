@@ -1,8 +1,8 @@
 package com.stride.tracking.metricservice.service.impl;
 
 import com.stride.tracking.metric.dto.report.AuthProvider;
-import com.stride.tracking.metric.dto.report.response.UserDetailReport;
-import com.stride.tracking.metric.dto.report.response.UserReport;
+import com.stride.tracking.metric.dto.report.response.user.UserDetailReport;
+import com.stride.tracking.metric.dto.report.response.user.UserReport;
 import com.stride.tracking.metric.dto.user.event.UserCreatedEvent;
 import com.stride.tracking.metricservice.mapper.UserMetricMapper;
 import com.stride.tracking.metricservice.model.UserMetric;
