@@ -40,7 +40,9 @@ public class SportController {
 
     @PostMapping("/manage")
     @PreAuthorizeAdmin
-    ResponseEntity<SportResponse> createSport(@RequestBody CreateSportRequest request) {
+    ResponseEntity<SportResponse> createSport(
+            @Valid @RequestBody CreateSportRequest request
+    ) {
         SportResponse response = sportService.createSport(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -49,7 +51,8 @@ public class SportController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateSport(
             @PathVariable String id,
-            @RequestBody UpdateSportRequest request) {
+            @Valid @RequestBody UpdateSportRequest request
+    ) {
         sportService.updateSport(id, request);
         return ResponseEntity.ok(new SimpleResponse());
     }

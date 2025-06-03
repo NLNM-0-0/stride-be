@@ -9,6 +9,7 @@ import com.stride.tracking.core.dto.goal.request.UpdateGoalRequest;
 import com.stride.tracking.core.dto.goal.response.CreateGoalResponse;
 import com.stride.tracking.core.dto.goal.response.GoalResponse;
 import com.stride.tracking.coreservice.service.GoalService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,9 @@ public class GoalController {
 
     @PostMapping
     @PreAuthorizeUser
-    ResponseEntity<CreateGoalResponse> createGoal(@RequestBody CreateGoalRequest request) {
+    ResponseEntity<CreateGoalResponse> createGoal(
+            @Valid @RequestBody CreateGoalRequest request
+    ) {
         CreateGoalResponse response = goalService.createGoal(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -43,7 +46,8 @@ public class GoalController {
     ResponseEntity<SimpleResponse> updateGoal(
             @PathVariable String id,
             @RequestHeader(value = CustomHeaders.X_USER_TIMEZONE, defaultValue = "UTC") String timezone,
-            @RequestBody UpdateGoalRequest request) {
+            @Valid @RequestBody UpdateGoalRequest request
+    ) {
         ZoneId zoneId = ZoneId.of(timezone);
 
         goalService.updateGoal(id, zoneId, request);
@@ -53,7 +57,8 @@ public class GoalController {
     @DeleteMapping("/{id}")
     @PreAuthorizeUser
     ResponseEntity<SimpleResponse> deleteGoal(
-            @PathVariable String id) {
+            @PathVariable String id
+    ) {
         goalService.deleteGoal(id);
         return ResponseEntity.ok(new SimpleResponse());
     }

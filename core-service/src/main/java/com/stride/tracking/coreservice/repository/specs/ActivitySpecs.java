@@ -25,7 +25,7 @@ public class ActivitySpecs {
                 root.get("sportId").in(sportIds);
     }
 
-    public static Specification<Activity> hasDateBetween(Instant min, Instant max) {
+    public static Specification<Activity> hasCreatedAtBetween(Instant min, Instant max) {
         if (min == null || max == null) {
             return null;
         }
@@ -34,7 +34,7 @@ public class ActivitySpecs {
                 cb.between(root.get("createdAt"), min, max);
     }
 
-    public static Specification<Activity> hasDistanceBetween(Integer min, Integer max) {
+    public static Specification<Activity> hasTotalDistanceBetween(Integer min, Integer max) {
         if (min == null || max == null) {
             return null;
         }
@@ -46,7 +46,7 @@ public class ActivitySpecs {
                 cb.between(root.get("totalDistance"), minDouble, maxDouble);
     }
 
-    public static Specification<Activity> hasElevationBetween(Integer min, Integer max) {
+    public static Specification<Activity> hasElevationGainBetween(Integer min, Integer max) {
         if (min == null || max == null) {
             return null;
         }
@@ -55,7 +55,7 @@ public class ActivitySpecs {
                 cb.between(root.get("elevationGain"), min, max);
     }
 
-    public static Specification<Activity> hasMovingTimeBetween(Integer min, Integer max) {
+    public static Specification<Activity> hasMovingTimeSecondsBetween(Integer min, Integer max) {
         if (min == null || max == null) {
             return null;
         }

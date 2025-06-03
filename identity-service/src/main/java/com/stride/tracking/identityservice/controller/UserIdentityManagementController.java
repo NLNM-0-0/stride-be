@@ -6,6 +6,7 @@ import com.stride.tracking.identity.dto.user.request.CreateUserIdentityRequest;
 import com.stride.tracking.identity.dto.user.request.UpdateAdminUserIdentityRequest;
 import com.stride.tracking.identity.dto.user.request.UpdateNormalUserIdentityRequest;
 import com.stride.tracking.identityservice.service.UserIdentityManagementService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,7 @@ public class UserIdentityManagementController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateAdminUserIdentity(
             @PathVariable String id,
-            @RequestBody UpdateAdminUserIdentityRequest request
+            @Valid @RequestBody UpdateAdminUserIdentityRequest request
     ) {
         identityManagementService.updateAdminUserIdentity(id, request);
         return ResponseEntity.ok(new SimpleResponse());
@@ -33,7 +34,7 @@ public class UserIdentityManagementController {
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> updateNormalUserIdentity(
             @PathVariable String id,
-            @RequestBody UpdateNormalUserIdentityRequest request
+            @Valid @RequestBody UpdateNormalUserIdentityRequest request
     ) {
         identityManagementService.updateNormalUserIdentity(id, request);
         return ResponseEntity.ok(new SimpleResponse());
@@ -42,7 +43,7 @@ public class UserIdentityManagementController {
     @PostMapping
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> createUserIdentity(
-            @RequestBody CreateUserIdentityRequest request
+            @Valid @RequestBody CreateUserIdentityRequest request
     ) {
         identityManagementService.createUser(request);
         return new ResponseEntity<>(new SimpleResponse(), HttpStatus.CREATED);
