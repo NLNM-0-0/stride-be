@@ -87,6 +87,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
+    @Transactional
     public void pushNotification(PushFCMNotificationRequest request) {
         log.info("[pushNotification] Pushing notification to userId={}, title={}", request.getUserId(), request.getTitle());
 
@@ -125,6 +126,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
+    @Transactional
     public void pushNotification(PushFCMNotificationForAllRequest request) {
         List<FCMToken> tokens = fcmTokenRepository.findAll();
 
