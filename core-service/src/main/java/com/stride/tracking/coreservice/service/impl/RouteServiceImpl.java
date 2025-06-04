@@ -96,7 +96,7 @@ public class RouteServiceImpl implements RouteService {
 
     private RouteFilter buildRouteFilter(GetRecommendRouteRequest request, Sport sport) {
         return RouteFilter.builder()
-                .minDistance(sport.getSportMapType().getMinDistance())
+                .minDistance(sport.getSportMapType().getMinDistance() / 1000.0)
                 .sportId(request.getSportId())
                 .publicRoute(true)
                 .build();
@@ -126,7 +126,7 @@ public class RouteServiceImpl implements RouteService {
         Sport sport = Common.findSportById(filter.getSportId(), sportRepository);
 
         filter.setUserId(SecurityUtils.getCurrentUserId());
-        filter.setMinDistance(sport.getSportMapType().getMinDistance());
+        filter.setMinDistance(sport.getSportMapType().getMinDistance() / 1000.0);
 
         Pageable pageable = PageRequest.of(
                 page.getPage() - 1,
