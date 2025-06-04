@@ -8,6 +8,7 @@ import com.stride.tracking.core.dto.goal.request.UpdateGoalRequest;
 import com.stride.tracking.core.dto.goal.response.CreateGoalResponse;
 import com.stride.tracking.core.dto.goal.response.GoalHistoryResponse;
 import com.stride.tracking.core.dto.goal.response.GoalResponse;
+import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.GoalMapper;
 import com.stride.tracking.coreservice.model.Goal;
@@ -123,6 +124,12 @@ public class GoalServiceImpl implements GoalService {
     @Transactional
     public CreateGoalResponse createGoal(CreateGoalRequest request) {
         Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+        if (sport.getSportMapType() == SportMapType.NO_MAP &&
+                request.getType().isRequiredMap()
+        ) {
+            throw new StrideException(HttpStatus.BAD_REQUEST, Message.THIS_GOAL_TYPE_REQUIRED_SPORT_HAS_MAP);
+        }
+
         String userId = SecurityUtils.getCurrentUserId();
 
         Optional<Goal> goalOptional = goalRepository.findByUserIdAndSportIdAndTypeAndTimeFrame(
