@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -35,6 +36,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
+    @Transactional
     public CreateProfileResponse createNewUser(CreateProfileRequest request) {
         log.info("[createNewUser] Creating new user: {}", request.getName());
 
@@ -55,6 +57,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProfileResponse viewProfile() {
         String currUserId = SecurityUtils.getCurrentUserId();
         log.info("[viewProfile] Fetching profile for user ID: {}", currUserId);
@@ -72,6 +75,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void updateUserProfile(UpdateProfileRequest request) {
         String currUserId = SecurityUtils.getCurrentUserId();
         log.info("[updateUserProfile] Updating profile for user ID: {}", currUserId);

@@ -20,6 +20,7 @@ import com.stride.tracking.core.dto.goal.GoalType;
 import com.stride.tracking.core.dto.route.request.CreateRouteRequest;
 import com.stride.tracking.core.dto.route.request.UpdateRouteRequest;
 import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
+import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.core.dto.supabase.request.GeometryRequest;
 import com.stride.tracking.core.dto.supabase.request.GetLocationByGeometryRequest;
 import com.stride.tracking.core.dto.supabase.response.GetLocationByGeometryResponse;
@@ -210,7 +211,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     private void trace(String name, Runnable runnable) {
         Span span = tracer.nextSpan().name(name).start();
-        try (Tracer.SpanInScope ws = tracer.withSpan(span)) {
+        try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
             runnable.run();
         } finally {
             span.end();
@@ -220,13 +221,78 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityShortResponse createActivity(ZoneId zoneId, CreateActivityRequest request) {
-        mergeStartEndPoint(request);
-
         ProfileResponse user = profileService.viewProfile();
         Sport sport = Common.findReadOnlySportById(request.getSportId(), sportRepository, entityManager);
 
         Activity activity = prepareActivity(request, user, sport);
         Activity savedActivity = activityRepository.save(activity);
+
+        if (sport.getSportMapType() == SportMapType.NO_MAP) {
+            processActivityDoNotHaveMap(zoneId, request, savedActivity, sport, user);
+        } else {
+            processActivityHasMap(zoneId, request, savedActivity, user);
+        }
+
+        addProgress(savedActivity);
+
+        Activity finalActivity = activityRepository.save(savedActivity);
+
+        return activityMapper.mapToShortResponse(
+                finalActivity,
+                user
+        );
+    }
+
+    private void processActivityDoNotHaveMap(
+            ZoneId zoneId,
+            CreateActivityRequest request,
+            Activity activity,
+            Sport sport,
+            ProfileResponse user
+    ) {
+        activity.setLocation(null);
+
+        activity.setRouteId(null);
+
+        activity.setCarbonSaved(0.0);
+
+        activity.setMapImage(null);
+
+        activity.setElevations(new ArrayList<>());
+        activity.setElevationGain(0);
+        activity.setMaxElevation(0);
+
+        activity.setSpeeds(new ArrayList<>());
+        activity.setAvgSpeed(0.0);
+        activity.setMaxSpeed(0.0);
+
+        activity.setDistances(new ArrayList<>());
+        activity.setTotalDistance(0.0);
+
+        activity.setGeometry(null);
+
+        activity.setCoordinatesTimestamps(new ArrayList<>());
+
+        addCaloriesInfo(
+                activity,
+                request.getMovingTimeSeconds(),
+                0.0,
+                sport,
+                user
+        );
+
+        addHeartRateInfo(activity, request, user);
+
+        addGoalHistories(activity, zoneId);
+    }
+
+    private void processActivityHasMap(
+            ZoneId zoneId,
+            CreateActivityRequest request,
+            Activity activity,
+            ProfileResponse user
+    ){
+        mergeStartEndPoint(request);
 
         List<CoordinateRequest> sampled = ListUtils.minimized(request.getCoordinates(), NUMBER_CHART_POINTS);
         List<List<Double>> minimizedCoordinates = sampled.stream()
@@ -237,51 +303,32 @@ public class ActivityServiceImpl implements ActivityService {
                 .toList());
 
         addSpeedAndDistanceInfo(activity, minimizedCoordinates, minimizedTimestamps);
-        addLocation(
-                activity,
-                minimizedCoordinates
-        );
         addGeometry(activity, request.getCoordinates());
 
         Span parent = tracer.currentSpan();
 
-        CompletableFuture<Void> processRouteFuture = runAsyncSecurityContextWithSpan(
-                "process-route",
+        CompletableFuture<Void> processLocationRouteFuture = runAsyncSecurityContextWithSpan(
+                "process-location-route",
                 parent,
-                () -> processRoute(savedActivity)
+                () -> processLocationRoute(activity, minimizedCoordinates)
         );
 
-        CompletableFuture<Void> processCaloriesElevationHeartRateGoalHistoriesFuture = runAsyncSecurityContextWithSpan(
-                "process-calories-elevation-heart-rate-goal-histories",
+        CompletableFuture<Void> processOtherInfo = runAsyncSecurityContextWithSpan(
+                "process-other-info",
                 parent,
-                () -> processCaloriesElevationHeartRateGoalHistories(
-                        savedActivity,
+                () -> processOtherInfo(
+                        activity,
                         request,
                         user,
                         minimizedCoordinates,
                         zoneId
                 )
         );
-        CompletableFuture<Void> processCarbonSavedMapImageFuture = runAsyncSecurityContextWithSpan(
-                "process-carbon-saved-map-image",
-                parent,
-                () -> processCarbonSavedMapImage(savedActivity, request.getCoordinates())
-        );
 
         CompletableFuture.allOf(
-                processRouteFuture,
-                processCaloriesElevationHeartRateGoalHistoriesFuture,
-                processCarbonSavedMapImageFuture
+                processLocationRouteFuture,
+                processOtherInfo
         ).join();
-
-        addProgress(activity);
-
-        Activity finalActivity = activityRepository.save(activity);
-
-        return activityMapper.mapToShortResponse(
-                finalActivity,
-                user
-        );
     }
 
     private void mergeStartEndPoint(CreateActivityRequest request) {
@@ -306,20 +353,18 @@ public class ActivityServiceImpl implements ActivityService {
             ProfileResponse user,
             Sport sport
     ) {
-        Activity activity = Activity.builder()
+        return Activity.builder()
                 .userId(user.getId())
                 .routeId(request.getRouteId())
                 .name(request.getName())
                 .description(request.getDescription())
-                .sport(sport) //Ensure to add sport here to check in processCoordinatesData step
+                .sport(sport)
                 .sportId(sport.getId())
                 .movingTimeSeconds(request.getMovingTimeSeconds())
                 .elapsedTimeSeconds(request.getElapsedTimeSeconds())
                 .rpe(request.getRpe())
                 .images(request.getImages())
                 .build();
-
-        return activity;
     }
 
     private void addSpeedAndDistanceInfo(
@@ -375,6 +420,18 @@ public class ActivityServiceImpl implements ActivityService {
                 .toList();
     }
 
+    private void processLocationRoute(
+            Activity activity,
+            List<List<Double>> minimizedCoordinates
+    ) {
+        trace("add-location", () -> addLocation(
+                activity,
+                minimizedCoordinates
+        ));
+
+        trace("add-route", ()->processRoute(activity));
+    }
+
     private void processRoute(Activity activity) {
         if (activity.getRouteId() != null) {
             routeServiceImpl.updateRoute(
@@ -405,7 +462,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
     }
 
-    private void processCaloriesElevationHeartRateGoalHistories(
+    private void processOtherInfo(
             Activity activity,
             CreateActivityRequest request,
             ProfileResponse user,
@@ -424,6 +481,14 @@ public class ActivityServiceImpl implements ActivityService {
 
         trace("add-heart-rate-info", () -> addHeartRateInfo(activity, request, user));
 
+        trace("add-carbon-saved-info", () ->
+                addCarbonSavedInfo(activity, activity.getTotalDistance())
+        );
+
+        trace("add-map-image", () ->
+                addMapImage(activity, request.getCoordinates())
+        );
+
         trace("add-goal-histories", () -> addGoalHistories(activity, zoneId));
     }
 
@@ -431,6 +496,10 @@ public class ActivityServiceImpl implements ActivityService {
             Activity activity,
             CreateActivityRequest request,
             ProfileResponse user) {
+        if (request.getHeartRates() == null) {
+            request.setHeartRates(new ArrayList<>());
+        }
+
         List<Integer> sampledHeartRate = ListUtils.minimized(
                 request.getHeartRates(),
                 NUMBER_CHART_POINTS
@@ -510,19 +579,6 @@ public class ActivityServiceImpl implements ActivityService {
         return amount;
     }
 
-    private void processCarbonSavedMapImage(
-            Activity activity,
-            List<CoordinateRequest> coordinates
-    ) {
-        trace("add-carbon-saved-info", () ->
-                addCarbonSavedInfo(activity, activity.getTotalDistance())
-        );
-
-        trace("add-map-image", () ->
-                addMapImage(activity, coordinates)
-        );
-    }
-
     private void addCarbonSavedInfo(Activity activity, double distance) {
         double carbonSaved = carbonSavedCalculator.calculate(distance);
         activity.setCarbonSaved(carbonSaved);
@@ -575,7 +631,8 @@ public class ActivityServiceImpl implements ActivityService {
                 movingTimeSeconds,
                 Map.of(
                         RuleCaloriesType.SPEED, avgSpeed,
-                        RuleCaloriesType.EQUIPMENT_WEIGHT, equipmentWeight
+                        RuleCaloriesType.EQUIPMENT_WEIGHT, equipmentWeight,
+                        RuleCaloriesType.TIME, (double) movingTimeSeconds
                 )
         );
     }

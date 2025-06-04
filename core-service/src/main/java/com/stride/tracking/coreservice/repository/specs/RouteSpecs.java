@@ -32,4 +32,11 @@ public class RouteSpecs {
                 sportId
         );
     }
+
+    public static Specification<Route> hasMinDistance(Integer minDistance) {
+        return (root, query, cb) -> cb.greaterThanOrEqualTo(
+                root.get("totalDistance"),
+                minDistance
+        );
+    }
 }

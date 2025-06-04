@@ -74,7 +74,8 @@ public class UserIdentityServiceImpl implements UserIdentityService {
 
         } else {
             Optional<UserIdentity> existingGoogleUser = userIdentityRepository.findByProviderAndEmail(
-                    AuthProvider.GOOGLE, request.getEmail());
+                    AuthProvider.GOOGLE, request.getEmail()
+            );
 
             String userId = existingGoogleUser
                     .map(UserIdentity::getUserId)

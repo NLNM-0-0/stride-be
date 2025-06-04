@@ -66,7 +66,9 @@ public class RouteServiceImpl implements RouteService {
     @Override
     @Transactional(readOnly = true)
     public SimpleListResponse<RouteResponse> getRecommendedRoutes(GetRecommendRouteRequest request) {
-        RouteFilter filter = buildRouteFilter(request);
+        Sport sport = Common.findSportById(request.getSportId(), sportRepository);
+
+        RouteFilter filter = buildRouteFilter(request, sport);
 
         Specification<Route> spec = filterRoutes(filter);
 
@@ -92,8 +94,9 @@ public class RouteServiceImpl implements RouteService {
         return new SimpleListResponse<>(data);
     }
 
-    private RouteFilter buildRouteFilter(GetRecommendRouteRequest request) {
+    private RouteFilter buildRouteFilter(GetRecommendRouteRequest request, Sport sport) {
         return RouteFilter.builder()
+                .minDistance(sport.getSportMapType().getMinDistance())
                 .sportId(request.getSportId())
                 .publicRoute(true)
                 .build();
@@ -101,6 +104,9 @@ public class RouteServiceImpl implements RouteService {
 
     private Specification<Route> filterRoutes(RouteFilter filter) {
         Specification<Route> spec = Specification.where(null);
+        if (filter.getMinDistance() != null) {
+            spec = spec.and(RouteSpecs.hasMinDistance(filter.getMinDistance()));
+        }
         if (filter.getUserId() != null) {
             spec = spec.and(RouteSpecs.hasUserId(filter.getUserId()));
         }
@@ -117,7 +123,10 @@ public class RouteServiceImpl implements RouteService {
     @Override
     @Transactional(readOnly = true)
     public ListResponse<RouteResponse, RouteFilter> getRoutes(AppPageRequest page, RouteFilter filter) {
+        Sport sport = Common.findSportById(filter.getSportId(), sportRepository);
+
         filter.setUserId(SecurityUtils.getCurrentUserId());
+        filter.setMinDistance(sport.getSportMapType().getMinDistance());
 
         Pageable pageable = PageRequest.of(
                 page.getPage() - 1,
@@ -145,7 +154,9 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    @Transactional
+    // Don't create new transaction in here
+    // The transaction already have been initialized in creating activity
+    // Annotating transaction in here will prevent tracing
     public CreateRouteResponse createRoute(CreateRouteRequest request) {
         List<List<Double>> decodedGeometry = StridePolylineUtils.decode(request.getGeometry());
         List<List<Double>> points = mapPointsToMap(request.getSportMapType(), decodedGeometry);

@@ -1,6 +1,7 @@
 package com.stride.tracking.bridgeservice.controller;
 
 import com.stride.tracking.bridge.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationForAllRequest;
 import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.service.FCMService;
 import com.stride.tracking.commons.annotations.PreAuthorizeAdmin;
@@ -48,7 +49,7 @@ public class FCMController {
     @PostMapping("/message")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> pushMessage(
-            @Valid @RequestBody PushFCMNotificationRequest request
+            @Valid @RequestBody PushFCMNotificationForAllRequest request
     ) {
         fcmService.pushNotification(request);
 

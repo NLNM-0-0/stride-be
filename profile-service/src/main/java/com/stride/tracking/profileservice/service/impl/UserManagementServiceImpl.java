@@ -29,6 +29,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -46,6 +47,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final KafkaProducer kafkaProducer;
 
     @Override
+    @Transactional(readOnly = true)
     public ListResponse<UserResponse, UserFilter> getUsers(
             AppPageRequest page,
             UserFilter filter
@@ -97,6 +99,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void updateUser(String userId, UpdateUserRequest request) {
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId.equals(userId)) {
@@ -119,6 +122,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void updateAdmin(String userId, UpdateAdminRequest request) {
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId.equals(userId)) {
@@ -146,6 +150,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void createUser(CreateUserRequest request) {
         User user = User.builder()
                 .email(request.getEmail())
@@ -167,6 +172,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional
     public void createAdmin(CreateAdminRequest request) {
         User user = User.builder()
                 .email(request.getEmail())

@@ -1,6 +1,7 @@
 package com.stride.tracking.bridgeservice.service;
 
 import com.stride.tracking.bridge.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationForAllRequest;
 import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 
 public interface FCMService {
@@ -8,4 +9,5 @@ public interface FCMService {
     void deleteFCMTokenByToken(String token);
     void deleteFCMTokenByUserId(String userId);
     void pushNotification(PushFCMNotificationRequest request);
+    void pushNotification(PushFCMNotificationForAllRequest request);
 }

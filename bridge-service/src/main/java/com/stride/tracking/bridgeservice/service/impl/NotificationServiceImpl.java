@@ -21,6 +21,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper notificationMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public ListResponse<NotificationResponse, NotificationFilter> getNotifications(
             AppPageRequest page,
             NotificationFilter filter
@@ -79,6 +81,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
     public void makeSeen(String notificationId) {
         Notification notification = notificationRepository.findById(notificationId).orElseThrow(
                 ()->new StrideException(HttpStatus.BAD_REQUEST, Message.NOTIFICATION_NOT_EXISTED)
@@ -99,6 +102,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
     public void makeSeenAll() {
         String currentUserId = SecurityUtils.getCurrentUserId();
 
