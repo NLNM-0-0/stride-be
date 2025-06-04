@@ -37,7 +37,7 @@ public class HeartRateCalculator {
         }
 
         double avg = NumberUtils.round(
-                sum / heartRates.size(),
+                sum / Math.max(heartRates.size(), 1),
                 RoundRules.HEART_RATE.getValue()
         );
 
