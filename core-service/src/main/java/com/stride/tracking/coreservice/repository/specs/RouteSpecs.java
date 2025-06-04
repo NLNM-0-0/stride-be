@@ -33,7 +33,7 @@ public class RouteSpecs {
         );
     }
 
-    public static Specification<Route> hasMinDistance(Integer minDistance) {
+    public static Specification<Route> hasMinDistance(Double minDistance) {
         return (root, query, cb) -> cb.greaterThanOrEqualTo(
                 root.get("totalDistance"),
                 minDistance
