@@ -1,6 +1,7 @@
 package com.stride.tracking.bridgeservice.service.impl;
 
 import com.stride.tracking.bridge.dto.fcm.request.FCMTokenRequest;
+import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationForAllRequest;
 import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.constant.Message;
 import com.stride.tracking.bridgeservice.model.FCMToken;
@@ -18,7 +19,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -94,8 +98,6 @@ public class FCMServiceImpl implements FCMService {
     }
 
     private void saveNotification(PushFCMNotificationRequest request) {
-        log.debug("[saveNotification] Saving notification for userId={}, title={}", request.getUserId(), request.getTitle());
-
         Notification notification = Notification.builder()
                 .userId(request.getUserId())
                 .title(request.getTitle())
@@ -112,8 +114,6 @@ public class FCMServiceImpl implements FCMService {
         List<FCMToken> fcmTokenEntities = findByUserId(request.getUserId());
         List<String> fcmTokens = fcmTokenEntities.stream().map(FCMToken::getToken).toList();
 
-        log.debug("[pushMessage] Pushing message to {} FCM tokens for userId={}", fcmTokens.size(), request.getUserId());
-
         fcmMessageService.pushMessage(
                 fcmTokens,
                 request.getTitle(),
@@ -122,5 +122,31 @@ public class FCMServiceImpl implements FCMService {
         );
 
         log.debug("[pushMessage] Message pushed to FCM tokens for userId={}", request.getUserId());
+    }
+
+    @Override
+    public void pushNotification(PushFCMNotificationForAllRequest request) {
+        List<FCMToken> tokens = fcmTokenRepository.findAll();
+
+        Set<String> userIds = tokens.stream().map(FCMToken::getUserId).collect(Collectors.toSet());
+        List<Notification> notifications = new ArrayList<>();
+        for (String userId : userIds) {
+            notifications.add(
+                    Notification.builder()
+                            .userId(userId)
+                            .title(request.getTitle())
+                            .body(request.getMessage())
+                            .seen(false)
+                            .build()
+            );
+        }
+        notificationRepository.saveAll(notifications);
+
+        fcmMessageService.pushMessage(
+                tokens.stream().map(FCMToken::getToken).toList(),
+                request.getTitle(),
+                request.getMessage(),
+                request.getBanner()
+        );
     }
 }
