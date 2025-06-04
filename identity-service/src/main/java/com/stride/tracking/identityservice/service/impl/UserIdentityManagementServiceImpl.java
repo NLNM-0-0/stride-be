@@ -3,6 +3,7 @@ package com.stride.tracking.identityservice.service.impl;
 import com.stride.tracking.commons.exception.StrideException;
 import com.stride.tracking.commons.utils.SecurityUtils;
 import com.stride.tracking.commons.utils.UpdateHelper;
+import com.stride.tracking.identity.dto.register.request.EmailRegisterRequest;
 import com.stride.tracking.identity.dto.user.request.CreateUserIdentityRequest;
 import com.stride.tracking.identity.dto.user.request.UpdateAdminUserIdentityRequest;
 import com.stride.tracking.identity.dto.user.request.UpdateNormalUserIdentityRequest;
@@ -11,6 +12,7 @@ import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.service.UserIdentityManagementService;
+import com.stride.tracking.identityservice.service.UserIdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +26,8 @@ import java.util.List;
 public class UserIdentityManagementServiceImpl implements UserIdentityManagementService {
     private final UserIdentityRepository userIdentityRepository;
 
+    private final UserIdentityService userIdentityService;
+
     private final PasswordEncoder passwordEncoder;
 
     private static final String DEFAULT_PASSWORD = "App123";
@@ -32,18 +36,26 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
     public void createUser(CreateUserIdentityRequest request) {
         validateEmailNotTaken(request.getEmail());
 
-        UserIdentity userIdentity = UserIdentity.builder()
-                .userId(request.getUserId())
-                .provider(AuthProvider.STRIDE)
-                .username(request.getEmail())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .isBlocked(false)
-                .isVerified(request.isAdmin())
-                .isAdmin(request.isAdmin())
-                .build();
-
-        userIdentityRepository.save(userIdentity);
+        if (request.isAdmin()) {
+            UserIdentity userIdentity = UserIdentity.builder()
+                    .userId(request.getUserId())
+                    .provider(AuthProvider.STRIDE)
+                    .username(request.getEmail())
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .isBlocked(false)
+                    .isVerified(request.isAdmin())
+                    .isAdmin(request.isAdmin())
+                    .build();
+            userIdentityRepository.save(userIdentity);
+        } else {
+            userIdentityService.register(
+                    EmailRegisterRequest.builder()
+                            .email(request.getEmail())
+                            .password(request.getPassword())
+                            .build()
+            );
+        }
     }
 
     private void validateEmailNotTaken(String email) {
@@ -71,7 +83,7 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
         userIdentityRepository.save(userIdentity);
     }
 
-    private UserIdentity findStrideUserIdentityByProviderAndUserId(String userId){
+    private UserIdentity findStrideUserIdentityByProviderAndUserId(String userId) {
         return userIdentityRepository.findByProviderAndUserId(
                 AuthProvider.STRIDE,
                 userId
@@ -91,7 +103,7 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
         );
 
         for (UserIdentity userIdentity : userIdentities) {
-            if(userIdentity.isAdmin()) {
+            if (userIdentity.isAdmin()) {
                 throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_IS_ADMIN);
             }
 
