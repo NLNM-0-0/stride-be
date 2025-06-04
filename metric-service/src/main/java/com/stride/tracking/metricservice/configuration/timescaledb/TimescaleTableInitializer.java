@@ -3,6 +3,7 @@ package com.stride.tracking.metricservice.configuration.timescaledb;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.metamodel.EntityType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.lang.NonNull;
@@ -14,13 +15,17 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class TimescaleTableInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
+    @Value("${spring.jpa.properties.hibernate.default_schema}")
+    private String schema;
+
     private final EntityManager entityManager;
     private boolean initialized = false;
 
     private void createHypertable(String tableName, String timeColumnName) {
         entityManager
                 .createNativeQuery(String.format(
-                        "SELECT create_hypertable('metric.%s','%s', if_not_exists => TRUE);",
+                        "SELECT create_hypertable('%s.%s','%s', if_not_exists => TRUE);",
+                        schema,
                         tableName,
                         timeColumnName))
                 .getResultList();
