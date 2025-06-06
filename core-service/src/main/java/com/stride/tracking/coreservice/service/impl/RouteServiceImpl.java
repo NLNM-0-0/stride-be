@@ -123,10 +123,7 @@ public class RouteServiceImpl implements RouteService {
     @Override
     @Transactional(readOnly = true)
     public ListResponse<RouteResponse, RouteFilter> getRoutes(AppPageRequest page, RouteFilter filter) {
-        Sport sport = Common.findSportById(filter.getSportId(), sportRepository);
-
         filter.setUserId(SecurityUtils.getCurrentUserId());
-        filter.setMinDistance(sport.getSportMapType().getMinDistance() / 1000.0);
 
         Pageable pageable = PageRequest.of(
                 page.getPage() - 1,
