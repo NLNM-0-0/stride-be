@@ -14,6 +14,7 @@ import com.stride.tracking.core.dto.route.response.SaveRouteResponse;
 import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.core.dto.supabase.request.*;
 import com.stride.tracking.core.dto.supabase.response.*;
+import com.stride.tracking.coreservice.constant.ActivityConst;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.RouteMapper;
 import com.stride.tracking.coreservice.model.Location;
@@ -158,7 +159,24 @@ public class RouteServiceImpl implements RouteService {
         List<List<Double>> decodedGeometry = StridePolylineUtils.decode(request.getGeometry());
         List<List<Double>> points = mapPointsToMap(request.getSportMapType(), decodedGeometry);
 
-        MapboxDirectionResponse mapboxResponse = mapboxService.getBatchRoute(points, request.getSportMapType());
+        MapboxDirectionResponse mapboxResponse;
+        if (points.size() < 2) {
+            points = decodedGeometry;
+
+            if (points.size() > 100) {
+                points = RamerDouglasPeucker.handle(
+                        points,
+                        ActivityConst.RDP_EPSILON
+                );
+            }
+
+            mapboxResponse = MapboxDirectionResponse.builder()
+                    .coordinates(points)
+                    .wayPoints(new ArrayList<>())
+                    .build();
+        } else {
+            mapboxResponse = mapboxService.getBatchRoute(points, request.getSportMapType());
+        }
 
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         Geometry geometry = GeometryConverter.fromListDouble(decodedGeometry, geometryFactory);
