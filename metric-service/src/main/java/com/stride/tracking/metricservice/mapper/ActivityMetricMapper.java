@@ -22,6 +22,8 @@ public class ActivityMetricMapper {
                 .name(event.getName())
                 .userId(event.getUserId())
                 .sportId(event.getSportId())
+                .distance(event.getDistance())
+                .mapImage(event.getMapImage())
                 .movingTimeSeconds(event.getMovingTimeSeconds())
                 .elevationGain(event.getElevationGain())
                 .calories(event.getCalories())
