@@ -30,7 +30,7 @@ public class RouteMapper {
                 .images(allImages)
                 .districts(route.getDistricts())
                 .geometry(StridePolylineUtils.encode(route.getGeometry()))
-                .location(mapToLocationResponse(route.getLocation()))
+                .location(route.getLocation() != null ? mapToLocationResponse(route.getLocation()) : null)
                 .heat(route.getHeat())
                 .build();
     }
