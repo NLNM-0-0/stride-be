@@ -529,7 +529,10 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addGoalHistories(Activity activity, ZoneId zoneId) {
-        List<Goal> goals = goalRepository.findBySportId(activity.getSport().getId());
+        List<Goal> goals = goalRepository.findByUserIdAndSportId(
+                activity.getUserId(),
+                activity.getSport().getId()
+        );
 
         List<GoalHistory> histories = new ArrayList<>();
         for (Goal goal : goals) {
