@@ -10,16 +10,13 @@ import com.stride.tracking.metricservice.client.CoreFeignClient;
 import com.stride.tracking.metricservice.constant.Message;
 import com.stride.tracking.metricservice.mapper.SportCacheMapper;
 import com.stride.tracking.metricservice.model.SportCache;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -31,39 +28,28 @@ public class SportCacheService {
 
     private final SportCacheMapper sportCacheMapper;
 
-    private final TaskScheduler taskScheduler;
-
-    private static final int RETRY_DELAY_MINUTES = 1;
-
     private final Cache<String, SportCache> sportCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
             .maximumSize(1000)
             .build();
 
-    @Scheduled(fixedRate = 2700000) //45 minutes
+    @Retry(name = "core-service", fallbackMethod = "syncSportsFallback")
     public void syncSports() {
-        try {
-            ResponseEntity<SimpleListResponse<SportShortResponse>> response = coreFeignClient.getAllSports();
+        ResponseEntity<SimpleListResponse<SportShortResponse>> response = coreFeignClient.getAllSports();
 
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                scheduleRetry();
-                return;
-            }
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            String msg = "Failed to syncSports: response status is " + response.getStatusCode() + " or body is null";
+            log.error(msg);
+            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, msg);
+        }
 
-            for (SportShortResponse sport : response.getBody().getData()) {
-                sportCache.put(sport.getId(), sportCacheMapper.mapToModel(sport));
-            }
-            log.info("Sync sports success at {}", Instant.now());
-
-        } catch (Exception ex) {
-            log.error("Failed to sync sports: {}", ex.getMessage());
-            scheduleRetry();
+        for (SportShortResponse sport : response.getBody().getData()) {
+            sportCache.put(sport.getId(), sportCacheMapper.mapToModel(sport));
         }
     }
 
-    private void scheduleRetry() {
-        log.error("Scheduling retry in {} minute(s)...", RETRY_DELAY_MINUTES);
-        taskScheduler.schedule(this::syncSports, Instant.now().plus(Duration.ofMinutes(RETRY_DELAY_MINUTES)));
+    public void syncSportsFallback(Throwable t) {
+        log.error("syncSports failed, fallback called: {}", t.getMessage());
     }
 
     public void updateSport(SportUpdatedEvent event) {

@@ -3,7 +3,6 @@ package com.stride.tracking.metricservice.controller;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.core.dto.sport.event.SportUpdatedEvent;
 import com.stride.tracking.metricservice.service.impl.SportCacheService;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.PermitAll;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -24,10 +23,5 @@ public class SportCacheUpdateKafkaController {
     @PermitAll
     public void listenSportCreatedEvent(SportUpdatedEvent event) {
         sportCacheService.updateSport(event);
-    }
-
-    @PostConstruct
-    public void loadInitialSports() {
-        sportCacheService.syncSports();
     }
 }
