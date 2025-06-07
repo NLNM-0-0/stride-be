@@ -24,10 +24,7 @@ import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.core.dto.supabase.request.GeometryRequest;
 import com.stride.tracking.core.dto.supabase.request.GetLocationByGeometryRequest;
 import com.stride.tracking.core.dto.supabase.response.GetLocationByGeometryResponse;
-import com.stride.tracking.coreservice.constant.GeometryType;
-import com.stride.tracking.coreservice.constant.Message;
-import com.stride.tracking.coreservice.constant.RoundRules;
-import com.stride.tracking.coreservice.constant.RuleCaloriesType;
+import com.stride.tracking.coreservice.constant.*;
 import com.stride.tracking.coreservice.mapper.ActivityMapper;
 import com.stride.tracking.coreservice.model.*;
 import com.stride.tracking.coreservice.repository.ActivityRepository;
@@ -103,8 +100,6 @@ public class ActivityServiceImpl implements ActivityService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private static final double RDP_EPSILON = 0.00005;
-    private static final int NUMBER_CHART_POINTS = 100;
     private static final int THRESHOLD_METERS = 10;
 
     @Override
@@ -294,15 +289,12 @@ public class ActivityServiceImpl implements ActivityService {
     ) {
         mergeStartEndPoint(request);
 
-        List<CoordinateRequest> sampled = ListUtils.minimized(request.getCoordinates(), NUMBER_CHART_POINTS);
-        List<List<Double>> minimizedCoordinates = sampled.stream()
+        List<Integer> indicates = addSpeedAndDistanceInfo(activity, request.getCoordinates());
+        List<List<Double>> minimizedCoordinates = indicates.stream()
+                .map(request.getCoordinates()::get)
                 .map(CoordinateRequest::getCoordinate)
                 .toList();
-        List<Long> minimizedTimestamps = new ArrayList<>(sampled.stream()
-                .map(CoordinateRequest::getTimestamp)
-                .toList());
 
-        addSpeedAndDistanceInfo(activity, minimizedCoordinates, minimizedTimestamps);
         addGeometry(activity, request.getCoordinates());
 
         Span parent = tracer.currentSpan();
@@ -310,7 +302,8 @@ public class ActivityServiceImpl implements ActivityService {
         CompletableFuture<Void> processLocationRouteFuture = runAsyncSecurityContextWithSpan(
                 "process-location-route",
                 parent,
-                () -> processLocationRoute(activity, minimizedCoordinates)
+                () -> processLocationRoute(
+                        activity, minimizedCoordinates)
         );
 
         CompletableFuture<Void> processOtherInfo = runAsyncSecurityContextWithSpan(
@@ -367,12 +360,11 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private void addSpeedAndDistanceInfo(
+    private List<Integer> addSpeedAndDistanceInfo(
             Activity activity,
-            List<List<Double>> minimizedCoordinates,
-            List<Long> minimizedTimestamps
+            List<CoordinateRequest> coordinateRequests
     ) {
-        SpeedCalculatorResult speedResult = speedCalculator.calculate(minimizedCoordinates, minimizedTimestamps);
+        SpeedCalculatorResult speedResult = speedCalculator.calculate(coordinateRequests);
 
         double totalDistance = speedResult.distances().get(speedResult.distances().size() - 1);
         activity.setDistances(speedResult.distances());
@@ -387,7 +379,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxSpeed(speedResult.maxSpeed());
         activity.setAvgSpeed(speedResult.avgSpeed());
 
-        activity.setCoordinatesTimestamps(minimizedTimestamps);
+        activity.setCoordinatesTimestamps(speedResult.timeStamps());
+
+        return speedResult.indicateCoordinateRequests();
     }
 
     private void addLocation(Activity activity, List<List<Double>> coordinates) {
@@ -505,23 +499,19 @@ public class ActivityServiceImpl implements ActivityService {
             request.setHeartRates(new ArrayList<>());
         }
 
-        List<Integer> heartRates = request.getHeartRates();
-
-        if (activity.getSport().getSportMapType() != SportMapType.NO_MAP) {
-            heartRates = ListUtils.minimized(
-                    request.getHeartRates(),
-                    NUMBER_CHART_POINTS
-            );
-        }
-
         HeartRateCalculatorResult result = heartRateCalculator.calculate(
-                heartRates,
+                request.getHeartRates(),
                 user.getHeartRateZones()
         );
         activity.setHeartRateZones(result.heartRateZones());
         activity.setAvgHearRate(result.avgHeartRate());
         activity.setMaxHearRate(result.maxHeartRate());
-        activity.setHeartRates(request.getHeartRates());
+
+        List<Integer> heartRates = ListUtils.minimized(
+                request.getHeartRates(),
+                ActivityConst.NUMBER_CHART_POINTS
+        );
+        activity.setHeartRates(heartRates);
     }
 
     private void addElevationInfo(Activity activity, List<List<Double>> coordinates) {
@@ -598,7 +588,7 @@ public class ActivityServiceImpl implements ActivityService {
         if (coordinates.size() > 100) {
             coordinates = RamerDouglasPeucker.handle(
                     coordinates,
-                    RDP_EPSILON
+                    ActivityConst.RDP_EPSILON
             );
         }
 

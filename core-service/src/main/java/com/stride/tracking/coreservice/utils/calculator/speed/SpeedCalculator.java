@@ -1,7 +1,10 @@
 package com.stride.tracking.coreservice.utils.calculator.speed;
 
+import com.stride.tracking.core.dto.activity.request.CoordinateRequest;
+import com.stride.tracking.coreservice.constant.ActivityConst;
 import com.stride.tracking.coreservice.constant.RoundRules;
 import com.stride.tracking.coreservice.utils.GeometryUtils;
+import com.stride.tracking.coreservice.utils.ListUtils;
 import com.stride.tracking.coreservice.utils.NumberUtils;
 import org.springframework.stereotype.Component;
 
@@ -10,29 +13,37 @@ import java.util.List;
 
 @Component
 public class SpeedCalculator {
-    public SpeedCalculatorResult calculate(List<List<Double>> coordinates, List<Long> timestamps) {
-        List<Double> distances = new ArrayList<>(List.of(0.0));
-        List<Double> speeds = new ArrayList<>(List.of(0.0));
+    public SpeedCalculatorResult calculate(
+            List<CoordinateRequest> coordinateRequests
+    ) {
+        List<Double> distances = new ArrayList<>();
+        List<Double> speeds = new ArrayList<>();
+        List<Long> timeStamps = new ArrayList<>();
         double maxSpeed = 0.0;
         double sumSpeed = 0.0;
 
-        if (coordinates == null || coordinates.size() < 2) {
-            return new SpeedCalculatorResult(distances, sumSpeed, maxSpeed, speeds);
+        if (coordinateRequests == null || coordinateRequests.size() < 2) {
+            return new SpeedCalculatorResult(distances, sumSpeed, maxSpeed, speeds, timeStamps, new ArrayList<>());
         }
 
-        for (int i = 1; i < coordinates.size(); i++) {
-            List<Double> prev = coordinates.get(i - 1);
-            List<Double> curr = coordinates.get(i);
+        int size = coordinateRequests.size();
+        for (int i = 1; i < size; i++) {
+            List<Double> prevCoordinate = coordinateRequests.get(i - 1).getCoordinate();
+            List<Double> currCoordinate = coordinateRequests.get(i).getCoordinate();
 
-            double lat1 = prev.get(0);
-            double lon1 = prev.get(1);
-            double lat2 = curr.get(0);
-            double lon2 = curr.get(1);
+            double lat1 = prevCoordinate.get(0);
+            double lon1 = prevCoordinate.get(1);
+            double lat2 = currCoordinate.get(0);
+            double lon2 = currCoordinate.get(1);
 
             double distance = GeometryUtils.distanceToPoint(lat1, lon1, lat2, lon2);
-            double secondDiff = (timestamps.get(i) - timestamps.get(i - 1)) / 1000.0;
 
-            double speedMs = distance / secondDiff;
+            Long prevTimestamp = coordinateRequests.get(i - 1).getTimestamp();
+            Long currTimestamp = coordinateRequests.get(i).getTimestamp();
+            timeStamps.add(currTimestamp);
+            double secondDiff = (currTimestamp - prevTimestamp) / 1000.0;
+
+            double speedMs = secondDiff == 0 ? 0 : distance / secondDiff;
 
             double speedKms = GeometryUtils.mToKm(speedMs);
             speedKms = NumberUtils.round(
@@ -43,13 +54,32 @@ public class SpeedCalculator {
             sumSpeed += speedKms;
 
             speeds.add(speedKms);
-            distances.add(distances.get(distances.size() - 1) + distance / 1000);
+
+            if (!distances.isEmpty()) {
+                distances.add(distances.get(distances.size() - 1) + distance / 1000);
+            } else {
+                distances.add(distance / 1000);
+            }
+
 
             if (speedKms > maxSpeed) {
                 maxSpeed = speedKms;
             }
         }
 
-        return new SpeedCalculatorResult(distances, sumSpeed / speeds.size(), maxSpeed, speeds);
+        List<Integer> indicates = ListUtils.minimizedIndices(speeds, ActivityConst.NUMBER_CHART_POINTS);
+
+        distances = indicates.stream().map(distances::get).toList();
+        speeds = indicates.stream().map(speeds::get).toList();
+        timeStamps = indicates.stream().map(timeStamps::get).toList();
+
+        return new SpeedCalculatorResult(
+                distances,
+                sumSpeed / speeds.size(),
+                maxSpeed,
+                speeds,
+                timeStamps,
+                indicates
+        );
     }
 }

@@ -85,6 +85,10 @@ public class RamerDouglasPeucker {
      * @return Similar curve with fewer points
      */
     public static List<List<Double>> handle(List<List<Double>> list, double epsilon) {
+        if (list.size() < 2) {
+            return list;
+        }
+
         final List<List<Double>> resultList = new ArrayList<>();
         handle(list, 0, list.size(), epsilon, resultList);
         return resultList;
