@@ -24,7 +24,7 @@ public class ActivityMapper {
                 .elevationGain(activity.getElevationGain())
                 .movingTimeSeconds(activity.getMovingTimeSeconds())
                 .mapImage(activity.getMapImage())
-                .location(mapToLocationResponse(activity.getLocation()))
+                .location(activity.getLocation() != null ? mapToLocationResponse(activity.getLocation()) : null)
                 .createdAt(DateUtils.toDate(activity.getCreatedAt()))
                 .build();
     }

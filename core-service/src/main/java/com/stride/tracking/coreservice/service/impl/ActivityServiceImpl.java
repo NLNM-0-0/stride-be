@@ -233,9 +233,9 @@ public class ActivityServiceImpl implements ActivityService {
             processActivityHasMap(zoneId, request, savedActivity, user);
         }
 
-        addProgress(savedActivity);
-
         Activity finalActivity = activityRepository.save(savedActivity);
+
+        addProgress(finalActivity);
 
         return activityMapper.mapToShortResponse(
                 finalActivity,
@@ -291,7 +291,7 @@ public class ActivityServiceImpl implements ActivityService {
             CreateActivityRequest request,
             Activity activity,
             ProfileResponse user
-    ){
+    ) {
         mergeStartEndPoint(request);
 
         List<CoordinateRequest> sampled = ListUtils.minimized(request.getCoordinates(), NUMBER_CHART_POINTS);
@@ -429,7 +429,7 @@ public class ActivityServiceImpl implements ActivityService {
                 minimizedCoordinates
         ));
 
-        trace("add-route", ()-> processRoute(activity));
+        trace("add-route", () -> processRoute(activity));
     }
 
     private void processRoute(Activity activity) {
@@ -453,9 +453,9 @@ public class ActivityServiceImpl implements ActivityService {
                             .avgTime(activity.getMovingTimeSeconds().doubleValue())
                             .avgDistance(activity.getTotalDistance())
                             .geometry(activity.getGeometry())
-                            .ward(activity.getLocation().getWard())
-                            .district(activity.getLocation().getDistrict())
-                            .city(activity.getLocation().getCity())
+                            .ward(activity.getLocation() != null ? activity.getLocation().getWard() : null)
+                            .district(activity.getLocation() != null ? activity.getLocation().getDistrict() : null)
+                            .city(activity.getLocation() != null ? activity.getLocation().getCity() : null)
                             .build()
             );
             activity.setRouteId(routeResponse.getRouteId());
@@ -529,7 +529,10 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     private void addGoalHistories(Activity activity, ZoneId zoneId) {
-        List<Goal> goals = goalRepository.findBySportId(activity.getSport().getId());
+        List<Goal> goals = goalRepository.findByUserIdAndSportId(
+                activity.getUserId(),
+                activity.getSport().getId()
+        );
 
         List<GoalHistory> histories = new ArrayList<>();
         for (Goal goal : goals) {

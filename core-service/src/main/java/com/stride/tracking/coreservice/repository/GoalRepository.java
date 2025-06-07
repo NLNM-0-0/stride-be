@@ -19,7 +19,7 @@ public interface GoalRepository  extends JpaRepository<Goal, String>, JpaSpecifi
 
     List<Goal> findByUserId(String userId);
 
-    List<Goal> findBySportId(String sportId);
+    List<Goal> findByUserIdAndSportId(String userId, String sportId);
 
     List<Goal> findByTimeFrame(GoalTimeFrame timeFrame);
 }
