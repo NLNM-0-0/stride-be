@@ -429,7 +429,7 @@ public class ActivityServiceImpl implements ActivityService {
                 minimizedCoordinates
         ));
 
-        trace("add-route", ()->processRoute(activity));
+        trace("add-route", ()-> processRoute(activity));
     }
 
     private void processRoute(Activity activity) {
@@ -443,7 +443,7 @@ public class ActivityServiceImpl implements ActivityService {
                             .avgDistance(activity.getTotalDistance())
                             .build()
             );
-        } else {
+        } else if (activity.getSport().getSportMapType() != SportMapType.NO_MAP) {
             CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
                     CreateRouteRequest.builder()
                             .sportId(activity.getSport().getId())
