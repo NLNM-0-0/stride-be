@@ -1,5 +1,6 @@
 package com.stride.tracking.bridgeservice.controller;
 
+import com.stride.tracking.bridge.dto.fcm.events.DeleteFCMTokenByUserIdEvent;
 import com.stride.tracking.bridge.dto.fcm.request.PushFCMNotificationRequest;
 import com.stride.tracking.bridgeservice.service.FCMService;
 import com.stride.tracking.commons.constants.KafkaTopics;
@@ -18,5 +19,11 @@ public class FCMKafkaController {
     @PermitAll
     public void listenNotificationDelivery(PushFCMNotificationRequest message) {
         fcmService.pushNotification(message);
+    }
+
+    @KafkaListener(topics = KafkaTopics.FCM_DELETED_TOPIC)
+    @PermitAll
+    public void listenDeletedFCMToken(DeleteFCMTokenByUserIdEvent event) {
+        fcmService.deleteFCMTokenByUserId(event.getUserId());
     }
 }
