@@ -495,22 +495,27 @@ public class ActivityServiceImpl implements ActivityService {
     private void addHeartRateInfo(
             Activity activity,
             CreateActivityRequest request,
-            ProfileResponse user) {
-        if (request.getHeartRates() == null) {
-            request.setHeartRates(new ArrayList<>());
-        }
-
-        List<Integer> sampledHeartRate = ListUtils.minimized(
-                request.getHeartRates(),
-                NUMBER_CHART_POINTS
-        );
-
+            ProfileResponse user)
+    {
         if (user.getHeartRateZones() == null) {
             throw new StrideException(HttpStatus.BAD_REQUEST, Message.USER_HAVE_NOT_HEART_RATE_ZONES_YET);
         }
 
+        if (request.getHeartRates() == null) {
+            request.setHeartRates(new ArrayList<>());
+        }
+
+        List<Integer> heartRates = request.getHeartRates();
+
+        if (activity.getSport().getSportMapType() != SportMapType.NO_MAP) {
+            heartRates = ListUtils.minimized(
+                    request.getHeartRates(),
+                    NUMBER_CHART_POINTS
+            );
+        }
+
         HeartRateCalculatorResult result = heartRateCalculator.calculate(
-                sampledHeartRate,
+                heartRates,
                 user.getHeartRateZones()
         );
         activity.setHeartRateZones(result.heartRateZones());
