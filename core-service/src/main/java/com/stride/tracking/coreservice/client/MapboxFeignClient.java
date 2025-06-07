@@ -16,7 +16,7 @@ import java.util.Map;
 @Component
 public interface MapboxFeignClient {
     @GetMapping("/directions/v5/mapbox/{mapType}/{coordinates}")
-    Map<String, Object> getDirections(
+    ResponseEntity<Map<String, Object>> getDirections(
             @PathVariable("mapType") String mapType,
             @PathVariable("coordinates") String coordinates,
             @RequestParam(value = "access_token") String accessToken,

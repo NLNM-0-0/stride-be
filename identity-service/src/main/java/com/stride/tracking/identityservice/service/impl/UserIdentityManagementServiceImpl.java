@@ -2,6 +2,7 @@ package com.stride.tracking.identityservice.service.impl;
 
 import com.stride.tracking.bridge.dto.email.event.SendEmailEvent;
 import com.stride.tracking.bridge.dto.email.request.Recipient;
+import com.stride.tracking.bridge.dto.fcm.events.DeleteFCMTokenByUserIdEvent;
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
 import com.stride.tracking.commons.exception.StrideException;
@@ -14,6 +15,7 @@ import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
 import com.stride.tracking.identityservice.model.UserIdentity;
 import com.stride.tracking.identityservice.model.VerifiedToken;
+import com.stride.tracking.identityservice.repository.AuthTokenRepository;
 import com.stride.tracking.identityservice.repository.UserIdentityRepository;
 import com.stride.tracking.identityservice.repository.VerifiedTokenRepository;
 import com.stride.tracking.identityservice.service.UserIdentityManagementService;
@@ -40,6 +42,7 @@ import java.util.Map;
 public class UserIdentityManagementServiceImpl implements UserIdentityManagementService {
     private final UserIdentityRepository userIdentityRepository;
     private final VerifiedTokenRepository verifiedTokenRepository;
+    private final AuthTokenRepository authTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final OTPGenerator otpGenerator;
@@ -128,9 +131,15 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
             userIdentity.setUsername(request.getEmail());
         }
 
+        boolean currentIsBlocked = userIdentity.isBlocked();
+
         UpdateHelper.updateIfNotNull(request.getIsBlocked(), userIdentity::setBlocked);
 
         userIdentityRepository.save(userIdentity);
+
+        if (request.getIsBlocked() != null && request.getIsBlocked() && !currentIsBlocked) {
+            handleDeleteToken(userId);
+        }
     }
 
     private UserIdentity findStrideUserIdentityByProviderAndUserId(String userId) {
@@ -146,11 +155,24 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
         }
     }
 
+    private void handleDeleteToken(String userId) {
+        authTokenRepository.deleteAllByUserId(userId);
+        kafkaProducer.send(
+                KafkaTopics.FCM_DELETED_TOPIC,
+                DeleteFCMTokenByUserIdEvent
+                        .builder()
+                        .userId(userId)
+                        .build()
+        );
+    }
+
     @Override
     public void updateNormalUserIdentity(String userId, UpdateNormalUserIdentityRequest request) {
         List<UserIdentity> userIdentities = userIdentityRepository.findAllByUserId(
                 userId
         );
+
+        boolean currentIsBlocked = userIdentities.get(0).isBlocked();
 
         for (UserIdentity userIdentity : userIdentities) {
             if (userIdentity.isAdmin()) {
@@ -161,6 +183,10 @@ public class UserIdentityManagementServiceImpl implements UserIdentityManagement
         }
 
         userIdentityRepository.saveAll(userIdentities);
+
+        if (request.getIsBlocked() != null && request.getIsBlocked() && !currentIsBlocked) {
+            handleDeleteToken(userId);
+        }
     }
 
     @Override

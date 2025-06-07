@@ -133,6 +133,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         AuthToken authToken = AuthToken.builder()
                 .token(token)
+                .userId(userIdentity.getUserId())
                 .expiryTime(expirationTime)
                 .build();
         authTokenRepository.save(authToken);
