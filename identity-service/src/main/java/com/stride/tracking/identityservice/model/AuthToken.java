@@ -20,5 +20,7 @@ public class AuthToken extends BaseEntity {
     @Column(length = 512)
     private String token;
 
+    private String userId;
+
     private Date expiryTime;
 }

@@ -28,4 +28,5 @@ public class Message {
     public static final String CAN_NOT_SAVE_A_NON_PUBLIC_ROUTE = "Can not save a non public route";
     public static final String USER_HAVE_NOT_HEART_RATE_ZONES_YET = "User haven't had heart rates zone yet";
     public static final String THIS_GOAL_TYPE_REQUIRED_SPORT_HAS_MAP = "This goal type required sport has map";
+    public static final String CAN_NOT_GET_DIRECTIONS_FROM_MAPBOX = "Can not get directions from mapbox";
 }

@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.service.impl;
 
-import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.FeignClientHandler;
 import com.stride.tracking.core.dto.supabase.request.FindDistrictsContainGeometryRequest;
 import com.stride.tracking.core.dto.supabase.request.FindDistrictsNearPointRequest;
 import com.stride.tracking.core.dto.supabase.request.FindNearestWayPointsRequest;
@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,61 +32,41 @@ public class SupabaseService {
 
     public GetLocationByGeometryResponse getLocationByGeometry(GetLocationByGeometryRequest request) {
         String token = getToken();
-        ResponseEntity<GetLocationByGeometryResponse> response = supabaseClient.getLocationByGeometry(request, token);
 
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error("[getLocationByGeometry] Failed to get location for geometry: {}", request.getGeometry());
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_GET_LOCATION_FOR_GEOMETRY);
-        }
-
-        return response.getBody();
+        return FeignClientHandler.handleExternalCall(
+                () -> supabaseClient.getLocationByGeometry(request, token),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_GET_LOCATION_FOR_GEOMETRY
+        );
     }
 
     public FindDistrictsNearPointResponse findDistrictsNearPoint(FindDistrictsNearPointRequest request) {
         String token = getToken();
-        ResponseEntity<FindDistrictsNearPointResponse> response = supabaseClient.findDistrictsNearPoint(request, token);
 
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error(
-                    "[findDistrictsNearPoint] Failed to find districts near point: ({}, {}) around {}",
-                    request.getLat(),
-                    request.getLon(),
-                    request.getAround()
-            );
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_FIND_DISTRICTS_NEAR_POINT);
-        }
-
-        return response.getBody();
+        return FeignClientHandler.handleExternalCall(
+                () -> supabaseClient.findDistrictsNearPoint(request, token),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_FIND_DISTRICTS_NEAR_POINT
+        );
     }
 
     public FindNearestWayPointsResponse findNearestWayPoints(FindNearestWayPointsRequest request) {
         String token = getToken();
-        ResponseEntity<FindNearestWayPointsResponse> response = supabaseClient.findNearestWayPoints(request, token);
 
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error(
-                    "[findNearestWayPoints] Failed to find nearest way points type {} of {}",
-                    request.getType(),
-                    request.getData()
-            );
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_FIND_NEAREST_WAY_POINTS);
-        }
-
-        return response.getBody();
+        return FeignClientHandler.handleExternalCall(
+                () -> supabaseClient.findNearestWayPoints(request, token),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_FIND_NEAREST_WAY_POINTS
+        );
     }
 
     public FindDistrictsContainGeometryResponse findDistrictsContainGeometry(FindDistrictsContainGeometryRequest request) {
         String token = getToken();
-        ResponseEntity<FindDistrictsContainGeometryResponse> response = supabaseClient.findDistrictsContainGeometry(request, token);
 
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error(
-                    "[findDistrictsContainGeometry] Failed to find districts contain geometry {}",
-                    request.getGeometry()
-            );
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CAN_NOT_FIND_DISTRICTS_CONTAIN_GEOMETRY);
-        }
-
-        return response.getBody();
+        return FeignClientHandler.handleExternalCall(
+                () -> supabaseClient.findDistrictsContainGeometry(request, token),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_FIND_DISTRICTS_CONTAIN_GEOMETRY
+        );
     }
 }

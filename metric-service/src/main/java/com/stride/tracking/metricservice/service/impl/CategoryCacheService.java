@@ -8,16 +8,14 @@ import com.stride.tracking.core.dto.category.event.CategoryUpdatedEvent;
 import com.stride.tracking.metric.dto.category.response.CategoryResponse;
 import com.stride.tracking.metricservice.client.CoreFeignClient;
 import com.stride.tracking.metricservice.constant.Message;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -27,39 +25,27 @@ import java.util.concurrent.TimeUnit;
 public class CategoryCacheService {
     private final CoreFeignClient coreFeignClient;
 
-    private final TaskScheduler taskScheduler;
-
-    private static final int RETRY_DELAY_MINUTES = 1;
-
     private final Cache<String, String> categoryCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
             .maximumSize(1000)
             .build();
 
-    @Scheduled(fixedRate = 2700000) //45 minutes
+    @Retry(name = "core-service", fallbackMethod = "syncCategoriesFallback")
     public void syncCategories() {
-        try {
-            ResponseEntity<SimpleListResponse<CategoryResponse>> response = coreFeignClient.getAllCategories();
+        ResponseEntity<SimpleListResponse<CategoryResponse>> response = coreFeignClient.getAllCategories();
 
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                scheduleRetry();
-                return;
-            }
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            log.error("Failed to sync categories: response status is {} or body is null", response.getStatusCode());
+            return;
+        }
 
-            for (CategoryResponse categoryResponse : response.getBody().getData()) {
-                categoryCache.put(categoryResponse.getId(), categoryResponse.getName());
-            }
-            log.info("Sync categories success at {}", Instant.now());
-
-        } catch (Exception ex) {
-            log.error("Failed to sync categories: {}", ex.getMessage());
-            scheduleRetry();
+        for (CategoryResponse categoryResponse : response.getBody().getData()) {
+            categoryCache.put(categoryResponse.getId(), categoryResponse.getName());
         }
     }
 
-    private void scheduleRetry() {
-        log.error("Scheduling retry in {} minute(s)...", RETRY_DELAY_MINUTES);
-        taskScheduler.schedule(this::syncCategories, Instant.now().plus(Duration.ofMinutes(RETRY_DELAY_MINUTES)));
+    void syncCategoriesFallback(Throwable t) {
+        log.error("syncCategories failed, fallback called: {}", t.getMessage());
     }
 
     public void updateCategory(CategoryUpdatedEvent event) {

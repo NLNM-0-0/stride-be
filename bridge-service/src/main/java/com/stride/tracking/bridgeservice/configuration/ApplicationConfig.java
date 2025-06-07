@@ -1,7 +1,7 @@
 package com.stride.tracking.bridgeservice.configuration;
 
 import com.stride.tracking.commons.configuration.log.LoggingConfig;
-import com.stride.tracking.commons.configuration.metrics.MetricsConfiguration;
+import com.stride.tracking.commons.configuration.metrics.MetricsWebMvcConfig;
 import com.stride.tracking.commons.configuration.security.SecurityConfig;
 import com.stride.tracking.commons.configuration.task.AsyncConfig;
 import com.stride.tracking.commons.exception.GlobalExceptionHandler;
@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
         SecurityConfig.class,
         LoggingConfig.class,
         GlobalExceptionHandler.class,
-        MetricsConfiguration.class,
+        MetricsWebMvcConfig.class,
         AsyncConfig.class
 })
 @EnableAsync

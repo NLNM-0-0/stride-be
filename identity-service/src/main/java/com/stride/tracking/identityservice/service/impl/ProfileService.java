@@ -2,7 +2,7 @@ package com.stride.tracking.identityservice.service.impl;
 
 import com.stride.tracking.commons.configuration.kafka.KafkaProducer;
 import com.stride.tracking.commons.constants.KafkaTopics;
-import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.FeignClientHandler;
 import com.stride.tracking.identityservice.client.ProfileFeignClient;
 import com.stride.tracking.identityservice.constant.AuthProvider;
 import com.stride.tracking.identityservice.constant.Message;
@@ -12,11 +12,9 @@ import com.stride.tracking.profile.dto.profile.response.CreateProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -27,16 +25,13 @@ public class ProfileService {
     private final KafkaProducer kafkaProducer;
 
     public String createProfile(CreateProfileRequest request, AuthProvider provider) {
-        log.debug("[createUser] Creating profile for new user: {}", request.getName());
+        CreateProfileResponse response = FeignClientHandler.handleInternalCall(
+                ()->profileClient.createProfile(request),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.PROFILE_CREATE_USER_ERROR
+        );
 
-        ResponseEntity<CreateProfileResponse> response = profileClient.createProfile(request);
-        if (response.getStatusCode() != HttpStatus.CREATED || response.getBody() == null) {
-            log.error("[createUser] Failed to create user profile, response: {}", response);
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.PROFILE_CREATE_USER_ERROR);
-        }
-
-        String userId = Objects.requireNonNull(response.getBody()).getUserId();
-        log.debug("[createUser] Created new profile with userId: {}", userId);
+        String userId = response.getUserId();
 
         sendUserCreatedMetric(userId, provider);
 

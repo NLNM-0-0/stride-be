@@ -51,22 +51,50 @@ services:
   mongo1:
     image: mongo:6.0.13-jammy
     container_name: mongo1
-    command:
-      - /bin/sh
-      - -c
-      - |
-        chmod 400 /etc/mongo-keyfile
-        chown 999:999 /etc/mongo-keyfile
+    command: >
+      bash -c "
+        chmod 400 /etc/mongo-keyfile &&
+        chown 999:999 /etc/mongo-keyfile &&
+
+        # B1: Chạy mongod KHÔNG có --keyFile để tạo user
+        mongod --replSet rs0 --bind_ip_all --fork --logpath /var/log/mongodb.log
+
+        # Đợi mongod sẵn sàng
+        until mongosh --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1; do
+          echo '⏳ Waiting for MongoDB to be ready...'
+          sleep 2
+        done
+
+        echo '✅ MongoDB is ready. Running init script...'
+        bash /mongo-init.sh
+
+        # Dừng mongod
+        mongod --shutdown
+
+        # B2: Khởi động lại mongod với auth (keyFile)
         mongod --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all
+      "
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: 123456
     volumes:
       - ./z-etc/mongo/mongo-keyfile:/etc/mongo-keyfile
       - mongo1-data:/data/db
+      - ./z-etc/mongo/mongo-init.sh:/mongo-init.sh
     ports:
       - 27017:27017
     restart: on-failure
+    healthcheck:
+      test: [
+        "CMD", "mongosh",
+        "--username", "root",
+        "--password", "123456",
+        "--authenticationDatabase", "admin",
+        "--eval", "db.adminCommand('ping')"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - stride-network
 
@@ -87,6 +115,11 @@ services:
       - ./z-etc/mongo/mongo-keyfile:/etc/mongo-keyfile
       - mongo2-data:/data/db
     restart: on-failure
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - stride-network
 
@@ -107,34 +140,13 @@ services:
       - ./z-etc/mongo/mongo-keyfile:/etc/mongo-keyfile
       - mongo3-data:/data/db
     restart: on-failure
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - stride-network
-
-  mongo-setup:
-    image: mongo:6.0.13-jammy
-    depends_on:
-      - mongo1
-      - mongo2
-      - mongo3
-    networks:
-      - stride-network
-    entrypoint: >
-      bash -c "
-      until mongosh mongodb://root:123456@mongo1:27017/admin --eval 'db.adminCommand({ping:1})' > /dev/null 2>&1; do
-        echo 'Waiting for mongo1 to be ready...';
-        sleep 5;
-      done;
-      mongosh mongodb://root:123456@mongo1:27017/admin --eval '
-        rs.initiate({
-          _id: \"rs0\",
-          members: [
-            { _id: 0, host: \"mongo1:27017\" },
-            { _id: 1, host: \"mongo2:27017\" },
-            { _id: 2, host: \"mongo3:27017\" }
-          ]
-        })
-      '
-      "
 
 networks:
   stride-network:

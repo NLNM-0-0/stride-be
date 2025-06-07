@@ -71,4 +71,6 @@ public interface ActivityMetricRepository extends JpaRepository<ActivityMetric, 
     FindMinAndMaxTimeByUserIdResult findMinAndMaxTimeByUserId(@Param("userId") String userId);
 
     Optional<ActivityMetric> findByActivityId(String activityId);
+
+    void deleteByTimeBefore(Instant createdAt);
 }

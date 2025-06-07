@@ -37,15 +37,6 @@ public class FCMController {
         return ResponseEntity.ok(new SimpleResponse());
     }
 
-    @DeleteMapping("/users/{userId}")
-    @PreAuthorizeAdmin
-    ResponseEntity<SimpleResponse> deleteFCMTokenByUserId(
-            @PathVariable String userId
-    ) {
-        fcmService.deleteFCMTokenByUserId(userId);
-        return ResponseEntity.ok(new SimpleResponse());
-    }
-
     @PostMapping("/message")
     @PreAuthorizeAdmin
     ResponseEntity<SimpleResponse> pushMessage(

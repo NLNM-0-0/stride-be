@@ -1,7 +1,7 @@
 package com.stride.tracking.coreservice.service.impl;
 
 import com.stride.tracking.bridge.dto.supabase.response.FileLinkResponse;
-import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.FeignClientHandler;
 import com.stride.tracking.core.dto.mapbox.response.MapboxDirectionResponse;
 import com.stride.tracking.core.dto.mapbox.response.MapboxWayPoint;
 import com.stride.tracking.core.dto.sport.SportMapType;
@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -113,10 +112,14 @@ public class MapboxService {
                 .map(coordinate -> String.format("%s,%s", coordinate.get(0), coordinate.get(1)))
                 .collect(Collectors.joining(";"));
 
-        Map<String, Object> response = mapboxClient.getDirections(
-                mapType.name().toLowerCase(), encodedCoords, accessToken,
-                directionsAlternatives, directionsGeometries, directionsOverview,
-                directionsSteps, directionsContinueStraight
+        Map<String, Object> response = FeignClientHandler.handleExternalCall(
+                () -> mapboxClient.getDirections(
+                        mapType.name().toLowerCase(), encodedCoords, accessToken,
+                        directionsAlternatives, directionsGeometries, directionsOverview,
+                        directionsSteps, directionsContinueStraight
+                ),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_GET_DIRECTIONS_FROM_MAPBOX
         );
 
         List<List<Double>> coords = (List<List<Double>>) JsonHelper.getNestedValue(response, "routes", "0", "geometry", "coordinates");
@@ -181,22 +184,21 @@ public class MapboxService {
             int height,
             int padding
     ) {
-        ResponseEntity<byte[]> response = mapboxClient.getStaticMapImage(
-                style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
+        return FeignClientHandler.handleExternalCall(
+                ()->mapboxClient.getStaticMapImage(
+                        style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
+                ),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.GENERATE_IMAGE_FAILED
         );
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error("[getMapImage] Failed to get map image for path: {}", path);
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.GENERATE_IMAGE_FAILED);
-        }
-        return response.getBody();
     }
 
     private String uploadFile(byte[] data, String name) {
-        ResponseEntity<FileLinkResponse> response = bridgeClient.uploadRawFile(data, name, staticImageContentType);
-        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            log.error("[uploadFile] Failed to upload path image");
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.UPLOAD_IMAGE_FAILED);
-        }
-        return response.getBody().getFile();
+        FileLinkResponse response = FeignClientHandler.handleInternalCall(
+                () -> bridgeClient.uploadRawFile(data, name, staticImageContentType),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.UPLOAD_IMAGE_FAILED
+        );
+        return response.getFile();
     }
 }

@@ -587,12 +587,14 @@ public class ActivityServiceImpl implements ActivityService {
     private void addMapImage(Activity activity, List<CoordinateRequest> rawCoordinates) {
         List<List<Double>> coordinates = extractCoordinates(rawCoordinates);
 
-        List<List<Double>> smoothCoordinates = RamerDouglasPeucker.handle(
-                coordinates,
-                RDP_EPSILON
-        );
+        if (coordinates.size() > 100) {
+            coordinates = RamerDouglasPeucker.handle(
+                    coordinates,
+                    RDP_EPSILON
+            );
+        }
 
-        String encodePolyline = StridePolylineUtils.encode(smoothCoordinates);
+        String encodePolyline = StridePolylineUtils.encode(coordinates);
 
         String mapImage = mapboxService.generateAndUpload(encodePolyline, "activity");
 

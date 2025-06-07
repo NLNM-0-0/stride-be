@@ -1,6 +1,6 @@
 package com.stride.tracking.coreservice.service.impl;
 
-import com.stride.tracking.commons.exception.StrideException;
+import com.stride.tracking.commons.utils.FeignClientHandler;
 import com.stride.tracking.core.dto.elevation.request.ElevationRequest;
 import com.stride.tracking.core.dto.elevation.request.LocationRequest;
 import com.stride.tracking.core.dto.elevation.response.ElevationResponse;
@@ -9,7 +9,6 @@ import com.stride.tracking.coreservice.constant.Message;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,16 +35,13 @@ public class ElevationService {
                 .locations(locationRequests)
                 .build();
 
-        ResponseEntity<ElevationResponse> response = elevationClient.calculateElevation(request);
+        ElevationResponse response = FeignClientHandler.handleExternalCall(
+                ()->elevationClient.calculateElevation(request),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CALCULATE_ELEVATIONS_FAILED
+        );
 
-        if (!HttpStatus.OK.equals(response.getStatusCode()) || response.getBody() == null) {
-            log.error("[calculateElevations] Failed to calculate elevations");
-            throw new StrideException(HttpStatus.INTERNAL_SERVER_ERROR, Message.CALCULATE_ELEVATIONS_FAILED);
-        }
-
-        log.debug("[calculateElevations] Success to calculate elevations");
-
-        return response.getBody().getResults().stream()
+        return response.getResults().stream()
                 .map(location -> location.getElevation().intValue())
                 .toList();
     }

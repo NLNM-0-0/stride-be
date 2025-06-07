@@ -11,4 +11,6 @@ public interface UserMetricRepository extends JpaRepository<UserMetric, UserMetr
             Instant from,
             Instant to
     );
+
+    void deleteByTimeBefore(Instant createdAt);
 }
