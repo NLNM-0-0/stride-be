@@ -13,6 +13,7 @@ import com.stride.tracking.core.dto.route.response.RouteResponse;
 import com.stride.tracking.core.dto.route.response.SaveRouteResponse;
 import com.stride.tracking.core.dto.supabase.request.*;
 import com.stride.tracking.core.dto.supabase.response.*;
+import com.stride.tracking.coreservice.constant.ActivityConst;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.RouteMapper;
 import com.stride.tracking.coreservice.model.Location;
@@ -24,6 +25,8 @@ import com.stride.tracking.coreservice.repository.specs.RouteSpecs;
 import com.stride.tracking.coreservice.service.RouteService;
 import com.stride.tracking.coreservice.utils.ComposeNameHelper;
 import com.stride.tracking.coreservice.utils.GeometryConverter;
+import com.stride.tracking.coreservice.utils.StridePolylineUtils;
+import com.stride.tracking.coreservice.utils.calculator.RamerDouglasPeucker;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -151,7 +154,11 @@ public class RouteServiceImpl implements RouteService {
     // The transaction already have been initialized in creating activity
     // Annotating transaction in here will prevent tracing
     public CreateRouteResponse createRoute(CreateRouteRequest request) {
-        List<List<Double>> points = request.getGeometry();
+        List<List<Double>> simplifiedList = RamerDouglasPeucker.handle(
+                request.getGeometry(),
+                ActivityConst.RDP_EPSILON
+        );
+        List<List<Double>> points = mapboxService.getBatchMapMatchingPoints(request.getSportMapType(), simplifiedList);
 
         MapboxDirectionResponse mapboxResponse;
         if (points.size() < 2) {
@@ -209,6 +216,9 @@ public class RouteServiceImpl implements RouteService {
             MapboxDirectionResponse mapboxResponse,
             Geometry geometry
     ) {
+        String geometryGeoJson = StridePolylineUtils.encode(geometry);
+        String mapImage = mapboxService.generateAndUpload(geometryGeoJson, "route");
+
         List<String> districts = getDistrictsForRoute(mapboxResponse.getCoordinates());
 
         String routeName = ComposeNameHelper.composeRouteName(mapboxResponse.getWayPoints());
@@ -229,7 +239,7 @@ public class RouteServiceImpl implements RouteService {
                         .city(request.getCity())
                         .build()
                 )
-                .mapImage(request.getMapImage())
+                .mapImage(mapImage)
                 .images(Map.of(request.getActivityId(), request.getImages() != null ? request.getImages() : new ArrayList<>()))
                 .districts(districts)
                 .geometry(geometry)

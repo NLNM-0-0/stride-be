@@ -67,6 +67,12 @@ public class MapboxService {
     @Value("${mapbox.directions.continue_straight}")
     private String directionsContinueStraight;
 
+    @Value("${mapbox.matching.geometries}")
+    private String matchingGeometries;
+
+    @Value("${mapbox.matching.overview}")
+    private String matchingOverview;
+
     public MapboxDirectionResponse getBatchRoute(List<List<Double>> coordinates, SportMapType mapType) {
         int maxCoordsPerRequest = 25;
         List<List<List<Double>>> chunks = new ArrayList<>();
@@ -108,9 +114,7 @@ public class MapboxService {
     }
 
     public MapboxDirectionResponse getRoute(List<List<Double>> coordinates, SportMapType mapType) {
-        String encodedCoords = coordinates.stream()
-                .map(coordinate -> String.format("%s,%s", coordinate.get(0), coordinate.get(1)))
-                .collect(Collectors.joining(";"));
+        String encodedCoords = encodeCoords(coordinates);
 
         Map<String, Object> response = FeignClientHandler.handleExternalCall(
                 () -> mapboxClient.getDirections(
@@ -155,6 +159,12 @@ public class MapboxService {
         return new MapboxDirectionResponse(coords, waypoints);
     }
 
+    private String encodeCoords(List<List<Double>> coordinates) {
+        return coordinates.stream()
+                .map(coordinate -> String.format("%s,%s", coordinate.get(0), coordinate.get(1)))
+                .collect(Collectors.joining(";"));
+    }
+
     public String generateAndUpload(String path, String fileName) {
         byte[] imageData = generateImage(path);
 
@@ -185,7 +195,7 @@ public class MapboxService {
             int padding
     ) {
         return FeignClientHandler.handleExternalCall(
-                ()->mapboxClient.getStaticMapImage(
+                () -> mapboxClient.getStaticMapImage(
                         style, strokeWidth, strokeColor, strokeFill, path, width, height, padding, accessToken
                 ),
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -200,5 +210,53 @@ public class MapboxService {
                 Message.UPLOAD_IMAGE_FAILED
         );
         return response.getFile();
+    }
+
+    public List<List<Double>> getBatchMapMatchingPoints(SportMapType mapType, List<List<Double>> coordinates) {
+        int maxCoordsPerRequest = 100;
+        List<List<List<Double>>> chunks = new ArrayList<>();
+
+        for (int i = 0; i < coordinates.size(); i += maxCoordsPerRequest) {
+            int end = Math.min(i + maxCoordsPerRequest, coordinates.size());
+            chunks.add(coordinates.subList(i, end));
+        }
+
+        List<List<Double>> allCoordinates = new ArrayList<>();
+
+        for (List<List<Double>> chunk : chunks) {
+            List<List<Double>> response = getMapMatchingPoints(mapType, chunk);
+            allCoordinates.addAll(response);
+        }
+
+        return allCoordinates;
+    }
+
+    public List<List<Double>> getMapMatchingPoints(SportMapType mapType, List<List<Double>> coordinates) {
+        String encodedCoords = encodeCoords(coordinates);
+
+        Map<String, Object> response = FeignClientHandler.handleExternalCall(
+                () -> mapboxClient.getMatching(
+                        mapType.name().toLowerCase(),
+                        encodedCoords,
+                        accessToken,
+                        matchingGeometries,
+                        matchingOverview
+                ),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Message.CAN_NOT_GET_DIRECTIONS_FROM_MAPBOX
+        );
+
+        List<Object> tracePointsRaw = (List<Object>) response.getOrDefault("tracepoints", new ArrayList<>());
+        List<List<Double>> result = new ArrayList<>();
+
+        for (Object tpObj : tracePointsRaw) {
+            if (tpObj instanceof Map) {
+                Map<String, Object> tracePoint = (Map<String, Object>) tpObj;
+                List<Double> location = (List<Double>) tracePoint.get("location");
+                result.add(location);
+            }
+        }
+
+        return result;
     }
 }
