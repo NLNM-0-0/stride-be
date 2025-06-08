@@ -67,6 +67,8 @@ public class SpeedCalculator {
             }
         }
 
+        Double avgSpeed = sumSpeed / speeds.size();
+
         List<Integer> indicates = ListUtils.minimizedIndices(speeds, ActivityConst.NUMBER_CHART_POINTS);
 
         distances = indicates.stream().map(distances::get).toList();
@@ -75,7 +77,7 @@ public class SpeedCalculator {
 
         return new SpeedCalculatorResult(
                 distances,
-                sumSpeed / speeds.size(),
+                avgSpeed,
                 maxSpeed,
                 speeds,
                 timeStamps,
