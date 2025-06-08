@@ -1,6 +1,7 @@
 package com.stride.tracking.coreservice.repository.specs;
 
 import com.stride.tracking.coreservice.model.Route;
+import jakarta.persistence.criteria.Expression;
 import org.springframework.data.jpa.domain.Specification;
 
 public class RouteSpecs {
@@ -34,9 +35,16 @@ public class RouteSpecs {
     }
 
     public static Specification<Route> hasMinDistance(Double minDistance) {
-        return (root, query, cb) -> cb.greaterThanOrEqualTo(
-                root.get("totalDistance"),
-                minDistance
-        );
+        return (root, query, cb) -> {
+            Expression<Double> totalDistance = root.get("totalDistance").as(Double.class);
+            Expression<Double> heat = root.get("heat").as(Double.class);
+
+            Expression<Double> distancePerHeat = cb.quot(totalDistance, heat).as(Double.class);
+
+            return cb.and(
+                    cb.notEqual(heat, 0.0),
+                    cb.greaterThanOrEqualTo(distancePerHeat, cb.literal(minDistance))
+            );
+        };
     }
 }

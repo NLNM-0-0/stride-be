@@ -241,7 +241,7 @@ public class RouteServiceImpl implements RouteService {
                 .sport(sport)
                 .name(routeName)
                 .totalDistance(request.getAvgDistance())
-                .totalTime(request.getAvgDistance())
+                .totalTime(request.getAvgTime())
                 .location(Location.builder()
                         .ward(request.getWard())
                         .district(request.getDistrict())
