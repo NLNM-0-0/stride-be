@@ -15,6 +15,7 @@ import com.stride.tracking.metric.dto.report.AuthProvider;
 import com.stride.tracking.metric.dto.user.event.UserCreatedEvent;
 import com.stride.tracking.profile.dto.user.request.*;
 import com.stride.tracking.profile.dto.user.response.UserResponse;
+import com.stride.tracking.profileservice.constant.AppConstant;
 import com.stride.tracking.profileservice.constant.Message;
 import com.stride.tracking.profileservice.mapper.UserMapper;
 import com.stride.tracking.profileservice.model.User;
@@ -155,6 +156,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         User user = User.builder()
                 .email(request.getEmail())
                 .name(request.getEmail())
+                .ava(AppConstant.DEFAULT_AVA)
                 .isBlocked(false)
                 .isAdmin(false)
                 .build();
