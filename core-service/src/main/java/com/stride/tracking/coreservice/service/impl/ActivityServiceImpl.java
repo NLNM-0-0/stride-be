@@ -302,8 +302,9 @@ public class ActivityServiceImpl implements ActivityService {
         CompletableFuture<Void> processLocationRouteFuture = runAsyncSecurityContextWithSpan(
                 "process-location-route",
                 parent,
-                () -> processLocationRoute(
-                        activity, minimizedCoordinates)
+                () -> processLocationMapImageRoute(
+                        activity, request, minimizedCoordinates
+                )
         );
 
         CompletableFuture<Void> processOtherInfo = runAsyncSecurityContextWithSpan(
@@ -414,14 +415,19 @@ public class ActivityServiceImpl implements ActivityService {
                 .toList();
     }
 
-    private void processLocationRoute(
+    private void processLocationMapImageRoute(
             Activity activity,
+            CreateActivityRequest request,
             List<List<Double>> minimizedCoordinates
     ) {
         trace("add-location", () -> addLocation(
                 activity,
                 minimizedCoordinates
         ));
+
+        trace("add-map-image", () ->
+                addMapImage(activity, request)
+        );
 
         trace("add-route", () -> processRoute(activity));
     }
@@ -438,6 +444,8 @@ public class ActivityServiceImpl implements ActivityService {
                             .build()
             );
         } else if (activity.getSport().getSportMapType() != SportMapType.NO_MAP) {
+            List<List<Double>> coordinates = StridePolylineUtils.decode(activity.getGeometry());
+
             CreateRouteResponse routeResponse = routeServiceImpl.createRoute(
                     CreateRouteRequest.builder()
                             .sportId(activity.getSport().getId())
@@ -446,7 +454,8 @@ public class ActivityServiceImpl implements ActivityService {
                             .images(activity.getImages())
                             .avgTime(activity.getMovingTimeSeconds().doubleValue())
                             .avgDistance(activity.getTotalDistance())
-                            .geometry(activity.getGeometry())
+                            .geometry(coordinates)
+                            .mapImage(activity.getMapImage())
                             .ward(activity.getLocation() != null ? activity.getLocation().getWard() : null)
                             .district(activity.getLocation() != null ? activity.getLocation().getDistrict() : null)
                             .city(activity.getLocation() != null ? activity.getLocation().getCity() : null)
@@ -477,10 +486,6 @@ public class ActivityServiceImpl implements ActivityService {
 
         trace("add-carbon-saved-info", () ->
                 addCarbonSavedInfo(activity, activity.getTotalDistance())
-        );
-
-        trace("add-map-image", () ->
-                addMapImage(activity, request.getCoordinates())
         );
 
         trace("add-goal-histories", () -> addGoalHistories(activity, zoneId));
@@ -582,8 +587,11 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setCarbonSaved(carbonSaved);
     }
 
-    private void addMapImage(Activity activity, List<CoordinateRequest> rawCoordinates) {
-        List<List<Double>> coordinates = extractCoordinates(rawCoordinates);
+    private void addMapImage(
+            Activity activity,
+            CreateActivityRequest request
+    ) {
+        List<List<Double>> coordinates = extractCoordinates(request.getCoordinates());
 
         if (coordinates.size() > 100) {
             coordinates = RamerDouglasPeucker.handle(

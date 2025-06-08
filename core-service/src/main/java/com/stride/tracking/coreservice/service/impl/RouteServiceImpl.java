@@ -11,10 +11,8 @@ import com.stride.tracking.core.dto.route.request.*;
 import com.stride.tracking.core.dto.route.response.CreateRouteResponse;
 import com.stride.tracking.core.dto.route.response.RouteResponse;
 import com.stride.tracking.core.dto.route.response.SaveRouteResponse;
-import com.stride.tracking.core.dto.sport.SportMapType;
 import com.stride.tracking.core.dto.supabase.request.*;
 import com.stride.tracking.core.dto.supabase.response.*;
-import com.stride.tracking.coreservice.constant.ActivityConst;
 import com.stride.tracking.coreservice.constant.Message;
 import com.stride.tracking.coreservice.mapper.RouteMapper;
 import com.stride.tracking.coreservice.model.Location;
@@ -26,9 +24,6 @@ import com.stride.tracking.coreservice.repository.specs.RouteSpecs;
 import com.stride.tracking.coreservice.service.RouteService;
 import com.stride.tracking.coreservice.utils.ComposeNameHelper;
 import com.stride.tracking.coreservice.utils.GeometryConverter;
-import com.stride.tracking.coreservice.utils.StridePolylineUtils;
-import com.stride.tracking.coreservice.utils.WayPointHelper;
-import com.stride.tracking.coreservice.utils.calculator.RamerDouglasPeucker;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -156,20 +151,10 @@ public class RouteServiceImpl implements RouteService {
     // The transaction already have been initialized in creating activity
     // Annotating transaction in here will prevent tracing
     public CreateRouteResponse createRoute(CreateRouteRequest request) {
-        List<List<Double>> decodedGeometry = StridePolylineUtils.decode(request.getGeometry());
-        List<List<Double>> points = mapPointsToMap(request.getSportMapType(), decodedGeometry);
+        List<List<Double>> points = request.getGeometry();
 
         MapboxDirectionResponse mapboxResponse;
         if (points.size() < 2) {
-            points = decodedGeometry;
-
-            if (points.size() > 100) {
-                points = RamerDouglasPeucker.handle(
-                        points,
-                        ActivityConst.RDP_EPSILON
-                );
-            }
-
             mapboxResponse = MapboxDirectionResponse.builder()
                     .coordinates(points)
                     .wayPoints(new ArrayList<>())
@@ -178,9 +163,8 @@ public class RouteServiceImpl implements RouteService {
             mapboxResponse = mapboxService.getBatchRoute(points, request.getSportMapType());
         }
 
-        decodedGeometry = mapboxResponse.getCoordinates();
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        Geometry geometry = GeometryConverter.fromListDouble(decodedGeometry, geometryFactory);
+        Geometry geometry = GeometryConverter.fromListDouble(points, geometryFactory);
 
         Optional<Route> existingRouteOpt = routeRepository.findMostSimilarRoute(geometry);
         if (existingRouteOpt.isPresent()) {
@@ -195,9 +179,7 @@ public class RouteServiceImpl implements RouteService {
             return new CreateRouteResponse(route.getId());
         }
 
-        String geometryGeoJson = StridePolylineUtils.encode(geometry);
-
-        Route newRoute = createNewRoute(request, mapboxResponse, geometry, geometryGeoJson);
+        Route newRoute = createNewRoute(request, mapboxResponse, geometry);
 
         return new CreateRouteResponse(newRoute.getId());
     }
@@ -225,10 +207,8 @@ public class RouteServiceImpl implements RouteService {
     private Route createNewRoute(
             CreateRouteRequest request,
             MapboxDirectionResponse mapboxResponse,
-            Geometry geometry,
-            String geometryGeoJson
+            Geometry geometry
     ) {
-        String mapImage = mapboxService.generateAndUpload(geometryGeoJson, "route");
         List<String> districts = getDistrictsForRoute(mapboxResponse.getCoordinates());
 
         String routeName = ComposeNameHelper.composeRouteName(mapboxResponse.getWayPoints());
@@ -249,7 +229,7 @@ public class RouteServiceImpl implements RouteService {
                         .city(request.getCity())
                         .build()
                 )
-                .mapImage(mapImage)
+                .mapImage(request.getMapImage())
                 .images(Map.of(request.getActivityId(), request.getImages() != null ? request.getImages() : new ArrayList<>()))
                 .districts(districts)
                 .geometry(geometry)
@@ -272,31 +252,6 @@ public class RouteServiceImpl implements RouteService {
         return response.getDistricts().stream()
                 .map(DistrictResponse::getName)
                 .toList();
-    }
-
-    private List<List<Double>> mapPointsToMap(SportMapType mapType, List<List<Double>> points) {
-        List<List<Double>> simplified = RamerDouglasPeucker.handle(points, 0.00005);
-
-        List<PointRequest> formattedData = simplified.stream()
-                .map(point -> PointRequest.builder()
-                        .lon(point.get(0))
-                        .lat(point.get(1))
-                        .build()
-                ).toList();
-
-        FindNearestWayPointsRequest request = new FindNearestWayPointsRequest(mapType.getLowercase(), formattedData);
-
-        FindNearestWayPointsResponse responsePoints = supabaseService.findNearestWayPoints(request);
-
-        List<WayPoint> filtered = WayPointHelper.filterPoints(responsePoints.getData());
-
-        List<List<Double>> filteredPoints = filtered.stream()
-                .map(p -> List.of(p.getLon(), p.getLat()))
-                .toList();
-
-        double epsilon = WayPointHelper.getRdpEpsilon(mapType);
-
-        return RamerDouglasPeucker.handle(filteredPoints, epsilon);
     }
 
     @Override
