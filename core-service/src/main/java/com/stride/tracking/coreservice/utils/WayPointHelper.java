@@ -15,14 +15,7 @@ public class WayPointHelper {
         if (mapType == SportMapType.WALKING) {
             return 0.00005;
         }
-        return 0.001;
-    }
-
-    public static int getSimplificationStep(SportMapType mapType) {
-        if (mapType == SportMapType.WALKING) {
-            return 5;
-        }
-        return 10;
+        return 0.0001;
     }
 
     public static List<WayPoint> filterPoints(List<WayPoint> points) {

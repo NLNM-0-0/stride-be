@@ -178,6 +178,7 @@ public class RouteServiceImpl implements RouteService {
             mapboxResponse = mapboxService.getBatchRoute(points, request.getSportMapType());
         }
 
+        decodedGeometry = mapboxResponse.getCoordinates();
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         Geometry geometry = GeometryConverter.fromListDouble(decodedGeometry, geometryFactory);
 
@@ -194,7 +195,7 @@ public class RouteServiceImpl implements RouteService {
             return new CreateRouteResponse(route.getId());
         }
 
-        String geometryGeoJson = StridePolylineUtils.encode(mapboxResponse.getCoordinates());
+        String geometryGeoJson = StridePolylineUtils.encode(geometry);
 
         Route newRoute = createNewRoute(request, mapboxResponse, geometry, geometryGeoJson);
 
@@ -274,7 +275,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     private List<List<Double>> mapPointsToMap(SportMapType mapType, List<List<Double>> points) {
-        List<List<Double>> simplified = RamerDouglasPeucker.handle(points, 0.0005);
+        List<List<Double>> simplified = RamerDouglasPeucker.handle(points, 0.00005);
 
         List<PointRequest> formattedData = simplified.stream()
                 .map(point -> PointRequest.builder()
@@ -292,6 +293,7 @@ public class RouteServiceImpl implements RouteService {
         List<List<Double>> filteredPoints = filtered.stream()
                 .map(p -> List.of(p.getLon(), p.getLat()))
                 .toList();
+
         double epsilon = WayPointHelper.getRdpEpsilon(mapType);
 
         return RamerDouglasPeucker.handle(filteredPoints, epsilon);
