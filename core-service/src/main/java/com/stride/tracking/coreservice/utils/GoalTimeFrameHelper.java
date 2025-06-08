@@ -3,12 +3,9 @@ package com.stride.tracking.coreservice.utils;
 import com.stride.tracking.core.dto.goal.GoalTimeFrame;
 
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.time.ZonedDateTime;
+import java.util.*;
 
 public class GoalTimeFrameHelper {
     private GoalTimeFrameHelper() {}
@@ -34,8 +31,10 @@ public class GoalTimeFrameHelper {
     }
 
     public static Calendar getCalendar(GoalTimeFrame timeFrame, ZoneId zoneId) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(Date.from(Instant.now().atZone(zoneId).toInstant()));
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone(zoneId));
+        ZonedDateTime zonedNow = ZonedDateTime.now(zoneId);
+
+        calendar.setTime(Date.from(zonedNow.toInstant()));
 
         switch (timeFrame) {
             case WEEKLY -> calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
