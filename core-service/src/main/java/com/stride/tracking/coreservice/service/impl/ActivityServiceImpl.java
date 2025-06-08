@@ -302,8 +302,9 @@ public class ActivityServiceImpl implements ActivityService {
         CompletableFuture<Void> processLocationRouteFuture = runAsyncSecurityContextWithSpan(
                 "process-location-route",
                 parent,
-                () -> processLocationMapImageRoute(
-                        activity, request, minimizedCoordinates
+                () -> processLocationMapRoute(
+                        activity,
+                        minimizedCoordinates
                 )
         );
 
@@ -415,19 +416,14 @@ public class ActivityServiceImpl implements ActivityService {
                 .toList();
     }
 
-    private void processLocationMapImageRoute(
+    private void processLocationMapRoute(
             Activity activity,
-            CreateActivityRequest request,
             List<List<Double>> minimizedCoordinates
     ) {
         trace("add-location", () -> addLocation(
                 activity,
                 minimizedCoordinates
         ));
-
-        trace("add-map-image", () ->
-                addMapImage(activity, request)
-        );
 
         trace("add-route", () -> processRoute(activity));
     }
@@ -455,7 +451,6 @@ public class ActivityServiceImpl implements ActivityService {
                             .avgTime(activity.getMovingTimeSeconds().doubleValue())
                             .avgDistance(activity.getTotalDistance())
                             .geometry(coordinates)
-                            .mapImage(activity.getMapImage())
                             .ward(activity.getLocation() != null ? activity.getLocation().getWard() : null)
                             .district(activity.getLocation() != null ? activity.getLocation().getDistrict() : null)
                             .city(activity.getLocation() != null ? activity.getLocation().getCity() : null)
@@ -486,6 +481,10 @@ public class ActivityServiceImpl implements ActivityService {
 
         trace("add-carbon-saved-info", () ->
                 addCarbonSavedInfo(activity, activity.getTotalDistance())
+        );
+
+        trace("add-map-image", () ->
+                addMapImage(activity, request)
         );
 
         trace("add-goal-histories", () -> addGoalHistories(activity, zoneId));

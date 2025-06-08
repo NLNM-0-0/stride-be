@@ -27,6 +27,15 @@ public interface MapboxFeignClient {
             @RequestParam(value = "continue_straight", defaultValue = "true") String continueStraight
     );
 
+    @GetMapping("/matching/v5/mapbox/{mapType}/{coordinates}")
+    ResponseEntity<Map<String, Object>> getMatching(
+            @PathVariable("mapType") String mapType,
+            @PathVariable("coordinates") String coordinates,
+            @RequestParam(value = "access_token") String accessToken,
+            @RequestParam(value = "geometries", defaultValue = "geojson") String geometries,
+            @RequestParam(value = "overview", defaultValue = "full") String overview
+    );
+
     @GetMapping("/styles/v1/{mapStyle}/static/path-{strokeWidth}{strokeColor}{strokeFill}({path})/auto/{width}x{height}")
     ResponseEntity<byte[]> getStaticMapImage(
             @PathVariable("mapStyle") String mapStyle,
