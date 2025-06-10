@@ -15,8 +15,6 @@ cd z-etc/bash
 ```
 bash <<THƯ MỤC CHỨA stride-be>>/z-etc/bash/sync-config-repo.sh
 ```
-![image](https://github.com/user-attachments/assets/ee9d2c0a-5854-4102-9314-b6f46f74cdfc)
-Nếu nó hiện thế này là bạn đã thành công
 ### Cách 2:
 Vào repository [stride-config](https://github.com/NLNM-0-0/stride-config) copy từng file application và .env vào từng module stride-be
 - File .env đặt ở root
@@ -26,10 +24,6 @@ Vào repository [stride-config](https://github.com/NLNM-0-0/stride-config) copy 
 ```
 docker-compose up
 ```
-# Database connection
-- **identity_db**: jdbc:mysql://localhost:3306/identity_db
-- **profile_db**: mongodb://localhost:27017/profile_db?authSource=admin
-- **notification_db**: mongodb://localhost:27017/notification_db?authSource=admin
 # Các repository liên quan
 - **[stride-dto](https://github.com/NLNM-0-0/stride-dto)**: Define các DTO sử dụng cho các module
 - **[stride-common](https://github.com/NLNM-0-0/stride-common)**: Define các config sử dụng nhiều giữa các module
