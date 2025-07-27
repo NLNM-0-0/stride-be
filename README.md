@@ -33,6 +33,7 @@
 ![Prometheus](./z-etc/doc/prometheus.png)
 ### Mobile
 Here is link video: [youtube](https://youtu.be/MwxNxFGHnG0)
+
 [![Watch the video](./z-etc/doc/thumbnail.png)](https://www.youtube.com/watch?v=MwxNxFGHnG0)
 ## How to run backend
 - **Step 1**: Open the file *z-etc/bash/config-paths.env*.
