@@ -1,30 +1,51 @@
-# Cách chạy Backend ở local
-## 1. Tạo các file application và .env cho Backend
-### Cách 1:
-- Clone repository [stride-config](https://github.com/NLNM-0-0/stride-config) xuống máy bạn
-- Vào *stride-be/z-etc/bash/config-paths.env*. Sửa **CONFIG_DIR** và **SOURCE_DIR** là đường dẫn đến thư mục **stride-config** và **stride-be** của bạn
+# Stride backend
 
-![image](https://github.com/user-attachments/assets/f8b78acf-fcbf-4d81-8900-5caf785c49f3)
+> [!Note]
+> **Other repositories**
+> - [stride-common](https://github.com/NLNM-0-0/stride-common): Defines shared configurations used by multiple services.
+> - [stride-dto](https://github.com/NLNM-0-0/stride-dto): Defines the DTOs used across services.
+> - [stride-config](https://github.com/NLNM-0-0/stride-config): Manages runtime environment settings.
+> - [stride-fe](https://github.com/ZenyB/stride-fe): Mobile app
+> - [stride-admin](https://github.com/kimthu09/stride-admin): Web admin
 
-- Vào thư mục *stride-be/z-etc/bash*
+## Description
+![Backend Structure](./z-etc/doc/structure.png)
+
+- **Stride** is an microservices system for tracking sports activities, visualizing routes, and analyzing workout performance using data from smartphones and smartwatches. Most features are powered by **Mapbox APIs**.
+- I used **Spring Boot** for service development and **Spring Cloud** for the gateway and configuration server.
+- **GitHub Packages** is used for artifact storage and distribution. **GitHub Actions** and **Docker** handle automated deployment and containerization.
+- I also used **Kafka** for service synchronization. For real-time performance monitoring, error tracing, and incident analysis, the system integrates **Grafana**, **Prometheus**, **Loki**, and **Tempo**.
+- Additionally, it supports **OAuth2** for authentication and **Firebase Cloud Messaging** for real-time notifications.
+- **PostgreSQL** and **MongoDB** are chosen based on service requirements, with PostgreSQL extended by TimescaleDB for efficient time-series queries and PostGIS for spatial data and geographic computations.
+
+## Usecases
+### Admin usecases
+![Admin Usecase](./z-etc/doc/uc/admin.png)
+### User usecases
+![User Usecase](./z-etc/doc/uc/user.png)
+
+## API Docs
+> [!Note]
+> [Postman](https://documenter.getpostman.com/view/30541820/2sB2j7d9ep)
+
+## Demo
+### Backend
+![Prometheus](./z-etc/doc/prometheus.png)
+### Mobile
+Here is link video: [youtube](https://youtu.be/MwxNxFGHnG0)
+[![Watch the video](./z-etc/doc/thumbnail.png)](https://www.youtube.com/watch?v=MwxNxFGHnG0)
+## How to run backend
+- **Step 1**: Open the file *z-etc/bash/config-paths.env*.
+  Update the values of *CONFIG_DIR* and *SOURCE_DIR* to point to the paths of the stride-config and stride-be folders respectively.
+- **Step 2**: Go to the stride-be/z-etc/bash directory
 ``` bash
 cd z-etc/bash
 ```
-
-- Run lệnh này trong *Git Bash* hoặc trên terminar (nếu terminal bạn hỗ trợ lệnh bash)
+- **Step 3**: Run the *sync-config-repo.sh* script in the stride-be/z-etc/bash directory to sync the config:
+```bash
+./sync-config-repo.sh
 ```
-bash <<THƯ MỤC CHỨA stride-be>>/z-etc/bash/sync-config-repo.sh
+- **Step 4**: From the stride-be directory, start the services with:
+``` bash
+docker-compose -f docker-compose-dev.yml -f docker-compose-log.yml up -d
 ```
-### Cách 2:
-Vào repository [stride-config](https://github.com/NLNM-0-0/stride-config) copy từng file application và .env vào từng module stride-be
-- File .env đặt ở root
-- File application.yml đặt ở thư mục <<TÊN MODULE>>/src/main/resources
-
-## 2. Chạy docker-compose
-```
-docker-compose up
-```
-# Các repository liên quan
-- **[stride-dto](https://github.com/NLNM-0-0/stride-dto)**: Define các DTO sử dụng cho các module
-- **[stride-common](https://github.com/NLNM-0-0/stride-common)**: Define các config sử dụng nhiều giữa các module
-- **[stride-config](https://github.com/NLNM-0-0/stride-config)**: Quản lý các env chạy
